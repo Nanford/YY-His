@@ -62,6 +62,8 @@ export interface TcmJudgment {
 export interface Scale {
   id: string;
   name: string;
+  /** 量表级作答/判定说明（展示用） */
+  answerNote?: string;
   judgment: SumRangeJudgment | AnyYesJudgment | TcmJudgment;
   likertOptions?: QuestionOption[];
   questions: ScaleQuestion[];
@@ -92,6 +94,11 @@ export const scaleById: ReadonlyMap<string, Scale> = new Map(scales.map((s) => [
 
 export const questionById: ReadonlyMap<string, ScaleQuestion> = new Map(
   scales.flatMap((s) => s.questions.map((q) => [q.id, q] as const))
+);
+
+/** 题目 id → 所属量表（likert5 题取通用选项、按题定位量表时用） */
+export const scaleByQuestionId: ReadonlyMap<string, Scale> = new Map(
+  scales.flatMap((s) => s.questions.map((q) => [q.id, s] as const))
 );
 
 /** 评估标签 → 干预标签列表（保持映射表原始顺序） */
