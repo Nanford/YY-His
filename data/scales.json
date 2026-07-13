@@ -1,0 +1,655 @@
+{
+  "source": "docs/source/量表题目_Demo.txt",
+  "note": "标准题面(standardText)、选项与分值、判定规则严格照抄源文件，禁止改动。口语化文案(colloquialText)与复问文案(retryText)为预生成话术，供数字医生播报，可人工审校修改，但不得改变题目医学含义。measurement 字段表示该题分值由测量数据换算；observerAssisted 表示可由调查员/医生辅助观察填写。",
+  "scales": [
+    {
+      "id": "frail",
+      "name": "FRAIL衰弱评估",
+      "answerNote": "每满足1项计1分",
+      "judgment": {
+        "type": "sumRange",
+        "ranges": [
+          { "tag": "无衰弱", "min": 0, "max": 0 },
+          { "tag": "衰弱前期", "min": 1, "max": 2 },
+          { "tag": "衰弱", "min": 3, "max": 5 }
+        ]
+      },
+      "questions": [
+        {
+          "id": "frail_1",
+          "no": "1",
+          "title": "疲乏",
+          "standardText": "过去4周内大部分时间或者所有时间感到疲乏",
+          "colloquialText": "最近一个月，您是不是大部分时间都觉得浑身没劲、特别容易累？",
+          "retryText": "我换个说法问您：这一个月来，您平时是精神头还可以，还是老觉得疲乏、提不起劲？",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        },
+        {
+          "id": "frail_2",
+          "no": "2",
+          "title": "阻力增加/耐力减退",
+          "standardText": "在不用任何辅助工具以及不用他人帮助的情况下，中途不休息爬1层楼梯有困难",
+          "colloquialText": "您自己不扶东西、也没人搀扶，中间不歇脚，一口气爬一层楼梯，觉得费劲吗？",
+          "retryText": "再问一下：要是让您自己爬一层楼，中间不停下来休息，您能轻松上去吗？还是觉得吃力？",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        },
+        {
+          "id": "frail_3",
+          "no": "3",
+          "title": "自由活动下降",
+          "standardText": "在不用任何辅助工具以及不用他人帮助的情况下，走完1个街区（100 m）较困难",
+          "colloquialText": "您不拄拐杖、也没人扶着，自己走上一百米，大概就是一条街的距离，会觉得困难吗？",
+          "retryText": "换个说法：您平时自己出门走个一百来米，比如从家门口走到小区门口，走得动吗？费不费劲？",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        },
+        {
+          "id": "frail_4",
+          "no": "4",
+          "title": "疾病情况",
+          "standardText": "医生曾经告诉你存在5种以上如下疾病：高血压、糖尿病、急性心脏疾病发作、卒中、恶性肿瘤（微小皮肤癌除外）、充血性心力衰竭、哮喘、关节炎、慢性肺病、肾脏疾病、心绞痛等",
+          "colloquialText": "医生有没有说过您得了比较多的慢性病？比如高血压、糖尿病、心脏病、中风、肿瘤、哮喘、关节炎、肺病、肾病、心绞痛这些，加起来有五种以上吗？",
+          "retryText": "我再确认一下：刚才说的那些病——高血压、糖尿病、心脏病、中风这一类，医生诊断过的，您数一数一共有没有五种以上？",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        },
+        {
+          "id": "frail_5",
+          "no": "5",
+          "title": "体重下降",
+          "standardText": "1年或更短时间内出现体重下降≥5%",
+          "colloquialText": "最近一年之内，您的体重有没有明显往下掉？大概瘦了原来体重的百分之五以上，比如原来一百二十斤，瘦了六斤多。",
+          "retryText": "再问您一次：这一年里体重掉得多不多？要是原来一百斤，掉了五斤以上就算明显下降。",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mnasf",
+      "name": "MNA-SF营养评估（微营养评定法简表）",
+      "answerNote": "总分为各题所选分值之和；F题优先用BMI，无法获得BMI时用F替代（小腿围），二者取其一不叠加",
+      "judgment": {
+        "type": "sumRange",
+        "ranges": [
+          { "tag": "营养正常", "min": 12, "max": 14 },
+          { "tag": "存在营养不良风险", "min": 8, "max": 11 },
+          { "tag": "营养不良", "min": 0, "max": 7 }
+        ]
+      },
+      "questions": [
+        {
+          "id": "mnasf_A",
+          "no": "A",
+          "title": "食量变化",
+          "standardText": "过去3个月是否有因食欲减退、消化不良、咀嚼或吞咽困难而减少食量",
+          "colloquialText": "最近三个月，您吃饭的量有没有变少？比如胃口不好、消化不好，或者牙口不行、咽东西费劲，导致吃得比以前少了？",
+          "retryText": "换个说法：这三个月您每顿饭吃的量，跟以前比是差不多，还是少了一些，还是少了很多？",
+          "answerType": "choice",
+          "options": [
+            { "label": "食量严重减少", "score": 0 },
+            { "label": "食量中度减少", "score": 1 },
+            { "label": "食量没有改变", "score": 2 }
+          ]
+        },
+        {
+          "id": "mnasf_B",
+          "no": "B",
+          "title": "体质量丢失",
+          "standardText": "过去3个月体质量丢失",
+          "colloquialText": "最近三个月，您体重掉了多少？是掉了三公斤以上（六斤多），还是一到三公斤，还是没掉，或者您自己也不清楚？",
+          "retryText": "再问一下体重：这三个月称过体重吗？大概瘦了几斤？还是基本没变？",
+          "answerType": "choice",
+          "options": [
+            { "label": "体重下降＞3 kg", "score": 0 },
+            { "label": "不知道", "score": 1 },
+            { "label": "体重下降1～3 kg", "score": 2 },
+            { "label": "体重无下降", "score": 3 }
+          ]
+        },
+        {
+          "id": "mnasf_C",
+          "no": "C",
+          "title": "活动能力",
+          "standardText": "活动能力",
+          "colloquialText": "您平时活动方便吗？是能自己出门走动，还是能下床、能离开轮椅但出不了门，还是长期躺床上或坐轮椅？",
+          "retryText": "我再确认一下您平时的活动情况：您能自己到外面去吗？还是只能在屋里活动？还是基本离不开床或轮椅？",
+          "answerType": "choice",
+          "options": [
+            { "label": "长期卧床或坐轮椅", "score": 0 },
+            { "label": "可以下床或离开轮椅，但不能外出", "score": 1 },
+            { "label": "可以外出", "score": 2 }
+          ]
+        },
+        {
+          "id": "mnasf_D",
+          "no": "D",
+          "title": "心理创伤或急性疾病",
+          "standardText": "过去3个月是否受到心理创伤或有急性疾病",
+          "colloquialText": "最近三个月，您有没有遇到让您特别难受的大事，比如家里出事、受了很大打击？或者突然生过一场比较重的急病？",
+          "retryText": "换个说法：这三个月里，有没有生过急病住院，或者碰上让您情绪受很大打击的事情？",
+          "answerType": "choice",
+          "options": [
+            { "label": "是", "score": 0 },
+            { "label": "否", "score": 2 }
+          ]
+        },
+        {
+          "id": "mnasf_E",
+          "no": "E",
+          "title": "精神心理问题",
+          "standardText": "精神心理问题",
+          "colloquialText": "您平时记性和情绪怎么样？有没有医生说过您有痴呆或者抑郁方面的问题？",
+          "retryText": "我再问一下：医生有没有诊断过您有老年痴呆或者抑郁症？如果有，严重吗？",
+          "answerType": "choice",
+          "observerAssisted": true,
+          "options": [
+            { "label": "严重痴呆或抑郁", "score": 0 },
+            { "label": "轻度痴呆", "score": 1 },
+            { "label": "无精神心理问题", "score": 2 }
+          ]
+        },
+        {
+          "id": "mnasf_F",
+          "no": "F",
+          "title": "体质指数（BMI）",
+          "standardText": "体质指数（BMI）（kg/m²）",
+          "colloquialText": "接下来需要您的身高和体重来计算体质指数，这个数据由医生现场测量录入。",
+          "retryText": "这一项根据您的身高体重自动计算，如果没有测量，请医生补录。",
+          "answerType": "choice",
+          "measurement": "bmi",
+          "options": [
+            { "label": "BMI＜19", "score": 0 },
+            { "label": "19≤BMI＜21", "score": 1 },
+            { "label": "21≤BMI＜23", "score": 2 },
+            { "label": "BMI≥23", "score": 3 }
+          ]
+        },
+        {
+          "id": "mnasf_F_alt",
+          "no": "F替代",
+          "title": "小腿围（CC）",
+          "standardText": "如果无法得到BMI，用小腿围（CC）",
+          "colloquialText": "如果没有身高体重数据，就用小腿围代替，由医生用软尺测量小腿最粗的地方。",
+          "retryText": "这一项由医生测量小腿围后录入。",
+          "answerType": "choice",
+          "measurement": "calf",
+          "altOf": "mnasf_F",
+          "options": [
+            { "label": "CC＜31 cm", "score": 0 },
+            { "label": "CC≥31 cm", "score": 3 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fall",
+      "name": "跌倒风险筛查",
+      "answerNote": "任意一个问题回答\"是\"，即为跌倒风险筛查阳性",
+      "judgment": {
+        "type": "anyYes",
+        "positiveTag": "跌倒风险筛查阳性",
+        "negativeTag": "跌倒风险筛查阴性"
+      },
+      "questions": [
+        {
+          "id": "fall_1",
+          "no": "1",
+          "title": "过去一年跌倒史",
+          "standardText": "过去一年内是否发生过跌倒？",
+          "colloquialText": "过去这一年里，您有没有摔倒过？就是身体真正倒在地上、床上或者其他地方的那种。",
+          "retryText": "我再确认一下：从去年到现在，您有没有摔过跤？哪怕一次也算。",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        },
+        {
+          "id": "fall_2",
+          "no": "2",
+          "title": "行走/站立不稳",
+          "standardText": "是否经常在走路/站立时感到不稳？",
+          "colloquialText": "您平时走路或者站着的时候，是不是经常觉得站不稳、晃晃悠悠的？",
+          "retryText": "换个说法：您站起来或者走路的时候，会不会经常觉得腿发飘、身体不稳当？",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        },
+        {
+          "id": "fall_3",
+          "no": "3",
+          "title": "害怕跌倒影响行为",
+          "standardText": "是否因害怕跌倒影响日常行为？",
+          "colloquialText": "您会不会因为怕摔倒，有些事就不敢做了？比如不敢一个人出门、不敢上下楼梯、不敢洗澡这些。",
+          "retryText": "我再问一下：因为担心摔跤，您平时有没有特意少出门、少走动，或者有些活动不敢参加了？",
+          "answerType": "boolean",
+          "options": [
+            { "label": "是", "score": 1 },
+            { "label": "否", "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tcm",
+      "name": "中医体质辨识（33项官方公开版）",
+      "answerNote": "一般回答选项：1＝没有（根本不/从来没有）；2＝很少（有一点/偶尔）；3＝有时（有些/少数时间）；4＝经常（相当/多数时间）；5＝总是（非常/每天）。特殊题目按题内分值选择。",
+      "likertOptions": [
+        { "label": "没有（根本不/从来没有）", "score": 1 },
+        { "label": "很少（有一点/偶尔）", "score": 2 },
+        { "label": "有时（有些/少数时间）", "score": 3 },
+        { "label": "经常（相当/多数时间）", "score": 4 },
+        { "label": "总是（非常/每天）", "score": 5 }
+      ],
+      "judgment": {
+        "type": "tcmConstitution",
+        "biased": [
+          { "tag": "气虚质", "questionNos": [2, 3, 4, 14] },
+          { "tag": "阳虚质", "questionNos": [11, 12, 13, 29] },
+          { "tag": "阴虚质", "questionNos": [10, 21, 26, 31] },
+          { "tag": "痰湿质", "questionNos": [9, 16, 28, 32] },
+          { "tag": "湿热质", "questionNos": [23, 25, 27, 30] },
+          { "tag": "血瘀质", "questionNos": [19, 22, 24, 33] },
+          { "tag": "气郁质", "questionNos": [5, 6, 7, 8] },
+          { "tag": "特禀质", "questionNos": [15, 17, 18, 20] }
+        ],
+        "biasedThresholds": { "yesMin": 11, "tendencyMin": 9, "tendencyMax": 10, "noMax": 8 },
+        "pinghe": {
+          "tag": "平和质",
+          "questionNos": [1, 2, 4, 5, 13],
+          "reverseNos": [2, 4, 5, 13],
+          "yesRule": "总分≥17分，同时其他8种体质得分都＜8分",
+          "basicYesRule": "总分≥17分，同时其他8种体质得分都＜10分",
+          "totalMin": 17,
+          "othersMaxForYes": 8,
+          "othersMaxForBasicYes": 10
+        }
+      },
+      "questions": [
+        {
+          "id": "tcm_1",
+          "no": "1",
+          "title": "精力充沛",
+          "standardText": "您精力充沛吗？（指精神头足，乐于做事）",
+          "colloquialText": "您平时精神头足不足？就是愿意做事、有干劲的那种感觉，经常有吗？",
+          "retryText": "换个说法：您平常觉得自己有精神、有力气去做事吗？是经常这样，还是偶尔，还是基本没有？",
+          "answerType": "likert5",
+          "constitutions": ["平和质"]
+        },
+        {
+          "id": "tcm_2",
+          "no": "2",
+          "title": "容易疲乏",
+          "standardText": "您容易疲乏吗？（指体力如何，是否稍微活动一下或做一点家务劳动就感到累）",
+          "colloquialText": "您容易觉得累吗？比如稍微活动一下、干点家务，就觉得乏了？这种情况多不多？",
+          "retryText": "我再问一下：平时做点小事就觉得累的情况，是经常有、偶尔有，还是几乎没有？",
+          "answerType": "likert5",
+          "constitutions": ["气虚质", "平和质"]
+        },
+        {
+          "id": "tcm_3",
+          "no": "3",
+          "title": "气短",
+          "standardText": "您容易气短，呼吸短促，接不上气吗？",
+          "colloquialText": "您平时会不会觉得气不够用？呼吸短、喘不上气的情况多吗？",
+          "retryText": "换个说法：您有没有经常觉得胸口气短、接不上气？大概多久有一次？",
+          "answerType": "likert5",
+          "constitutions": ["气虚质"]
+        },
+        {
+          "id": "tcm_4",
+          "no": "4",
+          "title": "声音低弱",
+          "standardText": "您说话声音低弱无力吗？（指说话没有力气）",
+          "colloquialText": "您说话的声音有没有觉得没力气、声音小、说久了累？这种情况多吗？",
+          "retryText": "再问一下：别人有没有说您说话声音小、没中气？您自己觉得呢？",
+          "answerType": "likert5",
+          "constitutions": ["气虚质", "平和质"]
+        },
+        {
+          "id": "tcm_5",
+          "no": "5",
+          "title": "情绪低沉",
+          "standardText": "您感到闷闷不乐、情绪低沉吗？（指心情不愉快，情绪低落）",
+          "colloquialText": "您平时心情怎么样？会不会经常觉得闷闷不乐、高兴不起来？",
+          "retryText": "换个说法：最近这段时间，您情绪低落、不开心的时候多吗？",
+          "answerType": "likert5",
+          "constitutions": ["气郁质", "平和质"]
+        },
+        {
+          "id": "tcm_6",
+          "no": "6",
+          "title": "精神紧张焦虑",
+          "standardText": "您容易精神紧张、焦虑不安吗？（指遇事是否心情紧张）",
+          "colloquialText": "您遇到事情容易紧张吗？会不会经常心里不踏实、焦虑不安？",
+          "retryText": "再问您：平时碰到点事就心慌、紧张的情况，是经常有还是偶尔有？",
+          "answerType": "likert5",
+          "constitutions": ["气郁质"]
+        },
+        {
+          "id": "tcm_7",
+          "no": "7",
+          "title": "孤独失落",
+          "standardText": "您因为生活状态改变而感到孤独、失落吗？",
+          "colloquialText": "生活上有变化的时候，比如退休了、家里人不在身边，您会觉得孤单、心里空落落的吗？",
+          "retryText": "换个说法：您平时会不会觉得孤独、没人陪，心里失落？这种感觉多吗？",
+          "answerType": "likert5",
+          "constitutions": ["气郁质"]
+        },
+        {
+          "id": "tcm_8",
+          "no": "8",
+          "title": "容易害怕受惊",
+          "standardText": "您容易感到害怕或受到惊吓吗？",
+          "colloquialText": "您胆子怎么样？容易害怕，或者一点动静就被吓一跳吗？",
+          "retryText": "再问一下：您是不是容易受惊吓？比如突然的声音会让您心里咯噔一下？这种情况多吗？",
+          "answerType": "likert5",
+          "constitutions": ["气郁质"]
+        },
+        {
+          "id": "tcm_9",
+          "no": "9",
+          "title": "身体超重（按BMI计分）",
+          "standardText": "您感到身体超重不轻松吗？（感觉身体沉重）",
+          "colloquialText": "这一题根据您的身高体重换算，由医生录入：您的体重指数属于哪一档？",
+          "retryText": "这一题需要身高体重数据换算，如果没有测量，请医生补录。",
+          "answerType": "choice",
+          "measurement": "bmi",
+          "constitutions": ["痰湿质"],
+          "options": [
+            { "label": "BMI＜24", "score": 1 },
+            { "label": "24≤BMI＜25", "score": 2 },
+            { "label": "25≤BMI＜26", "score": 3 },
+            { "label": "26≤BMI＜28", "score": 4 },
+            { "label": "BMI≥28", "score": 5 }
+          ]
+        },
+        {
+          "id": "tcm_10",
+          "no": "10",
+          "title": "眼睛干涩",
+          "standardText": "您眼睛干涩吗？",
+          "colloquialText": "您眼睛会不会经常发干、发涩，觉得不舒服？",
+          "retryText": "再问一下：您平时觉得眼睛干、想滴眼药水的情况多吗？",
+          "answerType": "likert5",
+          "constitutions": ["阴虚质"]
+        },
+        {
+          "id": "tcm_11",
+          "no": "11",
+          "title": "手脚发凉",
+          "standardText": "您手脚发凉吗？（不包含因周围温度低或穿得少导致的手脚发冷）",
+          "colloquialText": "您手脚是不是经常冰凉的？不是因为天冷或穿少了，就是平时手脚也不暖和。",
+          "retryText": "换个说法：天气不冷的时候，您的手脚也经常是凉的吗？",
+          "answerType": "likert5",
+          "constitutions": ["阳虚质"]
+        },
+        {
+          "id": "tcm_12",
+          "no": "12",
+          "title": "胃脘背腰膝怕冷",
+          "standardText": "您胃脘部、背部或腰膝部怕冷吗？（指上腹部、背部、腰部或膝关节等，有一处或多处怕冷）",
+          "colloquialText": "您的肚子上边、后背、腰或者膝盖，有没有哪个地方特别怕冷、总想捂着？",
+          "retryText": "再问您：胃部、背部、腰部、膝盖这些地方，有没有一处或几处平时觉得发凉怕冷？",
+          "answerType": "likert5",
+          "constitutions": ["阳虚质"]
+        },
+        {
+          "id": "tcm_13",
+          "no": "13",
+          "title": "耐受不了寒冷",
+          "standardText": "您比一般人耐受不了寒冷吗？（指比别人容易害怕冬天或是夏天的冷空调、电扇等）",
+          "colloquialText": "跟别人比，您是不是更怕冷？比如冬天特别难熬，夏天也受不了空调、电扇直吹？",
+          "retryText": "换个说法：家里人都不觉得冷的时候，您是不是已经觉得冷了？这种情况多吗？",
+          "answerType": "likert5",
+          "constitutions": ["阳虚质", "平和质"]
+        },
+        {
+          "id": "tcm_14",
+          "no": "14",
+          "title": "容易感冒（按次数计分）",
+          "standardText": "您容易患感冒吗？（指每年感冒的次数）",
+          "colloquialText": "您容易感冒吗？大概算一下，一年里感冒几次？",
+          "retryText": "我再确认一下：去年一年，您感冒了大概几回？是一两次，还是四五次，还是更多？",
+          "answerType": "choice",
+          "constitutions": ["气虚质"],
+          "options": [
+            { "label": "一年＜2次", "score": 1 },
+            { "label": "一年2～4次", "score": 2 },
+            { "label": "一年5～6次", "score": 3 },
+            { "label": "一年8次以上", "score": 4 },
+            { "label": "几乎每月都感冒", "score": 5 }
+          ]
+        },
+        {
+          "id": "tcm_15",
+          "no": "15",
+          "title": "无感冒时鼻塞流涕",
+          "standardText": "您没有感冒时也会鼻塞、流鼻涕吗？",
+          "colloquialText": "您在没感冒的时候，也会鼻子不通气、流鼻涕吗？这种情况多吗？",
+          "retryText": "再问一下：平时好好的、没有感冒，鼻子也经常塞住或者流清鼻涕吗？",
+          "answerType": "likert5",
+          "constitutions": ["特禀质"]
+        },
+        {
+          "id": "tcm_16",
+          "no": "16",
+          "title": "口粘口腻或打鼾",
+          "standardText": "您有口粘口腻，或睡眠打鼾吗？",
+          "colloquialText": "您嘴里会不会经常觉得发粘、发腻不清爽？或者晚上睡觉打呼噜？",
+          "retryText": "换个说法：早上起来嘴里粘糊糊的感觉多吗？家里人有没有说您睡觉鼾声大？",
+          "answerType": "likert5",
+          "constitutions": ["痰湿质"]
+        },
+        {
+          "id": "tcm_17",
+          "no": "17",
+          "title": "容易过敏（按频率计分）",
+          "standardText": "您容易过敏（对药物、食物、气味、花粉或在季节交替、气候变化时）吗？",
+          "colloquialText": "您容易过敏吗？比如吃药、吃东西、闻花粉，或者换季变天的时候，身上起反应。一年大概过敏几次？",
+          "retryText": "我再确认一下：您过敏的情况一年有几回？是从来没有，还是一两次、三四次，还是一碰到就过敏？",
+          "answerType": "choice",
+          "constitutions": ["特禀质"],
+          "options": [
+            { "label": "从来没有", "score": 1 },
+            { "label": "一年1～2次", "score": 2 },
+            { "label": "一年3～4次", "score": 3 },
+            { "label": "一年5～6次", "score": 4 },
+            { "label": "每次遇到上述原因都过敏", "score": 5 }
+          ]
+        },
+        {
+          "id": "tcm_18",
+          "no": "18",
+          "title": "皮肤起荨麻疹",
+          "standardText": "您的皮肤容易起荨麻疹吗？（包括风团、风疹块、风疙瘩）",
+          "colloquialText": "您皮肤上容易起荨麻疹吗？就是那种一片一片的风团、风疙瘩，又痒又肿的。",
+          "retryText": "再问一下：您身上起风疹块、风疙瘩的情况多吗？",
+          "answerType": "likert5",
+          "constitutions": ["特禀质"]
+        },
+        {
+          "id": "tcm_19",
+          "no": "19",
+          "title": "皮肤青紫瘀斑",
+          "standardText": "您的皮肤在不知不觉中会出现青紫瘀斑、皮下出血吗？（指皮肤在没有外伤的情况下出现青一块紫一块的情况）",
+          "colloquialText": "您身上会不会莫名其妙出现乌青、瘀斑？没磕没碰的，皮肤就青一块紫一块。",
+          "retryText": "换个说法：没有受伤磕碰，胳膊腿上自己冒出青紫印子的情况，您有吗？多不多？",
+          "answerType": "likert5",
+          "constitutions": ["血瘀质"]
+        },
+        {
+          "id": "tcm_20",
+          "no": "20",
+          "title": "皮肤划痕反应",
+          "standardText": "您的皮肤一抓就红，并出现抓痕吗？（指被指甲或钝物划过后皮肤的反应）",
+          "colloquialText": "您的皮肤是不是一抓就发红、起一道道印子？比如指甲轻轻划一下就有红痕。",
+          "retryText": "再问一下：挠一挠皮肤就出现红印子、抓痕的情况，您经常有吗？",
+          "answerType": "likert5",
+          "constitutions": ["特禀质"]
+        },
+        {
+          "id": "tcm_21",
+          "no": "21",
+          "title": "皮肤口唇干",
+          "standardText": "您皮肤或口唇干吗？",
+          "colloquialText": "您的皮肤或者嘴唇容易发干吗？比如嘴唇起皮、皮肤干燥。这种情况多吗？",
+          "retryText": "换个说法：您是不是经常觉得皮肤干、嘴唇干？需要老抹润肤露或润唇膏吗？",
+          "answerType": "likert5",
+          "constitutions": ["阴虚质"]
+        },
+        {
+          "id": "tcm_22",
+          "no": "22",
+          "title": "肢体麻木或固定疼痛",
+          "standardText": "您有肢体麻木或固定部位疼痛的感觉吗？",
+          "colloquialText": "您的胳膊腿会发麻吗？或者身上有没有固定的地方老是疼，总在同一个位置？",
+          "retryText": "再问您：手脚发麻，或者某个固定地方反复疼的情况，您有吗？多不多？",
+          "answerType": "likert5",
+          "constitutions": ["血瘀质"]
+        },
+        {
+          "id": "tcm_23",
+          "no": "23",
+          "title": "面鼻油腻",
+          "standardText": "您面部或鼻部有油腻感或者油亮发光吗？（指脸上或鼻子）",
+          "colloquialText": "您的脸上或者鼻子上是不是爱出油？摸上去油腻腻的，或者看着油亮亮的。",
+          "retryText": "换个说法：您脸上出油多吗？特别是鼻子这块，是不是经常油光光的？",
+          "answerType": "likert5",
+          "constitutions": ["湿热质"]
+        },
+        {
+          "id": "tcm_24",
+          "no": "24",
+          "title": "面色目眶晦黯",
+          "standardText": "您面色或目眶晦黯，或出现褐色斑块/斑点吗？",
+          "colloquialText": "您有没有觉得自己脸色发暗、眼圈发黑？或者脸上长了褐色的斑块、斑点？",
+          "retryText": "再问一下：照镜子的时候，觉得脸色暗沉、眼眶发黑，或者色斑变多的情况有吗？",
+          "answerType": "likert5",
+          "observerAssisted": true,
+          "constitutions": ["血瘀质"]
+        },
+        {
+          "id": "tcm_25",
+          "no": "25",
+          "title": "皮肤湿疹疮疖",
+          "standardText": "您有皮肤湿疹、疮疖吗？",
+          "colloquialText": "您皮肤上容易长湿疹，或者起疮、长疖子吗？这种情况多吗？",
+          "retryText": "换个说法：您身上长湿疹或者起脓疮、疖子的情况，是经常有还是偶尔有？",
+          "answerType": "likert5",
+          "constitutions": ["湿热质"]
+        },
+        {
+          "id": "tcm_26",
+          "no": "26",
+          "title": "口干咽燥",
+          "standardText": "您感到口干咽燥、总想喝水吗？",
+          "colloquialText": "您是不是经常觉得口干、嗓子发干，老想喝水？",
+          "retryText": "再问您：平时嘴巴干、喉咙干、总要喝水润一润的情况多吗？",
+          "answerType": "likert5",
+          "constitutions": ["阴虚质"]
+        },
+        {
+          "id": "tcm_27",
+          "no": "27",
+          "title": "口苦口异味",
+          "standardText": "您感到口苦或嘴里有异味吗？（指口苦或口臭）",
+          "colloquialText": "您嘴里会不会经常发苦？或者觉得嘴里有味儿、口气比较重？",
+          "retryText": "换个说法：早上起来或者平时，嘴里发苦、有异味的情况多吗？",
+          "answerType": "likert5",
+          "constitutions": ["湿热质"]
+        },
+        {
+          "id": "tcm_28",
+          "no": "28",
+          "title": "腹部肥大（按腹围计分）",
+          "standardText": "您腹部肥大吗？（指腹部脂肪肥厚）",
+          "colloquialText": "这一题根据腰围（腹围）来定，由医生测量录入：您的腹围属于哪一档？",
+          "retryText": "这一题需要腹围测量数据，如果没有测量，请医生补录。",
+          "answerType": "choice",
+          "measurement": "waist",
+          "constitutions": ["痰湿质"],
+          "options": [
+            { "label": "腹围＜80 cm", "score": 1 },
+            { "label": "腹围80～85 cm", "score": 2 },
+            { "label": "腹围86～90 cm", "score": 3 },
+            { "label": "腹围91～105 cm", "score": 4 },
+            { "label": "腹围＞105 cm", "score": 5 }
+          ]
+        },
+        {
+          "id": "tcm_29",
+          "no": "29",
+          "title": "怕吃凉的东西",
+          "standardText": "您吃（喝）凉的东西会感到不舒服或者怕吃（喝）凉的东西吗？（指不喜欢吃凉的食物，或吃了凉的食物后会不舒服）",
+          "colloquialText": "您吃凉的、喝凉的会不舒服吗？比如吃点凉菜、喝点凉水就胃里难受，或者干脆不敢碰凉的。",
+          "retryText": "再问一下：您是不是不敢吃凉东西？吃了凉的会拉肚子或者胃不舒服吗？",
+          "answerType": "likert5",
+          "constitutions": ["阳虚质"]
+        },
+        {
+          "id": "tcm_30",
+          "no": "30",
+          "title": "大便黏滞不爽",
+          "standardText": "您有大便黏滞不爽、解不尽的感觉吗？（大便容易粘在马桶或便坑壁上）",
+          "colloquialText": "您大便的时候，会不会觉得排不干净、粘粘的不爽利？比如大便容易粘在马桶上冲不干净。",
+          "retryText": "换个说法：解大便费劲、觉得没解干净、大便发粘的情况，您多吗？",
+          "answerType": "likert5",
+          "constitutions": ["湿热质"]
+        },
+        {
+          "id": "tcm_31",
+          "no": "31",
+          "title": "大便干燥",
+          "standardText": "您容易大便干燥吗？",
+          "colloquialText": "您会不会经常大便干结、排便费劲？",
+          "retryText": "再问您：大便发干发硬、便秘的情况，是经常有还是偶尔有？",
+          "answerType": "likert5",
+          "constitutions": ["阴虚质"]
+        },
+        {
+          "id": "tcm_32",
+          "no": "32",
+          "title": "舌苔厚腻",
+          "standardText": "您舌苔厚腻或有舌苔厚厚的感觉吗？（如果自我感觉不清楚可由调查员观察后填写）",
+          "colloquialText": "请您伸出舌头看一看（或由医生帮您看）：舌头上的舌苔是不是比较厚、发腻？",
+          "retryText": "这一题可以请医生帮忙看一下舌苔：是薄薄一层，还是又厚又腻？",
+          "answerType": "likert5",
+          "observerAssisted": true,
+          "constitutions": ["痰湿质"]
+        },
+        {
+          "id": "tcm_33",
+          "no": "33",
+          "title": "舌下静脉瘀紫",
+          "standardText": "您舌下静脉瘀紫或增粗吗？（可由调查员辅助观察后填写）",
+          "colloquialText": "请把舌头卷起来看舌头底下的青筋（或由医生帮您看）：舌下的血管是不是发紫、变粗？",
+          "retryText": "这一题请医生辅助观察：舌头下面的静脉有没有瘀紫、增粗的情况？",
+          "answerType": "likert5",
+          "observerAssisted": true,
+          "constitutions": ["血瘀质"]
+        }
+      ]
+    }
+  ]
+}

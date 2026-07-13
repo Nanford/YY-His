@@ -1,0 +1,325 @@
+{
+  "generatedFrom": "docs/source/评估标签-干预标签知识图谱映射表_Demo.xlsx",
+  "generatedAt": "2026-07-13T15:41:50.340Z",
+  "assessmentTags": [
+    "无衰弱",
+    "衰弱前期",
+    "衰弱",
+    "营养正常",
+    "存在营养不良风险",
+    "营养不良",
+    "跌倒风险筛查阴性",
+    "跌倒风险筛查阳性",
+    "平和质",
+    "气虚质",
+    "阳虚质",
+    "阴虚质",
+    "痰湿质",
+    "湿热质",
+    "血瘀质",
+    "气郁质",
+    "特禀质"
+  ],
+  "edges": [
+    {
+      "assessmentTag": "无衰弱",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "无衰弱",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "无衰弱",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "无衰弱",
+      "interventionTag": "平衡训练"
+    },
+    {
+      "assessmentTag": "无衰弱",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "衰弱前期",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "衰弱前期",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "衰弱前期",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "衰弱前期",
+      "interventionTag": "平衡训练"
+    },
+    {
+      "assessmentTag": "衰弱前期",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "衰弱前期",
+      "interventionTag": "优质蛋白强化"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "平衡训练"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "优质蛋白强化"
+    },
+    {
+      "assessmentTag": "衰弱",
+      "interventionTag": "能量与营养强化"
+    },
+    {
+      "assessmentTag": "营养正常",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "存在营养不良风险",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "存在营养不良风险",
+      "interventionTag": "优质蛋白强化"
+    },
+    {
+      "assessmentTag": "存在营养不良风险",
+      "interventionTag": "能量与营养强化"
+    },
+    {
+      "assessmentTag": "营养不良",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "营养不良",
+      "interventionTag": "优质蛋白强化"
+    },
+    {
+      "assessmentTag": "营养不良",
+      "interventionTag": "能量与营养强化"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阴性",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阴性",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阴性",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阴性",
+      "interventionTag": "平衡训练"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阳性",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阳性",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阳性",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "跌倒风险筛查阳性",
+      "interventionTag": "平衡训练"
+    },
+    {
+      "assessmentTag": "平和质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "平和质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "平和质",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "平和质",
+      "interventionTag": "平衡训练"
+    },
+    {
+      "assessmentTag": "平和质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "气虚质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "气虚质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "气虚质",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "气虚质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "气虚质",
+      "interventionTag": "优质蛋白强化"
+    },
+    {
+      "assessmentTag": "气虚质",
+      "interventionTag": "健脾益气食养"
+    },
+    {
+      "assessmentTag": "阳虚质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "阳虚质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "阳虚质",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "阳虚质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "阳虚质",
+      "interventionTag": "温阳食养"
+    },
+    {
+      "assessmentTag": "阴虚质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "阴虚质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "阴虚质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "阴虚质",
+      "interventionTag": "滋阴食养"
+    },
+    {
+      "assessmentTag": "痰湿质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "痰湿质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "痰湿质",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "痰湿质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "痰湿质",
+      "interventionTag": "健脾祛湿食养"
+    },
+    {
+      "assessmentTag": "湿热质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "湿热质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "湿热质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "湿热质",
+      "interventionTag": "清利湿热食养"
+    },
+    {
+      "assessmentTag": "血瘀质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "血瘀质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "血瘀质",
+      "interventionTag": "抗阻训练"
+    },
+    {
+      "assessmentTag": "血瘀质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "血瘀质",
+      "interventionTag": "活血食养"
+    },
+    {
+      "assessmentTag": "气郁质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "气郁质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "气郁质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "气郁质",
+      "interventionTag": "疏肝解郁食养"
+    },
+    {
+      "assessmentTag": "特禀质",
+      "interventionTag": "八段锦"
+    },
+    {
+      "assessmentTag": "特禀质",
+      "interventionTag": "太极拳"
+    },
+    {
+      "assessmentTag": "特禀质",
+      "interventionTag": "均衡膳食维持"
+    },
+    {
+      "assessmentTag": "特禀质",
+      "interventionTag": "特禀体质个体化食养"
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+// INPUT:  prisma.config.ts（数据源配置）
+// OUTPUT: src/generated/prisma（类型安全客户端）、本地 SQLite 数据库
+// POS:    全部业务数据的持久化模型。患者直接身份信息（PII）只存在于本库，禁止出网。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// 患者基础信息。备注：姓名/身份证/手机/住院号/门诊号/住址为医疗敏感信息，
+// 只能本地保存；云端 AI 调用一律使用 code（患者唯一编号）替代。
+// 来源：需求文档"第一步：基础信息录入"
+model Patient {
+  id           String   @id @default(cuid())
+  code         String   @unique // 患者唯一编号，出网时唯一可用的患者标识
+  name         String // 必填
+  gender       String // 必填
+  age          Int // 必填
+  phone        String?
+  idCard       String?
+  address      String?
+  admissionNo  String? // 住院号
+  outpatientNo String? // 门诊号
+  // 测量数据（选填）：供 MNA-SF F 题（BMI）/F替代（小腿围）、体质题9（BMI）/题28（腹围）换算分值
+  heightCm     Float?
+  weightKg     Float?
+  waistCm      Float? // 腹围
+  calfCm       Float? // 小腿围
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions AssessmentSession[]
+}
+
+// 一次评估会话：从数字医生开始提问到医生确认干预方案的完整生命周期
+model AssessmentSession {
+  id          String    @id @default(cuid())
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  scaleIds    Json // 本次勾选的量表 id 列表，如 ["frail","mnasf","fall","tcm"]
+  status      String    @default("in_progress") // in_progress | collected | reviewed | confirmed
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  turns   DialogueTurn[]
+  answers Answer[]
+  results AssessmentResult[]
+  plans   InterventionPlan[]
+}
+
+// 数字医生与患者的完整对话记录（含语音文件路径与转写），评估可追溯性的底层依据
+// 来源：需求文档"第二步：智能化信息采集"——完整语音记录、转写文本、AI判断、追问过程必须保存
+model DialogueTurn {
+  id         String            @id @default(cuid())
+  sessionId  String
+  session    AssessmentSession @relation(fields: [sessionId], references: [id])
+  questionId String? // 对应 data/scales.json 的题目 id；开场白/结束语等为空
+  role       String // doctor | patient | system
+  text       String // 播报文本或转写文本
+  audioPath  String? // storage/ 下的语音文件相对路径
+  asrRaw     Json? // ASR 原始返回（置信度等）
+  createdAt  DateTime          @default(now())
+}
+
+// 每道题的最终标准答案。一题一条，医生修改必须写入 editHistory 留痕
+model Answer {
+  id          String            @id @default(cuid())
+  sessionId   String
+  session     AssessmentSession @relation(fields: [sessionId], references: [id])
+  questionId  String // data/scales.json 题目 id
+  rawText     String? // 患者原始回答（转写或文字输入）
+  optionLabel String? // 命中的标准选项文本
+  score       Int? // 标准分值；未确认时为空
+  source      String // voice | text | button | doctor
+  status      String // confirmed | pending | manual（待人工确认）
+  aiJudgment  Json? // DeepSeek 归一化原始输出（status/confidence/reason 等）
+  editHistory Json? // 医生修改留痕 [{at, field, from, to}]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([sessionId, questionId])
+}
+
+// 评估结果快照：确定性评分引擎的输出，含得分明细，供标签下钻追溯
+model AssessmentResult {
+  id        String            @id @default(cuid())
+  sessionId String
+  session   AssessmentSession @relation(fields: [sessionId], references: [id])
+  tags      Json // [{tag, level(是/倾向是/基本是), scaleId, score, detail}]
+  createdAt DateTime          @default(now())
+}
+
+// 干预方案：候选集（推荐引擎输出）→ 医生删改 → 最终确认版本
+model InterventionPlan {
+  id          String            @id @default(cuid())
+  sessionId   String
+  session     AssessmentSession @relation(fields: [sessionId], references: [id])
+  candidates  Json // [{tag, category, plan, triggeredBy: [评估标签]}]
+  decisions   Json? // 医生动作 [{tag, action: keep|remove|adjust, note, at}]
+  finalPlan   Json? // 医生确认后的最终方案（同 candidates 结构）
+  status      String            @default("draft") // draft | confirmed
+  confirmedAt DateTime?
+  createdAt   DateTime          @default(now())
+}
