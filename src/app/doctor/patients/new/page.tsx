@@ -5,6 +5,7 @@
  *         测量数据（身高/体重/腹围/小腿围）供 MNA-SF F 题与体质题 9/28 换算分值。
  */
 import { createPatient } from "@/lib/actions/doctor";
+import { firstQueryValue } from "@/lib/query";
 
 const inputCls =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -36,12 +37,8 @@ function Field({
   );
 }
 
-export default async function NewPatientPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
+export default async function NewPatientPage({ searchParams }: PageProps<"/doctor/patients/new">) {
+  const error = firstQueryValue((await searchParams).error);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -50,6 +47,11 @@ export default async function NewPatientPage({
       {error === "required" && (
         <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
           请完整填写必填项：姓名、性别、年龄（年龄需为 1～130 的整数）。
+        </div>
+      )}
+      {error === "measurements" && (
+        <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+          测量数据格式不正确，请填写合理的正数，或留空后稍后补录。
         </div>
       )}
 

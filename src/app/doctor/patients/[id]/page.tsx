@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { scales } from "@/lib/rules";
 import { createSession, updateMeasurements } from "@/lib/actions/doctor";
+import { firstQueryValue } from "@/lib/query";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,11 @@ const inputCls =
 export default async function PatientDetailPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; saved?: string }>;
-}) {
+}: PageProps<"/doctor/patients/[id]">) {
   const { id } = await params;
-  const { error, saved } = await searchParams;
+  const query = await searchParams;
+  const error = firstQueryValue(query.error);
+  const saved = firstQueryValue(query.saved);
   const patient = await prisma.patient.findUnique({
     where: { id },
     include: { sessions: { orderBy: { startedAt: "desc" } } },
@@ -57,9 +57,14 @@ export default async function PatientDetailPage({
           请至少勾选一个评估量表。
         </div>
       )}
+      {error === "measurements" && (
+        <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+          测量数据格式不正确，请填写合理的正数，或留空后再保存。
+        </div>
+      )}
       {saved === "measurements" && (
         <div className="rounded-lg bg-green-50 border border-green-200 text-green-700 px-4 py-3 text-sm">
-          测量数据已保存。
+          测量数据已保存；采集中的会话已同步更新相关测量题答案。
         </div>
       )}
 

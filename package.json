@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "npm run prisma:generate",
+    "prebuild": "npm run prisma:generate",
+    "pretypecheck": "next typegen",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "prisma:generate": "prisma generate",
     "convert-rules": "tsx scripts/convert-rules.ts"
   },
   "dependencies": {
@@ -20,6 +25,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

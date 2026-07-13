@@ -42,7 +42,7 @@ model AssessmentSession {
   patientId   String
   patient     Patient   @relation(fields: [patientId], references: [id])
   scaleIds    Json // 本次勾选的量表 id 列表，如 ["frail","mnasf","fall","tcm"]
-  status      String    @default("in_progress") // in_progress | collected | reviewed | confirmed
+  status      String    @default("in_progress") // in_progress | finalizing（事务内临时态）| collected | confirmed
   startedAt   DateTime  @default(now())
   completedAt DateTime?
 
@@ -75,10 +75,10 @@ model Answer {
   rawText     String? // 患者原始回答（转写或文字输入）
   optionLabel String? // 命中的标准选项文本
   score       Int? // 标准分值；未确认时为空
-  source      String // voice | text | button | doctor
-  status      String // confirmed | pending | manual（待人工确认）
+  source      String // voice | text | button | doctor | measurement（系统按本地测量值换算）
+  status      String // confirmed | pending | manual（待人工确认）| superseded（分支切换后不再参与评分）
   aiJudgment  Json? // DeepSeek 归一化原始输出（status/confidence/reason 等）
-  editHistory Json? // 医生修改留痕 [{at, field, from, to}]
+  editHistory Json? // 修改留痕 [{at, field, from, to, operator, reason}]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
@@ -91,7 +91,10 @@ model AssessmentResult {
   sessionId String
   session   AssessmentSession @relation(fields: [sessionId], references: [id])
   tags      Json // [{tag, level(是/倾向是/基本是), scaleId, score, detail}]
+  status    String            @default("current") // current | superseded（重评时保留旧快照，但不再作为当前结论）
   createdAt DateTime          @default(now())
+
+  @@index([sessionId, status])
 }
 
 // 干预方案：候选集（推荐引擎输出）→ 医生删改 → 最终确认版本
@@ -102,7 +105,9 @@ model InterventionPlan {
   candidates  Json // [{tag, category, plan, triggeredBy: [评估标签]}]
   decisions   Json? // 医生动作 [{tag, action: keep|remove|adjust, note, at}]
   finalPlan   Json? // 医生确认后的最终方案（同 candidates 结构）
-  status      String            @default("draft") // draft | confirmed
+  status      String            @default("draft") // draft | confirmed | superseded（保留历史版本，不再参与当前审核）
   confirmedAt DateTime?
   createdAt   DateTime          @default(now())
+
+  @@index([sessionId, status])
 }

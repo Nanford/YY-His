@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
 
 # next.js
 /.next/
@@ -45,4 +48,8 @@ next-env.d.ts
 # 本地数据库与音频文件（不入库）
 /prisma/dev.db
 /prisma/dev.db-journal
+/prisma/e2e.db
+/prisma/e2e.db-journal
+/prisma/e2e.db-shm
+/prisma/e2e.db-wal
 /storage/

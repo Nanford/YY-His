@@ -9,9 +9,20 @@ import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
 import type { AssessmentTag } from "@/lib/scoring";
 import type { RecommendedIntervention } from "@/lib/recommend";
+import type { PlanDecision } from "@/lib/assessment/plan-review";
+import { firstQueryValue } from "@/lib/query";
+import { reopenSession } from "@/lib/actions/doctor";
+import { readAnswerEditHistory } from "@/lib/assessment/audit";
 import { CollectForm } from "./collect-form";
 import { ResultView } from "./result-view";
 import { FinalPlan, PlanReview } from "./plan-review";
+import {
+  TraceView,
+  type TraceAnswerDto,
+  type TraceAnswerSource,
+  type TraceAnswerStatus,
+  type TraceDialogueTurnDto,
+} from "./trace-view";
 
 export const dynamic = "force-dynamic";
 
@@ -21,39 +32,96 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   confirmed: { label: "已确认", cls: "bg-green-50 text-green-700 border-green-200" },
 };
 
+const TRACE_SOURCES = new Set<TraceAnswerSource>(["voice", "text", "button", "doctor", "measurement"]);
+const TRACE_STATUSES = new Set<TraceAnswerStatus>(["confirmed", "pending", "manual", "superseded"]);
+
+function traceSource(value: string): TraceAnswerSource {
+  return TRACE_SOURCES.has(value as TraceAnswerSource) ? (value as TraceAnswerSource) : "doctor";
+}
+
+function traceStatus(value: string): TraceAnswerStatus {
+  return TRACE_STATUSES.has(value as TraceAnswerStatus) ? (value as TraceAnswerStatus) : "pending";
+}
+
 export default async function SessionPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; scales?: string; saved?: string }>;
-}) {
+}: PageProps<"/doctor/sessions/[id]">) {
   const { id } = await params;
-  const { error, scales: missingScaleIds, saved } = await searchParams;
+  const query = await searchParams;
+  const error = firstQueryValue(query.error);
+  const missingQuestionIds = firstQueryValue(query.missing);
+  const saved = firstQueryValue(query.saved);
 
   const session = await prisma.assessmentSession.findUnique({
     where: { id },
     include: {
       patient: true,
       answers: true,
-      results: { orderBy: { createdAt: "desc" } },
-      plans: { orderBy: { createdAt: "desc" } },
+      turns: { orderBy: { createdAt: "asc" } },
+      results: {
+        where: { status: "current" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      },
+      plans: {
+        where: { status: { in: ["draft", "confirmed"] } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      },
     },
   });
   if (!session) notFound();
 
   const scaleIds = session.scaleIds as string[];
   const savedScores = new Map(
-    session.answers.filter((a) => a.score !== null).map((a) => [a.questionId, a.score as number])
+    session.answers
+      .filter((a) => a.status === "confirmed" && a.score !== null)
+      .map((a) => [a.questionId, a.score as number])
   );
+  const answerLabels = Object.fromEntries(
+    session.answers
+      .filter((answer) => answer.status === "confirmed" && answer.optionLabel)
+      .map((answer) => [answer.questionId, answer.optionLabel as string])
+  );
+  const questionOrder = new Map(
+    scaleIds
+      .flatMap((scaleId) => scaleById.get(scaleId)?.questions ?? [])
+      .map((question, index) => [question.id, index])
+  );
+  const traceAnswers: TraceAnswerDto[] = session.answers
+    .map((answer) => ({
+      questionId: answer.questionId,
+      rawText: answer.rawText,
+      optionLabel: answer.optionLabel,
+      score: answer.score,
+      source: traceSource(answer.source),
+      status: traceStatus(answer.status),
+      editHistory: readAnswerEditHistory(answer.editHistory),
+      updatedAt: answer.updatedAt,
+    }))
+    .sort((a, b) => (questionOrder.get(a.questionId) ?? 999) - (questionOrder.get(b.questionId) ?? 999));
+  const traceTurns: TraceDialogueTurnDto[] = session.turns
+    .filter((turn) => turn.role === "doctor" || turn.role === "patient" || turn.role === "system")
+    .map((turn) => ({
+      id: turn.id,
+      questionId: turn.questionId,
+      role: turn.role as TraceDialogueTurnDto["role"],
+      audioPath: turn.audioPath,
+      createdAt: turn.createdAt,
+    }));
   const meta = STATUS_META[session.status] ?? { label: session.status, cls: "" };
   const latestResult = session.results[0];
-  const latestPlan = session.plans[0];
+  const latestPlan = session.plans.find((plan) =>
+    session.status === "confirmed" ? plan.status === "confirmed" : plan.status === "draft"
+  );
 
-  const missingNames = (missingScaleIds ?? "")
+  const missingNames = (missingQuestionIds ?? "")
     .split(",")
     .filter(Boolean)
-    .map((sid) => scaleById.get(sid)?.name ?? sid)
+    .map((questionId) => {
+      const scale = scaleIds.map((sid) => scaleById.get(sid)).find((item) => item?.questions.some((q) => q.id === questionId));
+      const question = scale?.questions.find((item) => item.id === questionId);
+      return question ? `${scale?.name}第 ${question.no} 题（${question.title}）` : questionId;
+    })
     .join("、");
 
   return (
@@ -84,12 +152,7 @@ export default async function SessionPage({
       )}
       {error === "incomplete" && (
         <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-          以下量表尚未答完，无法生成评估：{missingNames}。请补齐后再提交。
-        </div>
-      )}
-      {error === "empty-plan" && (
-        <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-          最终方案不能为空，请至少保留一项干预。
+          以下题目尚未确认，无法生成评估：{missingNames || "请检查未作答题目"}。请补齐后再提交。
         </div>
       )}
 
@@ -97,6 +160,7 @@ export default async function SessionPage({
       {session.status === "in_progress" && (
         <CollectForm
           sessionId={session.id}
+          patientId={session.patientId}
           scaleIds={scaleIds}
           savedScores={savedScores}
           patient={session.patient}
@@ -105,7 +169,7 @@ export default async function SessionPage({
 
       {session.status === "collected" && latestResult && latestPlan && (
         <>
-          <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} />
+          <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
           <PlanReview
             sessionId={session.id}
             candidates={latestPlan.candidates as unknown as RecommendedIntervention[]}
@@ -115,16 +179,21 @@ export default async function SessionPage({
 
       {session.status === "confirmed" && latestResult && latestPlan && (
         <>
-          <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} />
+          <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
           <FinalPlan
             finalPlan={(latestPlan.finalPlan ?? []) as unknown as RecommendedIntervention[]}
-            removedTags={((latestPlan.decisions ?? []) as { tag: string; action: string }[])
-              .filter((d) => d.action === "remove")
-              .map((d) => d.tag)}
+            decisions={(latestPlan.decisions ?? []) as unknown as PlanDecision[]}
             confirmedAt={latestPlan.confirmedAt}
           />
+          <form action={reopenSession.bind(null, session.id)} className="flex justify-start">
+            <button className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:border-blue-300 hover:text-blue-700">
+              重新打开并修正答案（保留历史版本）
+            </button>
+          </form>
         </>
       )}
+
+      {traceAnswers.length > 0 && <TraceView answers={traceAnswers} dialogueTurns={traceTurns} />}
     </div>
   );
 }
