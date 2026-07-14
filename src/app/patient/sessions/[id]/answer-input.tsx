@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
-import { RecorderError, WavRecorder } from "./wav-recorder";
+import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
 
 export interface VoiceAnswer {
   text: string;
@@ -205,7 +205,11 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
   );
 }
 
-/** 录音按钮：点击开始 → 再点结束 → 上传 /api/asr 转写 */
+/**
+ * 录音按钮：点击开始 → 声音活动检测（VAD）判断患者说完了自动上传 /api/asr 转写。
+ * VAD 是能量阈值近似方案，老年患者停顿可能导致误判，因此录音中始终保留弱化样式的
+ * 手动兜底按钮（见 wav-recorder.ts 头注释）。
+ */
 function VoiceButton({
   sessionId,
   disabled,
@@ -219,6 +223,7 @@ function VoiceButton({
 }) {
   const recorderRef = useRef<WavRecorder | null>(null);
   const [recording, setRecording] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
 
   // 组件卸载时释放麦克风
@@ -227,22 +232,29 @@ function VoiceButton({
   const startRecording = async () => {
     try {
       const recorder = new WavRecorder();
-      await recorder.start();
+      await recorder.start({
+        onSpeechStart: () => setSpeaking(true),
+        onAutoStop: (reason) => {
+          void stopRecording(reason);
+        },
+      });
       recorderRef.current = recorder;
       setRecording(true);
+      setSpeaking(false);
     } catch (error) {
       onNotice(error instanceof RecorderError ? error.message : "无法打开麦克风");
     }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = async (reason: "manual" | VadStopReason = "manual") => {
     const recorder = recorderRef.current;
     recorderRef.current = null;
     setRecording(false);
+    setSpeaking(false);
     if (!recorder) return;
     const blob = await recorder.stop();
     if (!blob) {
-      onNotice("没有录到声音，请再试一次");
+      onNotice(reason === "timeout" ? "没有听到您说话，请再试一次" : "没有录到声音，请再试一次");
       return;
     }
     setTranscribing(true);
@@ -276,16 +288,37 @@ function VoiceButton({
       </span>
     );
   }
+
+  if (recording) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <span
+          className={`rounded-xl px-5 py-3 text-lg text-white transition ${
+            speaking ? "bg-red-600 animate-pulse" : "bg-slate-700 border border-slate-500"
+          }`}
+        >
+          {speaking ? "🎙️ 正在听您说话…" : "🎤 请开始说话…"}
+        </span>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => void stopRecording("manual")}
+          className="text-slate-400 text-sm underline decoration-dotted hover:text-slate-200 disabled:opacity-40"
+        >
+          我说完了，直接提交
+        </button>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={recording ? stopRecording : startRecording}
-      className={`rounded-xl px-5 py-3 text-lg text-white disabled:opacity-40 transition ${
-        recording ? "bg-red-600 hover:bg-red-500 animate-pulse" : "bg-slate-700 hover:bg-slate-600 border border-slate-500"
-      }`}
+      onClick={startRecording}
+      className="rounded-xl px-5 py-3 text-lg text-white bg-slate-700 hover:bg-slate-600 border border-slate-500 disabled:opacity-40 transition"
     >
-      {recording ? "⏹ 说完了，点这里" : "🎤 语音回答"}
+      🎤 语音回答
     </button>
   );
 }
