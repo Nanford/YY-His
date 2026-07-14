@@ -1,7 +1,7 @@
 /**
  * INPUT:  无
  * OUTPUT: 系统入口页（医生端 / 患者端大屏入口）
- * POS:    首页导航。患者端大屏在 M3 交付，当前为占位。
+ * POS:    首页导航：医生工作台 + 患者评估大屏两个入口。
  */
 import Link from "next/link";
 
@@ -21,11 +21,14 @@ export default function HomePage() {
           <div className="text-xl font-semibold">医生工作台</div>
           <p className="text-sm text-slate-500">患者录入 · 评估管理 · 干预方案审核</p>
         </Link>
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center space-y-2 text-slate-400">
+        <Link
+          href="/patient"
+          className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-blue-300 transition text-center space-y-2"
+        >
           <div className="text-4xl">🗣️</div>
           <div className="text-xl font-semibold">患者评估大屏</div>
-          <p className="text-sm">数字医生语音采集（M3 开发中）</p>
-        </div>
+          <p className="text-sm text-slate-500">数字医生语音问询 · 大字体大按钮作答</p>
+        </Link>
       </div>
     </main>
   );

@@ -158,6 +158,18 @@ export default async function SessionPage({
 
       {/* 按状态分发主体视图 */}
       {session.status === "in_progress" && (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 flex items-center justify-between flex-wrap gap-2">
+          <span>患者可在大屏上由数字医生语音问询（语音不可用时自动降级为按钮/文字作答）。</span>
+          <Link
+            href={`/patient/sessions/${session.id}`}
+            target="_blank"
+            className="rounded-md bg-sky-600 text-white px-3 py-1.5 hover:bg-sky-500"
+          >
+            打开患者端采集大屏 ↗
+          </Link>
+        </div>
+      )}
+      {session.status === "in_progress" && (
         <CollectForm
           sessionId={session.id}
           patientId={session.patientId}

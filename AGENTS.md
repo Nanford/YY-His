@@ -134,7 +134,7 @@ npm run convert-rules  # xlsx → data/*.json 转换 + 校验
 
 ## 需要用户准备的密钥（M3 前就绪即可）
 
-`.env.local`（不入库）：`DEEPSEEK_API_KEY`、`VOLC_APP_ID`、`VOLC_ACCESS_TOKEN`、`AVATAR_MODE=sdk|fallback`。火山需开通"语音技术"（语音合成豆包音色 + 语音识别）；虚拟数字人服务需商务开通，未就绪走降级形象。
+`.env.local`（不入库，模板见根目录 `.env.example`）：`DEEPSEEK_API_KEY`、`VOLC_APP_ID`、`VOLC_ACCESS_TOKEN`、`AVATAR_MODE=sdk|fallback`，可选 `VOLC_TTS_VOICE`（豆包音色）。火山需开通"语音技术"（语音合成豆包音色 + 大模型录音识别极速版 volc.bigasr.auc_turbo）；虚拟数字人服务需商务开通，未就绪走降级形象。密钥全部缺失时语音链路自动降级（纯字幕 + 按钮/文字作答），完整流程仍可演示。
 
 ## 已知的坑
 
@@ -143,6 +143,8 @@ npm run convert-rules  # xlsx → data/*.json 转换 + 校验
 - 现场网络不可控 → TTS 按文本哈希预热缓存 + 文字/按钮作答兜底 + 归一化规则兜底。
 - 部分干预方案自带禁忌提示（优质蛋白强化-肾功能异常、活血食养-抗凝药物、温阳食养-口干烦热、滋阴食养-糖尿病不加糖），医生审核界面必须醒目展示。
 - 47 题全量演示过长 → 会话创建时可勾选量表，演示预设只跑 FRAIL+跌倒。
+- 火山 TTS/ASR 与 DeepSeek Provider 按官方 HTTP 协议实现，但**尚未用真实密钥联调**：密钥就绪后先单独验证 `/api/tts`、`/api/asr` 与归一化，再上真机演示（音色/资源 ID 需与控制台开通项核对）。
+- Windows PowerShell 的文本管道（`Get-Content | Set-Content`）会把 UTF-8 中文按 GBK 误读导致乱码：改代码/文档一律用编辑工具做精确替换，禁止用 shell 管道改写含中文的文件。
 
 ## 高风险区域（改动前格外小心）
 
