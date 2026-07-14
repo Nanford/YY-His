@@ -45,6 +45,8 @@ Windows 默认使用本机 Microsoft Edge；其他系统或没有 Edge 时，首
 
 详细协作规范与架构约束见 `AGENTS.md`（CLAUDE.md 引用同一文件）。
 
-## 环境变量（M3 语音功能需要）
+## 环境变量（语音功能需要，可选）
 
-`.env.local`：`DEEPSEEK_API_KEY`、`VOLC_APP_ID`、`VOLC_ACCESS_TOKEN`、`AVATAR_MODE=sdk|fallback`
+复制 `.env.example` 为 `.env.local` 并填入：`DEEPSEEK_API_KEY`、`VOLC_APP_ID`、`VOLC_ACCESS_TOKEN`、`AVATAR_MODE=sdk|fallback`，可选 `VOLC_TTS_VOICE`（豆包音色）。
+
+密钥全部缺失时语音链路自动降级（纯字幕 + 按钮/文字作答），完整评估流程仍可演示。
