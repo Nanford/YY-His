@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
 import type { Prisma } from "@/generated/prisma/client";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
+import { acquireFinalizingLock, scoreAndSnapshot, type FinalizeOutcome } from "@/lib/assessment/finalize";
 import { voiceCapabilities, type VoiceCapabilities } from "@/lib/providers/capabilities";
 import { normalizeAnswer, type NormalizationOutcome } from "./normalize";
 import { CLOSING_TEXT, OPENING_TEXT, clarifyText, recheckText } from "./prompts";
@@ -40,8 +41,13 @@ export interface PatientPromptDto {
 
 export interface PatientDialogueStateDto {
   sessionId: string;
-  /** in_progress 之外的状态患者端一律只读（locked） */
-  phase: "not_started" | "in_question" | "finished" | "locked";
+  /**
+   * not_started/in_question：问询进行中。
+   * awaiting_doctor：问答已全部答完，但评估暂未生成（存在测量/观察题缺口或"待人工确认"未补录），需医生协助后才能生成报告。
+   * finished：本次提交刚好完成评分并生成报告——仅作为触发前端跳转去看报告的一次性信号，不会被 GET /state 重复返回。
+   * locked：会话已不在 in_progress（通常因为报告已生成，应改为渲染报告页；此值仅作兜底）。
+   */
+  phase: "not_started" | "in_question" | "awaiting_doctor" | "finished" | "locked";
   scaleNames: string[];
   capabilities: VoiceCapabilities;
   progress: { answered: number; total: number };
@@ -194,9 +200,11 @@ function buildState(
   }
   const step = nextStep(context.questions, context.snapshot);
   if (step.kind === "finished") {
+    // 到达这里时 session 仍是 in_progress：说明问答已问完，但评分未成功
+    // （测量/观察题缺口，或存在"待人工确认"的题目），需医生协助补录后才能生成报告。
     return {
       sessionId: context.session.id,
-      phase: "finished",
+      phase: "awaiting_doctor",
       scaleNames,
       capabilities,
       progress,
@@ -213,6 +221,33 @@ function buildState(
     prompt: promptDto(step),
     speak,
   };
+}
+
+/** 刚完成评分快照生成时的一次性响应：告知前端跳转去看报告，不通过 buildState 派生。 */
+function reportReadyState(
+  context: LoadedContext,
+  scaleNames: string[],
+  speak: string[]
+): PatientDialogueStateDto {
+  return {
+    sessionId: context.session.id,
+    phase: "finished",
+    scaleNames,
+    capabilities: voiceCapabilities(),
+    progress: progressOf(context.questions, context.snapshot),
+    prompt: null,
+    speak,
+  };
+}
+
+/**
+ * 患者问答已全部完成（state machine 判定 finished）时尝试自动生成评估报告。
+ * 用户已确认的产品口径：评估内容是确定性计算，问答完成即应生成报告，
+ * 不需要医生先审核评估结果——干预方案候选医生仍可另行审核调整，互不阻塞。
+ */
+async function tryAutoFinalize(tx: Tx, sessionId: string): Promise<FinalizeOutcome> {
+  await acquireFinalizingLock(tx, sessionId);
+  return scoreAndSnapshot(tx, sessionId);
 }
 
 function scaleNamesOf(context: LoadedContext): string[] {
@@ -262,14 +297,21 @@ export async function startPatientDialogue(sessionId: string): Promise<PatientDi
       });
       bumpCount(context.snapshot.doctorAskCount, step.prompt.item.question.id);
       speak.push(step.prompt.text);
-    } else if (step.kind === "finished") {
-      // 医生已代填全部题目：直接播报结束语
+      return buildState({ ...context, started: true }, scaleNames, speak);
+    }
+    if (step.kind === "finished") {
+      // 医生已通过表单代填全部患者可答题目：直接播报结束语并尝试自动生成报告
       await tx.dialogueTurn.create({
         data: { sessionId, role: "doctor", questionId: null, text: CLOSING_TEXT },
       });
       speak.push(CLOSING_TEXT);
+      const outcome = await tryAutoFinalize(tx, sessionId);
+      if (outcome.kind === "completed") {
+        return reportReadyState({ ...context, started: true }, scaleNames, speak);
+      }
+      return buildState({ ...context, started: true }, scaleNames, speak);
     }
-    return buildState({ ...context, started: true }, scaleNames, speak);
+    throw new Error("状态机不变量被打破：开场后不应处于 awaiting");
   });
 }
 
@@ -371,9 +413,15 @@ export async function submitPatientAnswer(
       (context.snapshot.answerStatus as Map<string, AnswerStatus>).set(input.questionId, nextAnswerStatus);
     }
 
-    // 3. 推进流程：追问/下一题/轮末复问 → 写 doctor 轮次；全部完成 → 写结束语
+    // 3. 推进流程：追问/下一题/轮末复问 → 写 doctor 轮次；全部完成 → 写结束语并自动生成报告
     const speak: string[] = [];
     const following = nextStep(context.questions, context.snapshot);
+    const scaleNames = scaleNamesOf(context);
+    const resolutionDto =
+      resolution.action === "confirm"
+        ? ({ action: "confirm", optionLabel: resolution.optionLabel } as const)
+        : ({ action: resolution.action } as const);
+
     if (following.kind === "prompt") {
       await tx.dialogueTurn.create({
         data: {
@@ -385,21 +433,20 @@ export async function submitPatientAnswer(
       });
       bumpCount(context.snapshot.doctorAskCount, following.prompt.item.question.id);
       speak.push(following.prompt.text);
-    } else if (following.kind === "finished") {
+      return { resolution: resolutionDto, state: buildState(context, scaleNames, speak) };
+    }
+    if (following.kind === "finished") {
       await tx.dialogueTurn.create({
         data: { sessionId, role: "doctor", questionId: null, text: CLOSING_TEXT },
       });
       speak.push(CLOSING_TEXT);
+      const outcome = await tryAutoFinalize(tx, sessionId);
+      if (outcome.kind === "completed") {
+        return { resolution: resolutionDto, state: reportReadyState(context, scaleNames, speak) };
+      }
+      return { resolution: resolutionDto, state: buildState(context, scaleNames, speak) };
     }
-
-    const scaleNames = scaleNamesOf(context);
-    return {
-      resolution:
-        resolution.action === "confirm"
-          ? { action: "confirm", optionLabel: resolution.optionLabel }
-          : { action: resolution.action },
-      state: buildState(context, scaleNames, speak),
-    };
+    throw new Error("状态机不变量被打破：刚提交回答后不应处于 awaiting");
   });
 }
 

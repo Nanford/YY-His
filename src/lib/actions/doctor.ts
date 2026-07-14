@@ -12,14 +12,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
-import { scoreAll, type AnswersByQuestionId } from "@/lib/scoring";
-import { recommend, type RecommendedIntervention } from "@/lib/recommend";
+import type { RecommendedIntervention } from "@/lib/recommend";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { applyPlanReview, type PlanReviewInput } from "@/lib/assessment/plan-review";
-import {
-  resolveMeasurementAnswers,
-  type PatientMeasurements,
-} from "@/lib/assessment/measurements";
+import { acquireFinalizingLock, scoreAndSnapshot } from "@/lib/assessment/finalize";
+import { syncMeasurementAnswers } from "@/lib/assessment/measurement-sync";
 
 // ---------- 患者 ----------
 
@@ -164,66 +161,6 @@ function allowedQuestionIds(scaleIds: readonly string[]): Set<string> {
   return ids;
 }
 
-/** 测量题只读取本地患者测量数据，按纯函数换算并写入；任何客户端提交值都会被忽略。 */
-async function syncMeasurementAnswers(
-  tx: Prisma.TransactionClient,
-  sessionId: string,
-  scaleIds: readonly string[],
-  patient: PatientMeasurements
-): Promise<void> {
-  const resolutions = resolveMeasurementAnswers(patient, scaleIds);
-  if (resolutions.length === 0) return;
-
-  const existing = await tx.answer.findMany({
-    where: { sessionId, questionId: { in: resolutions.map((item) => item.questionId) } },
-  });
-  const existingByQuestionId = new Map(existing.map((answer) => [answer.questionId, answer]));
-  const now = new Date().toISOString();
-
-  for (const resolution of resolutions) {
-    const previousAnswer = existingByQuestionId.get(resolution.questionId);
-    const next: AnswerSnapshot = {
-      optionLabel: resolution.optionLabel,
-      score: resolution.score,
-      rawText: resolution.rawText,
-      source: "measurement",
-      status: resolution.status,
-    };
-    const aiJudgment = {
-      type: "local_measurement_rule",
-      reason: resolution.reason,
-    } as Prisma.InputJsonValue;
-
-    if (!previousAnswer) {
-      await tx.answer.create({
-        data: { sessionId, questionId: resolution.questionId, ...next, aiJudgment },
-      });
-      continue;
-    }
-
-    const previous: AnswerSnapshot = {
-      optionLabel: previousAnswer.optionLabel,
-      score: previousAnswer.score,
-      rawText: previousAnswer.rawText,
-      source: previousAnswer.source,
-      status: previousAnswer.status,
-    };
-    const editHistory = appendAnswerEditHistory(previousAnswer.editHistory, previous, next, {
-      at: now,
-      operator: "system",
-      reason: resolution.reason,
-    });
-    await tx.answer.update({
-      where: { id: previousAnswer.id },
-      data: {
-        ...next,
-        aiJudgment,
-        editHistory: editHistory as unknown as Prisma.InputJsonValue,
-      },
-    });
-  }
-}
-
 /**
  * 解析表单中的 answer.<questionId> 字段并逐题落库（医生代填 → confirmed）。
  * Server Action 是不可信入口：题目必须属于本会话，分值必须命中规则选项；测量题拒绝采用客户端分值。
@@ -311,64 +248,18 @@ export async function saveAnswers(sessionId: string, formData: FormData): Promis
   redirect(`/doctor/sessions/${sessionId}?saved=1`);
 }
 
-/** 保存答案 → 确定性评分 → 生成评估标签与候选干预方案（核心数据流的落库点） */
+/**
+ * 保存答案 → 确定性评分 → 生成评估标签与候选干预方案（核心数据流的落库点）。
+ * 评分/推荐/落快照的编排逻辑与患者端问询完成自动触发（src/lib/dialogue/service.ts）共用
+ * src/lib/assessment/finalize，本函数只负责解析医生表单并抢占并发锁。
+ */
 export async function finalizeSession(sessionId: string, formData: FormData): Promise<void> {
   assertRecordId(sessionId, "会话编号");
   const outcome = await prisma.$transaction(async (tx) => {
     // 先以 CAS 抢占会话，再在同一事务内写答案、评分和落快照，避免并发保存造成答卷与结论错位。
-    const transitioned = await tx.assessmentSession.updateMany({
-      where: { id: sessionId, status: "in_progress" },
-      data: { status: "finalizing" },
-    });
-    if (transitioned.count !== 1) throw new Error("会话状态已变化，请刷新后重试");
-
+    await acquireFinalizingLock(tx, sessionId);
     await persistAnswersFromForm(tx, sessionId, formData, "finalizing");
-    const session = await tx.assessmentSession.findUniqueOrThrow({
-      where: { id: sessionId },
-      include: { patient: true },
-    });
-    await syncMeasurementAnswers(tx, session.id, session.scaleIds as string[], session.patient);
-
-    const answers = await tx.answer.findMany({ where: { sessionId } });
-    const answersMap: Record<string, number> = {};
-    for (const answer of answers) {
-      if (answer.status === "confirmed" && answer.score !== null) {
-        answersMap[answer.questionId] = answer.score;
-      }
-    }
-    const scored = scoreAll(session.scaleIds as string[], answersMap as AnswersByQuestionId);
-    if (scored.incompleteScaleIds.length > 0) {
-      const missing = scored.results.flatMap((result) => result.missing);
-      await tx.assessmentSession.update({
-        where: { id: sessionId },
-        data: { status: "in_progress" },
-      });
-      return { kind: "incomplete" as const, missing };
-    }
-
-    const plan = recommend(scored.tags);
-    const now = new Date();
-    // 结果与方案只保留一个“当前版本”；旧版本仅改状态，证据链和医生决策仍完整保留。
-    await tx.assessmentResult.updateMany({
-      where: { sessionId, status: "current" },
-      data: { status: "superseded" },
-    });
-    await tx.interventionPlan.updateMany({
-      where: { sessionId, status: { in: ["draft", "confirmed"] } },
-      data: { status: "superseded" },
-    });
-    await tx.assessmentResult.create({
-      data: { sessionId, tags: scored.tags as unknown as Prisma.InputJsonValue, status: "current", createdAt: now },
-    });
-    await tx.interventionPlan.create({
-      data: { sessionId, candidates: plan.flat as unknown as Prisma.InputJsonValue, status: "draft", createdAt: now },
-    });
-    const completed = await tx.assessmentSession.updateMany({
-      where: { id: sessionId, status: "finalizing" },
-      data: { status: "collected", completedAt: now },
-    });
-    if (completed.count !== 1) throw new Error("会话状态已变化，请刷新后重试");
-    return { kind: "completed" as const };
+    return scoreAndSnapshot(tx, sessionId);
   });
 
   if (outcome.kind === "incomplete") {

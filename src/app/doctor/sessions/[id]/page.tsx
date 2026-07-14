@@ -181,6 +181,9 @@ export default async function SessionPage({
 
       {session.status === "collected" && latestResult && latestPlan && (
         <>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            评估报告与以下候选方案，患者已可在大屏上直接看到（含禁忌提示原文）。请尽快核实并确认最终方案。
+          </div>
           <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
           <PlanReview
             sessionId={session.id}

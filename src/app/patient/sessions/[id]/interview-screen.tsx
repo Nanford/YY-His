@@ -7,6 +7,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PatientDialogueStateDto, SubmitAnswerResult } from "@/lib/dialogue/service";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
@@ -20,6 +21,7 @@ interface InterviewScreenProps {
 }
 
 export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProps) {
+  const router = useRouter();
   const [loadPhase, setLoadPhase] = useState<LoadPhase>("loading");
   const [state, setState] = useState<PatientDialogueStateDto | null>(null);
   const [subtitle, setSubtitle] = useState("");
@@ -242,11 +244,26 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
         />
       )}
 
-      {state.phase === "finished" && (
+      {state.phase === "awaiting_doctor" && (
         <div className="text-center space-y-3">
+          <p className="text-3xl">🙏</p>
+          <p className="text-slate-100 text-2xl">您的问答已经全部完成啦！</p>
+          <p className="text-slate-400 text-lg">还有一点信息需要医生帮您确认，请稍候，或者请医生过来看一下。</p>
+        </div>
+      )}
+
+      {state.phase === "finished" && (
+        <div className="text-center space-y-4">
           <p className="text-3xl">🎉</p>
           <p className="text-slate-100 text-2xl">全部问题已完成，感谢您的配合！</p>
-          <p className="text-slate-400 text-lg">请稍作休息，医生稍后为您讲解评估结果。</p>
+          <p className="text-slate-400 text-lg">您的评估报告已经生成好了。</p>
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-2xl font-semibold px-10 py-5 shadow-xl transition"
+          >
+            查看我的评估报告 →
+          </button>
         </div>
       )}
     </div>
