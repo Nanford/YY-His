@@ -12,7 +12,10 @@ export type { NormalizationOutcome } from "./normalize-rules";
 
 /**
  * 归一化编排：
- * 1. DeepSeek 可用 → 先问模型；模型给出 matched / unclear 都是有效结论；
+ * 1. DeepSeek 可用 → 模型结论即最终结论（matched / unclear 都有效）；
+ *    模型判 unclear 时**不再**让规则复核——关键词规则对"我没听明白"这类
+ *    表达会误命中"否"，推翻模型正确的"不清楚"结论（2026-07-14 联调发现）。
+ *    宁可多追问一次，也不采信弱证据（AGENTS.md 硬约束 3 禁止编造）。
  * 2. 模型通道失败（null：无密钥/网络/超时/解析失败）→ 规则兜底；
  * 3. 规则也解析不出 → unclear，由状态机走追问 → 待人工确认流程。
  */
@@ -29,13 +32,6 @@ export async function normalizeAnswer(input: {
     utterance: input.utterance,
     patientCode: input.patientCode,
   });
-  if (llmOutcome !== null) {
-    // 模型明确说 unclear 时也再给规则一次机会：规则命中是确定性的，可靠性高于模型的"没把握"
-    if (llmOutcome.status === "unclear") {
-      const rulesOutcome = normalizeByRules(input.question, input.options, input.utterance);
-      return rulesOutcome.status === "matched" ? rulesOutcome : llmOutcome;
-    }
-    return llmOutcome;
-  }
+  if (llmOutcome !== null) return llmOutcome;
   return normalizeByRules(input.question, input.options, input.utterance);
 }

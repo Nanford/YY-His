@@ -1,21 +1,24 @@
 /**
  * INPUT:  VOLC_APP_ID / VOLC_ACCESS_TOKEN / VOLC_TTS_VOICE 环境变量、待播报文本（不含 PII）
- * OUTPUT: ttsAvailable、synthesizeSpeech —— 豆包 TTS 语音合成（文本哈希缓存）
+ * OUTPUT: ttsAvailable、synthesizeSpeech —— 豆包语音合成大模型 2.0（文本哈希缓存）
  * POS:    数字医生播报音频的唯一来源。服务端调用 + storage/audio-cache 缓存，
  *         现场网络不可控时优先命中缓存（AGENTS.md"已知的坑"）。密钥只在服务端使用。
  *
- * 注意：本 Provider 尚未用真实密钥联调（密钥就绪后需按火山控制台配置核对
- * cluster/voice_type）。接口文档依据：火山引擎语音合成 HTTP 协议 /api/v1/tts。
+ * 接口：POST /api/v3/tts/unidirectional（HTTP Chunked 单向流式，响应为逐行 JSON），
+ * 已用真实密钥联调通过（2026-07-14，资源 seed-tts-2.0 + uranus 系列音色）。
+ * 来源：豆包语音 API 参考 "1.2.1 单向流式语音合成HTTP"。
  */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { piiSafeJsonFetch } from "./pii-filter";
 
-const TTS_ENDPOINT = "https://openspeech.bytedance.com/api/v1/tts";
+const TTS_ENDPOINT = "https://openspeech.bytedance.com/api/v3/tts/unidirectional";
 const REQUEST_TIMEOUT_MS = 15_000;
-/** 豆包音色，可用 VOLC_TTS_VOICE 覆盖（需在火山控制台开通对应音色） */
-const DEFAULT_VOICE = "zh_female_wanwanxiaohe_moon_bigtts";
+/** 默认音色（账号已开通并联调通过），可用 VOLC_TTS_VOICE 覆盖 */
+const DEFAULT_VOICE = "zh_female_xiaohe_uranus_bigtts";
+/** 模型资源：seed-tts-2.0 = 豆包语音合成大模型 2.0（uranus 等 2.0 音色） */
+const DEFAULT_RESOURCE_ID = "seed-tts-2.0";
 /** 缓存根目录（.gitignore 已排除 storage/） */
 const CACHE_DIR = path.join(process.cwd(), "storage", "audio-cache", "tts");
 
@@ -25,6 +28,10 @@ export function ttsAvailable(): boolean {
 
 function voiceType(): string {
   return process.env.VOLC_TTS_VOICE || DEFAULT_VOICE;
+}
+
+function resourceId(): string {
+  return process.env.VOLC_TTS_RESOURCE_ID || DEFAULT_RESOURCE_ID;
 }
 
 /** 缓存键：音色 + 文本 的哈希。换音色不会命中旧缓存 */
@@ -61,6 +68,32 @@ async function writeCache(key: string, audio: Buffer): Promise<void> {
 }
 
 /**
+ * 解析单向流式响应：HTTP Chunked 返回逐行 JSON，
+ * 中间行 {code:0, data:<base64 音频分片>}，末行 {code:20000000, message:"OK"}。
+ */
+function parseStreamedAudio(rawBody: string): Buffer {
+  const chunks: Buffer[] = [];
+  for (const line of rawBody.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let parsed: { code?: number; message?: string; data?: string | null };
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      throw new TtsError("TTS 响应格式异常（非 JSON 行）", "upstream");
+    }
+    if (parsed.code !== 0 && parsed.code !== 20000000) {
+      throw new TtsError(`TTS 合成失败：${parsed.message ?? `code=${parsed.code}`}`, "upstream");
+    }
+    if (parsed.data) chunks.push(Buffer.from(parsed.data, "base64"));
+  }
+  if (chunks.length === 0) {
+    throw new TtsError("TTS 响应中没有音频数据", "upstream");
+  }
+  return Buffer.concat(chunks);
+}
+
+/**
  * 合成播报音频（mp3）。优先返回缓存；未命中时调用豆包 TTS 并写缓存。
  * 调用方保证 text 不含患者姓名等 PII（话术模板统一出自 src/lib/dialogue/prompts.ts）。
  */
@@ -77,18 +110,26 @@ export async function synthesizeSpeech(text: string): Promise<{ audio: Buffer; c
 
   const response = await piiSafeJsonFetch(TTS_ENDPOINT, {
     method: "POST",
-    // 火山 TTS 的鉴权格式为 "Bearer;{token}"（分号是协议要求，非笔误）
-    headers: { Authorization: `Bearer;${accessToken}` },
+    // 旧版控制台双头鉴权。文档写 X-Api-App-Id；实测同时携带 App-Key 亦兼容，双发以防文档口径差异
+    headers: {
+      "X-Api-App-Id": appId,
+      "X-Api-App-Key": appId,
+      "X-Api-Access-Key": accessToken,
+      "X-Api-Resource-Id": resourceId(),
+      "X-Api-Request-Id": randomUUID(),
+    },
     jsonBody: {
-      app: { appid: appId, token: accessToken, cluster: "volcano_tts" },
       // uid 是调用方标识，非患者信息；播报文本与具体患者无关
       user: { uid: "yy-demo-tts" },
-      audio: {
-        voice_type: voiceType(),
-        encoding: "mp3",
-        speed_ratio: 0.9, // 面向老年患者：语速放缓
+      req_params: {
+        text,
+        speaker: voiceType(),
+        audio_params: {
+          format: "mp3",
+          sample_rate: 24000,
+          speech_rate: -10, // 取值 [-50,100]，-10 ≈ 0.9 倍速：面向老年患者放缓语速
+        },
       },
-      request: { reqid: randomUUID(), text, operation: "query" },
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   }).catch((error: unknown) => {
@@ -96,14 +137,10 @@ export async function synthesizeSpeech(text: string): Promise<{ audio: Buffer; c
   });
 
   if (!response.ok) {
-    throw new TtsError(`TTS 服务返回 HTTP ${response.status}`, "upstream");
+    const detail = response.headers.get("X-Api-Message") ?? `HTTP ${response.status}`;
+    throw new TtsError(`TTS 服务返回错误：${detail}`, "upstream");
   }
-  const body = (await response.json()) as { code?: number; message?: string; data?: string };
-  // 火山协议：code 3000 为成功，data 为 base64 音频
-  if (body.code !== 3000 || !body.data) {
-    throw new TtsError(`TTS 合成失败：${body.message ?? `code=${body.code}`}`, "upstream");
-  }
-  const audio = Buffer.from(body.data, "base64");
+  const audio = parseStreamedAudio(await response.text());
   await writeCache(key, audio);
   return { audio, cached: false };
 }

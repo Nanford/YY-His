@@ -101,7 +101,7 @@ describe("choice 题（MNA-SF）", () => {
 describe("通用保守策略", () => {
   const { question, options } = fixture("frail_1");
 
-  it.each(["不知道", "记不清了", "说不好", "没听清"])("%s → unclear（患者表示不确定）", (utterance) => {
+  it.each(["不知道", "记不清了", "说不好", "没听清", "我没听明白", "你再说一遍", "这是啥意思", "还行吧，说不上来"])("%s → unclear（患者表示不确定）", (utterance) => {
     const outcome = normalizeByRules(question, options, utterance);
     expect(outcome.status).toBe("unclear");
     if (outcome.status === "unclear") expect(outcome.reason).toContain("不确定");

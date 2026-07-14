@@ -46,6 +46,10 @@ next-env.d.ts
 
 /src/generated/prisma
 
+# 厂商接口文档（版权归火山引擎，仅本地参考，不入公开仓库）
+/豆包语音_API参考_*.pdf
+/TTS Websocket Bidirection protocols/
+
 # 本地数据库与音频文件（不入库）
 /prisma/dev.db
 /prisma/dev.db-journal

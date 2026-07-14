@@ -69,6 +69,13 @@ export async function recognizeSpeech(input: { audio: Buffer; patientCode: strin
   const statusCode = response.headers.get("X-Api-Status-Code");
   if (!response.ok || (statusCode !== null && statusCode !== "20000000")) {
     const statusMessage = response.headers.get("X-Api-Message") ?? `HTTP ${response.status}`;
+    // 45000030 = 资源未授权：账号尚未开通"录音文件识别-极速版"（2026-07-14 联调确认）
+    if (statusCode === "45000030" || statusMessage.includes("not granted")) {
+      throw new AsrError(
+        "语音识别服务未开通：请在火山引擎控制台开通 语音识别大模型-录音文件识别极速版（volc.bigasr.auc_turbo）",
+        "upstream"
+      );
+    }
     throw new AsrError(`ASR 服务返回错误：${statusMessage}`, "upstream");
   }
 
