@@ -1,7 +1,8 @@
 /**
  * INPUT:  Prisma（采集中的评估会话列表）
- * OUTPUT: 患者端入口页：选择要进入的评估会话
- * POS:    演示动线：医生创建会话后，大屏在此选择患者进入问询。
+ * OUTPUT: 患者端入口页：新患者自助建档，或从列表选择已有评估会话继续
+ * POS:    演示动线：患者可自助建档直接开始评估（/patient/register），
+ *         也可以选择医生已创建好的会话继续未完成的问询。
  */
 import Link from "next/link";
 import { prisma } from "@/lib/db";
@@ -21,15 +22,21 @@ export default async function PatientHomePage() {
     <main className="flex-1 flex flex-col items-center px-6 py-10 gap-8">
       <div className="text-center space-y-2">
         <h1 className="text-3xl md:text-4xl font-bold">患者评估大屏</h1>
-        <p className="text-slate-400 text-lg">请选择您的评估会话，或请医生协助选择</p>
+        <p className="text-slate-400 text-lg">第一次来？自己建个档案就能开始；已经建过档的请在下面选择您的会话</p>
       </div>
 
+      <Link
+        href="/patient/register"
+        className="rounded-3xl bg-emerald-600 hover:bg-emerald-500 text-white text-2xl font-bold px-12 py-6 shadow-xl transition"
+      >
+        + 我是新患者，开始建档
+      </Link>
+
       {sessions.length === 0 ? (
-        <p className="text-slate-400 text-xl mt-10">
-          当前没有进行中的评估。请医生先在医生工作台创建评估会话。
-        </p>
+        <p className="text-slate-400 text-xl mt-6">当前没有进行中的评估，点击上方按钮建档即可开始。</p>
       ) : (
-        <div className="w-full max-w-3xl grid gap-4">
+        <div className="w-full max-w-3xl space-y-4">
+          <h2 className="text-slate-400 text-lg text-center">或继续已有的评估会话</h2>
           {sessions.map((session) => {
             const scaleNames = (session.scaleIds as string[])
               .map((scaleId) => scaleById.get(scaleId)?.name ?? scaleId)

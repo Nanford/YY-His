@@ -8,7 +8,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
@@ -17,62 +16,14 @@ import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/a
 import { applyPlanReview, type PlanReviewInput } from "@/lib/assessment/plan-review";
 import { acquireFinalizingLock, scoreAndSnapshot } from "@/lib/assessment/finalize";
 import { syncMeasurementAnswers } from "@/lib/assessment/measurement-sync";
+import {
+  generatePatientCode,
+  parseMeasurements,
+  patientIdentitySchema as patientSchema,
+  textOrNull,
+} from "@/lib/assessment/patient-intake";
 
 // ---------- 患者 ----------
-
-/** 生成可读的患者唯一编号，如 P20260714-X3F9。出网调用只允许携带此编号（PII 红线） */
-async function generatePatientCode(): Promise<string> {
-  const today = new Date();
-  const ymd = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 去掉易混淆的 I/O/0/1
-  for (let attempt = 0; attempt < 5; attempt++) {
-    let suffix = "";
-    for (let i = 0; i < 4; i++) {
-      suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
-    }
-    const code = `P${ymd}-${suffix}`;
-    const exists = await prisma.patient.findUnique({ where: { code } });
-    if (!exists) return code;
-  }
-  throw new Error("患者编号生成失败，请重试");
-}
-
-function textOrNull(formData: FormData, key: string): string | null {
-  const value = formData.get(key);
-  const trimmed = typeof value === "string" ? value.trim() : "";
-  return trimmed === "" ? null : trimmed;
-}
-
-function numberOrNull(formData: FormData, key: string): number | null {
-  const raw = textOrNull(formData, key);
-  if (raw === null) return null;
-  return Number(raw);
-}
-
-const patientSchema = z.object({
-  name: z.string().trim().min(1).max(50),
-  gender: z.enum(["男", "女"]),
-  age: z.number().int().min(1).max(130),
-});
-
-const measurementsSchema = z.object({
-  heightCm: z.number().positive().max(300).nullable(),
-  weightKg: z.number().positive().max(500).nullable(),
-  waistCm: z.number().positive().max(300).nullable(),
-  calfCm: z.number().positive().max(200).nullable(),
-});
-
-type Measurements = z.infer<typeof measurementsSchema>;
-
-function parseMeasurements(formData: FormData): Measurements | null {
-  const parsed = measurementsSchema.safeParse({
-    heightCm: numberOrNull(formData, "heightCm"),
-    weightKg: numberOrNull(formData, "weightKg"),
-    waistCm: numberOrNull(formData, "waistCm"),
-    calfCm: numberOrNull(formData, "calfCm"),
-  });
-  return parsed.success ? parsed.data : null;
-}
 
 function assertRecordId(value: string, label: string): void {
   if (typeof value !== "string" || value.length < 5 || value.length > 128) {
