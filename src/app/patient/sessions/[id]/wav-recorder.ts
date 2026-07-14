@@ -1,10 +1,17 @@
 /**
  * INPUT:  浏览器麦克风（getUserMedia + Web Audio API）
- * OUTPUT: WavRecorder —— 录音并编码为 16kHz 单声道 16bit WAV Blob；
+ * OUTPUT: requestMicStream() —— 申请一次麦克风流，调用方持有并可跨多次录音复用；
+ *         WavRecorder —— 用外部传入的流录音，编码为 16kHz 单声道 16bit WAV Blob；
  *         start() 可选传入 VadListener，由声音活动检测（VAD）自动判断患者说完了并回调，
  *         免去"说完了再点一下按钮"这一步
  * POS:    患者端语音作答的采音层。统一输出 WAV：MediaRecorder 的 webm/opus
  *         容器在火山 ASR 侧兼容性不稳，PCM WAV 是最稳的通用格式。
+ *
+ * 麦克风流与单次录音的生命周期是分离的：浏览器策略要求首次弹出授权必须由真实点击
+ * 触发，但同一权限一旦被允许，同页面后续再申请不需要新手势也不会再弹窗。因此把
+ * 申请动作收敛到"开始评估"这一次点击（interview-screen.tsx），流由患者端页面持有，
+ * 逐题只是在这条已授权的流上开关 AudioContext 采样，不重新申请——这样才能做到
+ * "播报完自动开始听"而不需要患者每题都点一次。WavRecorder 自身不再管流的申请/释放。
  *
  * VAD 是能量阈值近似方案（非语义理解），阈值按开麦克风后前 300ms 环境噪音自适应，
  * 不是写死常量——演示环境噪声水平不可控。老年患者说话可能有较长停顿，调参只能
@@ -117,8 +124,25 @@ export class RecorderError extends Error {
   }
 }
 
+/** 申请一次麦克风流（需要用户手势触发以满足浏览器策略）。调用方持有并跨多次录音复用。 */
+export async function requestMicStream(): Promise<MediaStream> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new RecorderError("当前浏览器不支持录音", "unsupported");
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+    });
+  } catch (error) {
+    const denied = error instanceof DOMException && error.name === "NotAllowedError";
+    throw new RecorderError(
+      denied ? "麦克风授权被拒绝，请改用按钮或文字作答" : "无法打开麦克风",
+      denied ? "denied" : "failed"
+    );
+  }
+}
+
 export class WavRecorder {
-  private stream: MediaStream | null = null;
   private context: AudioContext | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
   private processor: ScriptProcessorNode | null = null;
@@ -126,28 +150,14 @@ export class WavRecorder {
   private inputSampleRate = TARGET_SAMPLE_RATE;
 
   /**
-   * 开始录音（需要用户手势触发以满足浏览器策略）。
+   * 在调用方已持有的麦克风流上开始录音（流的申请/释放由调用方负责，见 requestMicStream）。
    * 传入 vad 时自动检测"说完了"并回调 onAutoStop，调用方收到回调后自行调用 stop() 完成上传；
-   * 不传则保持原有"手动调用 stop() 才结束"的行为。
+   * 不传则保持"手动调用 stop() 才结束"的行为。
    */
-  async start(vad?: VadListener): Promise<void> {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new RecorderError("当前浏览器不支持录音", "unsupported");
-    }
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
-      });
-    } catch (error) {
-      const denied = error instanceof DOMException && error.name === "NotAllowedError";
-      throw new RecorderError(
-        denied ? "麦克风授权被拒绝，请改用按钮或文字作答" : "无法打开麦克风",
-        denied ? "denied" : "failed"
-      );
-    }
+  async start(stream: MediaStream, vad?: VadListener): Promise<void> {
     this.context = new AudioContext();
     this.inputSampleRate = this.context.sampleRate;
-    this.source = this.context.createMediaStreamSource(this.stream);
+    this.source = this.context.createMediaStreamSource(stream);
     // ScriptProcessor 已标记废弃但各浏览器仍全面支持；AudioWorklet 需要额外文件加载，
     // 演示场景取稳妥方案。替换路径：迁移到 AudioWorkletNode（见 M4 打磨项）。
     this.processor = this.context.createScriptProcessor(4096, 1, 1);
@@ -178,15 +188,13 @@ export class WavRecorder {
     return new Blob([encodeWav(resampled, TARGET_SAMPLE_RATE)], { type: "audio/wav" });
   }
 
-  /** 释放麦克风与音频节点（stop 或组件卸载时调用） */
+  /** 释放本次录音的音频节点（不动传入的麦克风流，流的生命周期由调用方管理） */
   teardown(): void {
     this.processor?.disconnect();
     this.source?.disconnect();
-    this.stream?.getTracks().forEach((track) => track.stop());
     void this.context?.close().catch(() => undefined);
     this.processor = null;
     this.source = null;
-    this.stream = null;
     this.context = null;
     this.chunks = [];
   }

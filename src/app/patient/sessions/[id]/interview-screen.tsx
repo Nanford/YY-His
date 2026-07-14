@@ -1,8 +1,12 @@
 /**
  * INPUT:  会话 id、患者展示信息（本地渲染，不出网）、患者端状态 API（state/start/answer）、TTS API
  * OUTPUT: InterviewScreen —— 患者端大屏主组件（数字医生 + 字幕 + 进度 + 作答区）
- * POS:    患者端问询的前端编排：驱动 开始 → 逐题播报/作答 → 结束 的完整流程。
+ * POS:    患者端问询的前端编排：驱动 开始（选语音/手动模式）→ 逐题播报/作答 → 结束 的完整流程。
  *         TTS/ASR 任何一环失败自动降级（纯字幕 + 按钮/文字作答），流程不中断。
+ *
+ * 语音模式的麦克风流只在"开始评估"这一次点击里申请一次（浏览器策略要求首次授权
+ * 必须由真实手势触发），此后由本组件持有并跨题复用；每题播报（playSpeaks）结束后
+ * 置 readyForVoice=true，驱动 AnswerInput 自动开始听，患者不需要每题都动手。
  */
 "use client";
 
@@ -11,8 +15,10 @@ import { useRouter } from "next/navigation";
 import type { PatientDialogueStateDto, SubmitAnswerResult } from "@/lib/dialogue/service";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
+import { RecorderError, requestMicStream } from "./wav-recorder";
 
 type LoadPhase = "loading" | "ready" | "error";
+type Mode = "voice" | "manual";
 
 interface InterviewScreenProps {
   sessionId: string;
@@ -28,9 +34,28 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   const [speaking, setSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>("voice");
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
+  /** 本题播报是否已结束，语音模式下驱动 AnswerInput 自动开始听 */
+  const [readyForVoice, setReadyForVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   /** TTS 一旦失败即静默降级为纯字幕，不再重试拖慢流程 */
   const ttsBrokenRef = useRef(false);
+
+  // 组件卸载或切换掉麦克风流时释放，避免麦克风占用指示一直亮着
+  useEffect(() => {
+    return () => {
+      micStream?.getTracks().forEach((track) => track.stop());
+    };
+  }, [micStream]);
+
+  // 问询已结束/转交医生时不再需要麦克风，主动释放轨道（不必再把 state 置空——
+  // AnswerInput 本来就只在 in_question 阶段渲染，不会再用到这个流）
+  useEffect(() => {
+    if (state && (state.phase === "finished" || state.phase === "awaiting_doctor") && micStream) {
+      micStream.getTracks().forEach((track) => track.stop());
+    }
+  }, [state, micStream]);
 
   // ---------- 播报：逐条设置字幕，可用时同步播放 TTS 音频 ----------
 
@@ -53,13 +78,17 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   const applyState = useCallback(
     (next: PatientDialogueStateDto, options: { autoplay: boolean }) => {
       setState(next);
+      setReadyForVoice(false);
       const fallbackSubtitle = next.prompt?.text ?? "";
       if (next.speak.length === 0) {
         setSubtitle(fallbackSubtitle);
+        if (next.phase === "in_question") setReadyForVoice(true);
         return;
       }
       if (options.autoplay) {
-        void playSpeaks(next.speak, next.capabilities.tts);
+        void playSpeaks(next.speak, next.capabilities.tts).then(() => {
+          if (next.phase === "in_question") setReadyForVoice(true);
+        });
       } else {
         // 无用户手势时不自动播放（浏览器策略），只展示字幕
         setSubtitle(next.speak[next.speak.length - 1] ?? fallbackSubtitle);
@@ -98,9 +127,21 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
   // ---------- 动作 ----------
 
-  const handleStart = async () => {
+  const handleStart = async (chosenMode: Mode) => {
     setSubmitting(true);
     try {
+      let stream: MediaStream | null = null;
+      if (chosenMode === "voice") {
+        try {
+          stream = await requestMicStream();
+        } catch (error) {
+          // 语音授权失败不阻塞整体流程，降级为手动模式（按钮/文字始终可用）
+          chosenMode = "manual";
+          setNotice(error instanceof RecorderError ? error.message : "麦克风授权失败，已切换为手动作答模式");
+        }
+      }
+      setMode(chosenMode);
+      setMicStream(stream);
       const response = await fetch(`/api/patient/sessions/${sessionId}/start`, { method: "POST" });
       const dto = (await response.json()) as PatientDialogueStateDto & { error?: string };
       if (!response.ok) {
@@ -212,14 +253,24 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
       {/* 作答区 / 开始按钮 / 结束画面 */}
       {state.phase === "not_started" && (
-        <button
-          type="button"
-          disabled={submitting}
-          onClick={handleStart}
-          className="rounded-3xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-3xl font-bold px-16 py-8 shadow-xl transition"
-        >
-          ▶ 开始评估
-        </button>
+        <div className="flex flex-col items-center gap-4">
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => void handleStart("voice")}
+            className="rounded-3xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-3xl font-bold px-16 py-8 shadow-xl transition"
+          >
+            🎤 语音问答（推荐）
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => void handleStart("manual")}
+            className="text-slate-400 text-lg underline decoration-dotted hover:text-slate-200 disabled:opacity-40"
+          >
+            👆 手动选择作答
+          </button>
+        </div>
       )}
 
       {state.phase === "in_question" && state.prompt && (
@@ -229,6 +280,9 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
           prompt={state.prompt}
           sessionId={sessionId}
           asrEnabled={state.capabilities.asr}
+          mode={mode}
+          micStream={micStream}
+          autoStart={readyForVoice}
           disabled={submitting}
           onSubmitButton={(score) => void submitAnswer({ mode: "button", score })}
           onSubmitText={(text) => void submitAnswer({ mode: "text", utterance: text })}

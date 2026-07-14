@@ -1,12 +1,15 @@
 /**
- * INPUT:  当前题目 DTO、能力开关（asr）、提交回调
+ * INPUT:  当前题目 DTO、能力开关（asr）、语音模式与已持有的麦克风流、提交回调
  * OUTPUT: AnswerInput —— 患者作答区（四种输入模式：大按钮 / 文字 / 语音确认 / 语音直答）
  * POS:    患者端输入模式的统一实现。语音链路任何一环不可用时按钮/文字始终可用
- *         （AGENTS.md：四种输入模式并存 + 兜底）。
+ *         （AGENTS.md：四种输入模式并存 + 兜底）。mode="voice" 时语音为主，播报完
+ *         由父组件（interview-screen.tsx）通过 autoStart 驱动自动开始听，免去
+ *         每题都要患者手动点一次的问题；mode="manual" 时完全不出现语音入口，
+ *         尊重患者在开始画面的选择。
  */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
 import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
 
@@ -20,6 +23,12 @@ interface AnswerInputProps {
   prompt: PatientPromptDto;
   sessionId: string;
   asrEnabled: boolean;
+  /** 患者在开始画面的选择：语音为主 / 只用手动 */
+  mode: "voice" | "manual";
+  /** mode="voice" 且麦克风授权成功时非空；由父组件持有，跨题复用，本组件不申请也不释放 */
+  micStream: MediaStream | null;
+  /** 本题播报已结束，语音模式下应自动开始听；每次挂载只消费一次 */
+  autoStart: boolean;
   disabled: boolean;
   onSubmitButton: (score: number) => void;
   onSubmitText: (text: string) => void;
@@ -30,8 +39,9 @@ interface AnswerInputProps {
 export function AnswerInput(props: AnswerInputProps) {
   const [textOpen, setTextOpen] = useState(false);
   const [pendingVoice, setPendingVoice] = useState<VoiceAnswer | null>(null);
-  /** 语音直答：转写完成后免确认直接提交（默认关闭，先确认更稳） */
-  const [directVoice, setDirectVoice] = useState(false);
+  /** 语音直答：转写完成后免确认直接提交。语音模式默认开（尽量免动手），手动模式无意义但保持一致初值 */
+  const [directVoice, setDirectVoice] = useState(props.mode === "voice");
+  const voiceActive = props.mode === "voice" && props.asrEnabled && props.micStream !== null;
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -74,8 +84,10 @@ export function AnswerInput(props: AnswerInputProps) {
       )}
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        {props.asrEnabled && !pendingVoice && (
+        {voiceActive && props.micStream && !pendingVoice && (
           <VoiceButton
+            micStream={props.micStream}
+            autoStart={props.autoStart}
             sessionId={props.sessionId}
             disabled={props.disabled}
             onTranscript={handleTranscript}
@@ -90,7 +102,7 @@ export function AnswerInput(props: AnswerInputProps) {
         >
           ⌨️ 文字输入
         </button>
-        {props.asrEnabled && (
+        {voiceActive && (
           <label className="flex items-center gap-2 text-slate-300 text-base cursor-pointer">
             <input
               type="checkbox"
@@ -206,16 +218,22 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
 }
 
 /**
- * 录音按钮：点击开始 → 声音活动检测（VAD）判断患者说完了自动上传 /api/asr 转写。
+ * 录音按钮：语音模式下播报一结束就自动开始（autoStart 由父组件在 TTS 播完后置 true），
+ * 声音活动检测（VAD）判断患者说完了自动上传 /api/asr 转写，全程不用患者动手。
  * VAD 是能量阈值近似方案，老年患者停顿可能导致误判，因此录音中始终保留弱化样式的
- * 手动兜底按钮（见 wav-recorder.ts 头注释）。
+ * 手动兜底按钮（见 wav-recorder.ts 头注释）。麦克风流由父组件持有传入，本组件只在
+ * 这条已授权的流上开关录音，不重新申请权限（不会再弹授权弹窗）。
  */
 function VoiceButton({
+  micStream,
+  autoStart,
   sessionId,
   disabled,
   onTranscript,
   onNotice,
 }: {
+  micStream: MediaStream;
+  autoStart: boolean;
   sessionId: string;
   disabled: boolean;
   onTranscript: (answer: VoiceAnswer) => void;
@@ -225,14 +243,54 @@ function VoiceButton({
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  /** autoStart 每次挂载只应触发一次自动开始，防止后续重渲染重复触发 */
+  const autoStartedRef = useRef(false);
 
-  // 组件卸载时释放麦克风
+  // 组件卸载时释放本次录音的音频节点（不动 micStream，那是父组件的资源）
   useEffect(() => () => recorderRef.current?.teardown(), []);
 
-  const startRecording = async () => {
+  const stopRecording = useCallback(
+    async (reason: "manual" | VadStopReason = "manual") => {
+      const recorder = recorderRef.current;
+      recorderRef.current = null;
+      setRecording(false);
+      setSpeaking(false);
+      if (!recorder) return;
+      const blob = await recorder.stop();
+      if (!blob) {
+        onNotice(reason === "timeout" ? "没有听到您说话，请再试一次" : "没有录到声音，请再试一次");
+        return;
+      }
+      setTranscribing(true);
+      try {
+        const form = new FormData();
+        form.append("sessionId", sessionId);
+        form.append("audio", blob, "answer.wav");
+        const response = await fetch("/api/asr", { method: "POST", body: form });
+        const body = (await response.json()) as {
+          text?: string;
+          audioPath?: string;
+          raw?: unknown;
+          error?: string;
+        };
+        if (!response.ok || !body.text) {
+          onNotice(body.error ?? "没听清，请再说一次，或改用按钮作答");
+          return;
+        }
+        onTranscript({ text: body.text, audioPath: body.audioPath, asrRaw: body.raw });
+      } catch {
+        onNotice("网络异常，转写失败，请改用按钮或文字作答");
+      } finally {
+        setTranscribing(false);
+      }
+    },
+    [sessionId, onTranscript, onNotice]
+  );
+
+  const startRecording = useCallback(async () => {
     try {
       const recorder = new WavRecorder();
-      await recorder.start({
+      await recorder.start(micStream, {
         onSpeechStart: () => setSpeaking(true),
         onAutoStop: (reason) => {
           void stopRecording(reason);
@@ -244,42 +302,15 @@ function VoiceButton({
     } catch (error) {
       onNotice(error instanceof RecorderError ? error.message : "无法打开麦克风");
     }
-  };
+  }, [micStream, stopRecording, onNotice]);
 
-  const stopRecording = async (reason: "manual" | VadStopReason = "manual") => {
-    const recorder = recorderRef.current;
-    recorderRef.current = null;
-    setRecording(false);
-    setSpeaking(false);
-    if (!recorder) return;
-    const blob = await recorder.stop();
-    if (!blob) {
-      onNotice(reason === "timeout" ? "没有听到您说话，请再试一次" : "没有录到声音，请再试一次");
-      return;
+  // 播报刚结束（autoStart 由 false 变 true）就自动开始听，不需要患者点按钮
+  useEffect(() => {
+    if (autoStart && !autoStartedRef.current && !recording && !transcribing) {
+      autoStartedRef.current = true;
+      void startRecording();
     }
-    setTranscribing(true);
-    try {
-      const form = new FormData();
-      form.append("sessionId", sessionId);
-      form.append("audio", blob, "answer.wav");
-      const response = await fetch("/api/asr", { method: "POST", body: form });
-      const body = (await response.json()) as {
-        text?: string;
-        audioPath?: string;
-        raw?: unknown;
-        error?: string;
-      };
-      if (!response.ok || !body.text) {
-        onNotice(body.error ?? "没听清，请再说一次，或改用按钮作答");
-        return;
-      }
-      onTranscript({ text: body.text, audioPath: body.audioPath, asrRaw: body.raw });
-    } catch {
-      onNotice("网络异常，转写失败，请改用按钮或文字作答");
-    } finally {
-      setTranscribing(false);
-    }
-  };
+  }, [autoStart, recording, transcribing, startRecording]);
 
   if (transcribing) {
     return (
