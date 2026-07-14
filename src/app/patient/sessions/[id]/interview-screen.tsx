@@ -12,6 +12,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  IconAlertTriangle,
+  IconArrowRight,
+  IconCheck,
+  IconClipboardList,
+  IconClock,
+  IconHandClick,
+  IconHeartHandshake,
+  IconMicrophone,
+  IconShieldCheck,
+  IconUser,
+  IconVolume,
+} from "@tabler/icons-react";
 import type { PatientDialogueStateDto, SubmitAnswerResult } from "@/lib/dialogue/service";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
@@ -156,6 +169,28 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     }
   };
 
+  // 答题阶段找回语音：刷新或重进"进行中"的会话会丢失内存里的麦克风流（语音入口原本
+  // 只在开始屏出现一次），这里让患者在任意一题重新一键开麦——申请麦克风 → 数字医生
+  // 重读本题 → 播完自动开始听。首次开麦必须由这次点击这个真实手势触发（浏览器策略）。
+  const enableVoice = async () => {
+    setSubmitting(true);
+    try {
+      const stream = await requestMicStream();
+      setMicStream(stream);
+      setMode("voice");
+      setReadyForVoice(false);
+      if (state?.prompt) {
+        await playSpeaks([state.prompt.text], state.capabilities.tts);
+      }
+      setReadyForVoice(true);
+    } catch (error) {
+      // 授权失败不阻塞：按钮/文字始终可用（AGENTS.md 四模式并存兜底）
+      setNotice(error instanceof RecorderError ? error.message : "麦克风打开失败，仍可用按钮或文字作答");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const submitAnswer = async (payload: Record<string, unknown>) => {
     if (!state?.prompt) return;
     setSubmitting(true);
@@ -207,120 +242,221 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     return <CenterMessage text="本次评估不在采集中（可能已完成），请联系医生。" />;
   }
 
+  // 语音激活态 = 选了语音模式 + 麦克风流在 + ASR 可用。刷新/重进会话时麦克风流丢失
+  // → false → 答题阶段常驻"用语音回答"入口（下方 enableVoice），把语音找回来。
+  const voiceReady = mode === "voice" && micStream !== null && state.capabilities.asr;
+
   return (
-    <div className="flex-1 flex flex-col items-center px-4 py-6 gap-6">
-      {/* 顶部：患者与量表信息 + 进度 */}
-      <header className="w-full max-w-4xl flex items-center justify-between text-slate-300">
-        <div className="text-lg md:text-xl">
-          {patientLabel}
-          <span className="ml-3 text-slate-500 text-base">{state.scaleNames.join("、")}</span>
-        </div>
-        {state.phase !== "not_started" && (
-          <div className="text-lg md:text-xl">
-            已完成 <span className="text-sky-300 font-bold">{state.progress.answered}</span> / {state.progress.total} 题
+    <main className="patient-shell flex-1">
+      <PatientSessionTopbar />
+
+      <div className="patient-main space-y-6">
+        <section className="patient-panel px-6 py-5 md:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="inline-flex items-center gap-2 text-xl font-bold text-[var(--ink)]">
+                  <IconUser size={23} stroke={1.8} aria-hidden="true" />
+                  <span>{patientLabel}</span>
+                </div>
+                <span className="ui-badge">
+                  <IconClipboardList size={16} stroke={1.8} aria-hidden="true" />
+                  {state.scaleNames.join("、")}
+                </span>
+              </div>
+              <p className="mt-2 text-base text-[var(--ink-muted)]">数字医生将逐题引导，您可随时选择按钮、文字或语音作答。</p>
+            </div>
+
+            {state.phase !== "not_started" && (
+              <div className="w-full max-w-sm lg:w-80">
+                <div className="mb-2 flex items-center justify-between text-sm font-semibold text-[var(--ink-muted)]">
+                  <span>完成进度</span>
+                  <span>
+                    {state.progress.answered} / {state.progress.total} 题
+                  </span>
+                </div>
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-[var(--surface-blue)]"
+                  role="progressbar"
+                  aria-label="评估完成进度"
+                  aria-valuemin={0}
+                  aria-valuemax={state.progress.total}
+                  aria-valuenow={state.progress.answered}
+                >
+                  <span
+                    className="block h-full rounded-full bg-[var(--brand)] transition-[width] duration-300"
+                    style={{
+                      width:
+                        (state.progress.total
+                          ? (state.progress.answered / state.progress.total) * 100
+                          : 0) + "%",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {notice && (
+          <div className="ui-alert ui-alert-warning text-base md:text-lg" role="status">
+            <IconAlertTriangle size={23} stroke={1.8} aria-hidden="true" />
+            <span>{notice}</span>
           </div>
         )}
-      </header>
 
-      <DoctorAvatar speaking={speaking} mode={state.capabilities.avatarMode} />
+        <section className="patient-panel overflow-hidden">
+          <div className="grid min-h-[440px] lg:grid-cols-[270px_minmax(0,1fr)]">
+            <aside className="flex flex-col items-center justify-center border-b border-[var(--line)] bg-[var(--surface-blue)] px-6 py-8 text-center lg:border-r lg:border-b-0">
+              <DoctorAvatar speaking={speaking} mode={state.capabilities.avatarMode} />
+              <p className="mt-5 text-xl font-bold text-[var(--ink)]">数字医生</p>
+              <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">
+                {speaking ? "正在为您播报问题" : "全程陪伴本次健康问询"}
+              </p>
+            </aside>
 
-      {/* 字幕区 */}
-      <section className="w-full max-w-4xl min-h-28 rounded-2xl bg-slate-800/70 border border-slate-700 px-6 py-5 text-center">
-        {state.phase === "not_started" ? (
-          <p className="text-slate-200 text-xl md:text-2xl leading-relaxed">
-            您好！点击下方按钮，数字医生将开始为您做健康问询。
-          </p>
-        ) : (
-          <p className="text-white text-xl md:text-3xl leading-relaxed">{subtitle}</p>
-        )}
-        {state.phase === "in_question" && (
-          <button
-            type="button"
-            onClick={replay}
-            className="mt-3 text-sky-300 text-base underline underline-offset-4 hover:text-sky-200"
-          >
-            🔊 再听一遍
-          </button>
-        )}
-      </section>
+            <div className="flex min-w-0 flex-col justify-center px-6 py-8 md:px-10">
+              {state.phase === "not_started" && (
+                <div className="mx-auto max-w-2xl text-center">
+                  <span className="ui-badge mx-auto">
+                    <IconCheck size={16} stroke={2} aria-hidden="true" />
+                    准备就绪
+                  </span>
+                  <h1 className="patient-display-title mt-5">您好，准备开始本次健康评估</h1>
+                  <p className="patient-display-copy">
+                    您好！点击下方按钮，数字医生将开始为您做健康问询。
+                  </p>
+                  <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      aria-label="🎤 语音问答（推荐）"
+                      disabled={submitting}
+                      onClick={() => void handleStart("voice")}
+                      className="patient-primary-action w-full sm:w-auto"
+                    >
+                      <IconMicrophone size={28} stroke={1.8} aria-hidden="true" />
+                      <span>语音问答（推荐）</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="👆 手动选择作答"
+                      disabled={submitting}
+                      onClick={() => void handleStart("manual")}
+                      className="ui-button ui-button-secondary ui-button-lg w-full sm:w-auto"
+                    >
+                      <IconHandClick size={21} stroke={1.8} aria-hidden="true" />
+                      <span>手动选择作答</span>
+                    </button>
+                  </div>
+                  <p className="mt-5 text-sm leading-6 text-[var(--ink-faint)]">
+                    语音不可用时，仍可使用大按钮或文字输入完成问询。
+                  </p>
+                </div>
+              )}
 
-      {/* 提示条 */}
-      {notice && (
-        <div className="rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-100 px-5 py-3 text-lg">
-          {notice}
-        </div>
-      )}
+              {state.phase === "in_question" && state.prompt && (
+                <div className="w-full">
+                  <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <span className="ui-badge">
+                      <IconClipboardList size={16} stroke={1.8} aria-hidden="true" />
+                      健康问询
+                    </span>
+                    <span className="text-sm font-semibold text-[var(--ink-muted)]">
+                      第 {state.progress.answered + 1} / {state.progress.total} 题
+                    </span>
+                  </div>
+                  <p className="patient-display-title max-w-3xl text-[clamp(27px,3vw,40px)]">{subtitle}</p>
+                  <button
+                    type="button"
+                    onClick={replay}
+                    className="ui-button ui-button-quiet mt-4 px-0 text-base underline decoration-dotted underline-offset-4"
+                  >
+                    <IconVolume size={20} stroke={1.8} aria-hidden="true" />
+                    <span>再听一遍</span>
+                  </button>
 
-      {/* 作答区 / 开始按钮 / 结束画面 */}
-      {state.phase === "not_started" && (
-        <div className="flex flex-col items-center gap-4">
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void handleStart("voice")}
-            className="rounded-3xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-3xl font-bold px-16 py-8 shadow-xl transition"
-          >
-            🎤 语音问答（推荐）
-          </button>
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void handleStart("manual")}
-            className="text-slate-400 text-lg underline decoration-dotted hover:text-slate-200 disabled:opacity-40"
-          >
-            👆 手动选择作答
-          </button>
-        </div>
-      )}
+                  {/* 语音未激活但 ASR 可用（如刷新/重进会话丢了麦克风流）时，常驻找回入口 */}
+                  {!voiceReady && state.capabilities.asr && (
+                    <div className="mt-6">
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => void enableVoice()}
+                        aria-label="🎤 用语音回答这道题"
+                        className="patient-primary-action w-full sm:w-auto"
+                      >
+                        <IconMicrophone size={26} stroke={1.8} aria-hidden="true" />
+                        <span>用语音回答</span>
+                      </button>
+                      <p className="mt-2 text-sm leading-6 text-[var(--ink-faint)]">
+                        点一下，数字医生会再读一遍问题，然后自动听您回答；也可以直接用下面的按钮或文字作答。
+                      </p>
+                    </div>
+                  )}
 
-      {state.phase === "in_question" && state.prompt && (
-        <AnswerInput
-          // 切题/换提问方式时重挂载作答区，清空未确认的转写与文字面板
-          key={`${state.prompt.questionId}-${state.prompt.attempt}`}
-          prompt={state.prompt}
-          sessionId={sessionId}
-          asrEnabled={state.capabilities.asr}
-          mode={mode}
-          micStream={micStream}
-          autoStart={readyForVoice}
-          disabled={submitting}
-          onSubmitButton={(score) => void submitAnswer({ mode: "button", score })}
-          onSubmitText={(text) => void submitAnswer({ mode: "text", utterance: text })}
-          onSubmitVoice={(answer: VoiceAnswer) =>
-            void submitAnswer({
-              mode: "voice",
-              utterance: answer.text,
-              audioPath: answer.audioPath,
-              asrRaw: answer.asrRaw,
-            })
-          }
-          onNotice={setNotice}
-        />
-      )}
+                  <div className="mt-7 border-t border-[var(--line)] pt-7">
+                    <AnswerInput
+                      // 切题/换提问方式时重挂载作答区，清空未确认的转写与文字面板；
+                      // 语音激活态变化时也重挂载，让 directVoice/自动开麦按新模式重新初始化
+                      key={`${state.prompt.questionId}-${state.prompt.attempt}-${voiceReady ? "voice" : "manual"}`}
+                      prompt={state.prompt}
+                      sessionId={sessionId}
+                      asrEnabled={state.capabilities.asr}
+                      mode={mode}
+                      micStream={micStream}
+                      autoStart={readyForVoice}
+                      disabled={submitting}
+                      onSubmitButton={(score) => void submitAnswer({ mode: "button", score })}
+                      onSubmitText={(text) => void submitAnswer({ mode: "text", utterance: text })}
+                      onSubmitVoice={(answer: VoiceAnswer) =>
+                        void submitAnswer({
+                          mode: "voice",
+                          utterance: answer.text,
+                          audioPath: answer.audioPath,
+                          asrRaw: answer.asrRaw,
+                        })
+                      }
+                      onNotice={setNotice}
+                    />
+                  </div>
+                </div>
+              )}
 
-      {state.phase === "awaiting_doctor" && (
-        <div className="text-center space-y-3">
-          <p className="text-3xl">🙏</p>
-          <p className="text-slate-100 text-2xl">您的问答已经全部完成啦！</p>
-          <p className="text-slate-400 text-lg">还有一点信息需要医生帮您确认，请稍候，或者请医生过来看一下。</p>
-        </div>
-      )}
+              {state.phase === "awaiting_doctor" && (
+                <div className="mx-auto max-w-xl text-center">
+                  <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[var(--warning-soft)] text-[var(--warning)]">
+                    <IconClock size={32} stroke={1.7} aria-hidden="true" />
+                  </div>
+                  <h1 className="mt-6 text-3xl font-bold text-[var(--ink)]">您的问答已经全部完成啦！</h1>
+                  <p className="mt-3 text-lg leading-8 text-[var(--ink-muted)]">
+                    还有一点信息需要医生帮您确认，请稍候，或者请医生过来看一下。
+                  </p>
+                </div>
+              )}
 
-      {state.phase === "finished" && (
-        <div className="text-center space-y-4">
-          <p className="text-3xl">🎉</p>
-          <p className="text-slate-100 text-2xl">全部问题已完成，感谢您的配合！</p>
-          <p className="text-slate-400 text-lg">您的评估报告已经生成好了。</p>
-          <button
-            type="button"
-            onClick={() => router.refresh()}
-            className="rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-2xl font-semibold px-10 py-5 shadow-xl transition"
-          >
-            查看我的评估报告 →
-          </button>
-        </div>
-      )}
-    </div>
+              {state.phase === "finished" && (
+                <div className="mx-auto max-w-xl text-center">
+                  <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[var(--success-soft)] text-[var(--success)]">
+                    <IconCheck size={34} stroke={2} aria-hidden="true" />
+                  </div>
+                  <h1 className="mt-6 text-3xl font-bold text-[var(--ink)]">全部问题已完成，感谢您的配合！</h1>
+                  <p className="mt-3 text-lg leading-8 text-[var(--ink-muted)]">您的评估报告已经生成好了。</p>
+                  <button
+                    type="button"
+                    aria-label="查看我的评估报告 →"
+                    onClick={() => router.refresh()}
+                    className="patient-primary-action mt-7"
+                  >
+                    <span>查看我的评估报告</span>
+                    <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
 
@@ -363,10 +499,39 @@ function resolutionNotice(resolution: SubmitAnswerResult["resolution"]): string 
   }
 }
 
+/** 患者端会话共用页头：保留大屏识别感，不增加会打断评估的导航。 */
+function PatientSessionTopbar() {
+  return (
+    <header className="patient-topbar border-b border-[var(--line)]">
+      <div className="patient-brand">
+        <span className="grid size-10 place-items-center rounded-xl bg-[var(--brand)] text-white shadow-[0_8px_16px_rgb(23_105_232_/_20%)]">
+          <IconHeartHandshake size={24} stroke={1.8} aria-hidden="true" />
+        </span>
+        <span>
+          <span className="block">精准照护工作台</span>
+          <span className="mt-0.5 block text-xs font-semibold text-[var(--ink-faint)]">老年健康评估与干预系统</span>
+        </span>
+      </div>
+      <span className="ui-badge hidden sm:inline-flex">
+        <IconShieldCheck size={16} stroke={1.8} aria-hidden="true" />
+        信息仅用于本次健康服务
+      </span>
+    </header>
+  );
+}
+
 function CenterMessage({ text }: { text: string }) {
   return (
-    <div className="flex-1 flex items-center justify-center px-6">
-      <p className="text-slate-300 text-2xl text-center leading-relaxed">{text}</p>
-    </div>
+    <main className="patient-shell flex-1">
+      <PatientSessionTopbar />
+      <div className="patient-main flex min-h-[calc(100vh-76px)] items-center justify-center">
+        <section className="patient-panel w-full max-w-2xl px-8 py-12 text-center">
+          <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[var(--surface-blue)] text-[var(--brand)]">
+            <IconClipboardList size={32} stroke={1.7} aria-hidden="true" />
+          </div>
+          <p className="mt-6 text-2xl font-bold leading-relaxed text-[var(--ink)]">{text}</p>
+        </section>
+      </div>
+    </main>
   );
 }

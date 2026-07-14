@@ -10,6 +10,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  IconArrowRight,
+  IconCheck,
+  IconKeyboard,
+  IconLoader2,
+  IconMicrophone,
+  IconRefresh,
+  IconSend,
+  IconVolume,
+  IconWaveSine,
+} from "@tabler/icons-react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
 import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
 
@@ -54,7 +65,7 @@ export function AnswerInput(props: AnswerInputProps) {
   // 切题时的状态重置由父组件的 key（questionId+attempt）触发整体重挂载完成
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
+    <div className="mx-auto w-full max-w-4xl space-y-5">
       {pendingVoice ? (
         <TranscriptConfirm
           transcript={pendingVoice.text}
@@ -83,7 +94,7 @@ export function AnswerInput(props: AnswerInputProps) {
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
         {voiceActive && props.micStream && !pendingVoice && (
           <VoiceButton
             micStream={props.micStream}
@@ -98,12 +109,13 @@ export function AnswerInput(props: AnswerInputProps) {
           type="button"
           onClick={() => setTextOpen((open) => !open)}
           disabled={props.disabled}
-          className="rounded-xl border border-slate-500 px-5 py-3 text-lg text-slate-200 hover:border-sky-400 disabled:opacity-40"
+          className="ui-button ui-button-secondary ui-button-lg"
         >
-          ⌨️ 文字输入
+          <IconKeyboard size={21} stroke={1.8} aria-hidden="true" />
+          <span>文字输入</span>
         </button>
         {voiceActive && (
-          <label className="flex items-center gap-2 text-slate-300 text-base cursor-pointer">
+          <label className="ui-choice min-h-[52px] rounded-[14px] px-4 text-base">
             <input
               type="checkbox"
               checked={directVoice}
@@ -130,16 +142,19 @@ function OptionButtons({
 }) {
   const twoColumns = prompt.options.length > 2;
   return (
-    <div className={`grid gap-3 ${twoColumns ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2"}`}>
+    <div
+      className={["grid gap-4", twoColumns ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2"].join(" ")}
+    >
       {prompt.options.map((option) => (
         <button
           key={option.label}
           type="button"
           disabled={disabled}
           onClick={() => onSelect(option.score)}
-          className="rounded-2xl bg-sky-600/90 hover:bg-sky-500 disabled:opacity-40 text-white text-xl md:text-2xl font-semibold px-6 py-5 shadow-lg transition text-left sm:text-center"
+          className="patient-choice min-h-[88px] w-full justify-between text-left sm:justify-center sm:text-center"
         >
-          {option.label}
+          <span>{option.label}</span>
+          <IconArrowRight size={26} stroke={1.7} aria-hidden="true" />
         </button>
       ))}
     </div>
@@ -159,25 +174,30 @@ function TranscriptConfirm({
   onRetry: () => void;
 }) {
   return (
-    <div className="rounded-2xl border-2 border-sky-400 bg-slate-800/80 p-6 space-y-4 text-center">
-      <p className="text-slate-300 text-lg">您说的是：</p>
-      <p className="text-white text-2xl font-semibold">“{transcript}”</p>
-      <div className="flex justify-center gap-4">
+    <div className="patient-panel border-[var(--brand)] bg-[var(--surface-blue)] p-6 text-center">
+      <div className="mb-3 flex items-center justify-center gap-2 text-lg font-semibold text-[var(--brand-strong)]">
+        <IconVolume size={22} stroke={1.8} aria-hidden="true" />
+        <p>您说的是：</p>
+      </div>
+      <p className="text-2xl font-bold leading-relaxed text-[var(--ink)]">“{transcript}”</p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
           type="button"
           disabled={disabled}
           onClick={onConfirm}
-          className="rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xl px-8 py-4"
+          className="ui-button ui-button-primary ui-button-lg"
         >
-          ✅ 对，就这么答
+          <IconCheck size={22} stroke={2} aria-hidden="true" />
+          <span>对，就这么答</span>
         </button>
         <button
           type="button"
           disabled={disabled}
           onClick={onRetry}
-          className="rounded-xl border border-slate-400 text-slate-200 text-xl px-8 py-4 hover:border-sky-400"
+          className="ui-button ui-button-secondary ui-button-lg"
         >
-          🔁 重新说
+          <IconRefresh size={21} stroke={1.9} aria-hidden="true" />
+          <span>重新说</span>
         </button>
       </div>
     </div>
@@ -189,7 +209,7 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
   const [value, setValue] = useState("");
   return (
     <form
-      className="flex gap-3"
+      className="flex flex-col gap-3 sm:flex-row"
       onSubmit={(event) => {
         event.preventDefault();
         const trimmed = value.trim();
@@ -204,14 +224,15 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
         onChange={(event) => setValue(event.target.value)}
         placeholder="请输入您的回答…"
         maxLength={200}
-        className="flex-1 rounded-xl bg-slate-800 border border-slate-600 px-4 py-3 text-xl text-white placeholder:text-slate-500 focus:border-sky-400 outline-none"
+        className="patient-input flex-1"
       />
       <button
         type="submit"
         disabled={disabled || value.trim().length === 0}
-        className="rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-40 text-white text-xl px-6"
+        className="ui-button ui-button-primary ui-button-lg shrink-0"
       >
-        提交
+        <IconSend size={21} stroke={1.9} aria-hidden="true" />
+        <span>提交</span>
       </button>
     </form>
   );
@@ -314,27 +335,36 @@ function VoiceButton({
 
   if (transcribing) {
     return (
-      <span className="rounded-xl border border-slate-500 px-5 py-3 text-lg text-slate-300 animate-pulse">
-        正在识别您的回答…
-      </span>
+      <div className="ui-alert mx-auto w-fit text-lg">
+        <IconLoader2 className="animate-spin" size={22} stroke={1.8} aria-hidden="true" />
+        <span>正在识别您的回答…</span>
+      </div>
     );
   }
 
   if (recording) {
     return (
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-3">
         <span
-          className={`rounded-xl px-5 py-3 text-lg text-white transition ${
-            speaking ? "bg-red-600 animate-pulse" : "bg-slate-700 border border-slate-500"
-          }`}
+          className={[
+            "inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[14px] border px-5 py-3 text-lg font-semibold transition",
+            speaking
+              ? "border-[#f1c4ca] bg-[var(--danger-soft)] text-[var(--danger)]"
+              : "border-[var(--line-strong)] bg-[var(--surface-blue)] text-[var(--brand-strong)]",
+          ].join(" ")}
         >
-          {speaking ? "🎙️ 正在听您说话…" : "🎤 请开始说话…"}
+          {speaking ? (
+            <IconWaveSine className="animate-pulse" size={23} stroke={1.8} aria-hidden="true" />
+          ) : (
+            <IconMicrophone size={22} stroke={1.8} aria-hidden="true" />
+          )}
+          <span>{speaking ? "正在听您说话…" : "请开始说话…"}</span>
         </span>
         <button
           type="button"
           disabled={disabled}
           onClick={() => void stopRecording("manual")}
-          className="text-slate-400 text-sm underline decoration-dotted hover:text-slate-200 disabled:opacity-40"
+          className="ui-button ui-button-quiet min-h-0 px-3 py-1 text-sm underline decoration-dotted underline-offset-4"
         >
           我说完了，直接提交
         </button>
@@ -347,9 +377,10 @@ function VoiceButton({
       type="button"
       disabled={disabled}
       onClick={startRecording}
-      className="rounded-xl px-5 py-3 text-lg text-white bg-slate-700 hover:bg-slate-600 border border-slate-500 disabled:opacity-40 transition"
+      className="ui-button ui-button-primary ui-button-lg"
     >
-      🎤 语音回答
+      <IconMicrophone size={22} stroke={1.8} aria-hidden="true" />
+      <span>语音回答</span>
     </button>
   );
 }
