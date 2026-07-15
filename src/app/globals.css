@@ -990,6 +990,38 @@ a {
   animation: breathe 4s var(--ease-breath) infinite;
 }
 
+/* 3D 女医护底图保持稳定，仅让开口版本在嘴部小范围内显隐，避免整张脸切换抖动。 */
+.digital-doctor-portrait {
+  isolation: isolate;
+}
+
+/* 说话时肖像细微律动（轻微浮动+微侧头+呼吸缩放），让静态肖像"活"起来。
+   覆盖 .avatar-core 的常驻呼吸；停说话回落到 avatar-core 的静息呼吸。 */
+.digital-doctor-portrait[data-speaking="true"] {
+  animation: portrait-speak 3.4s var(--ease-breath) infinite;
+}
+
+@keyframes portrait-speak {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1.008);
+  }
+  30% {
+    transform: translateY(-1.1%) rotate(-0.55deg) scale(1.016);
+  }
+  65% {
+    transform: translateY(0.5%) rotate(0.45deg) scale(1.006);
+  }
+}
+
+.digital-doctor-mouth-layer {
+  /* opacity 由组件按 TTS 音量分级内联驱动（0～1）；此处只给基础态与平滑过渡 */
+  opacity: 0;
+  mask-image: radial-gradient(ellipse 13% 7% at 50% 51%, #000 48%, transparent 88%);
+  -webkit-mask-image: radial-gradient(ellipse 13% 7% at 50% 51%, #000 48%, transparent 88%);
+  transition: opacity 60ms linear;
+}
+
 /* 播报时在形象周围晕开的柔光；非播报时透明。用缩放呼吸传达"正在说话" */
 .avatar-halo {
   position: absolute;

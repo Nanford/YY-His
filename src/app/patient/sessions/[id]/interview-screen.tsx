@@ -51,12 +51,21 @@ interface InterviewScreenProps {
   patientLabel: string;
 }
 
+/** TTS 播放器对应的 Web Audio 节点；只分析本机播放波形，不新增任何出网数据。 */
+interface LipSyncRuntime {
+  context: AudioContext | null;
+  source: MediaElementAudioSourceNode | null;
+  analyser: AnalyserNode | null;
+  animationFrame: number | null;
+}
+
 export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProps) {
   const router = useRouter();
   const [loadPhase, setLoadPhase] = useState<LoadPhase>("loading");
   const [state, setState] = useState<PatientDialogueStateDto | null>(null);
   const [subtitle, setSubtitle] = useState("");
   const [speaking, setSpeaking] = useState(false);
+  const [mouthLevel, setMouthLevel] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("voice");
@@ -76,8 +85,26 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   /** 同一题（questionId+attempt）只追加一条医生气泡，避免重渲染/重播重复入列 */
   const lastDoctorKeyRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lipSyncRef = useRef<LipSyncRuntime>({
+    context: null,
+    source: null,
+    analyser: null,
+    animationFrame: null,
+  });
   /** TTS 一旦失败即静默降级为纯字幕，不再重试拖慢流程 */
   const ttsBrokenRef = useRef(false);
+
+  // 离开页面时停止 TTS 与口型采样，释放 AudioContext，避免后台继续占用音频资源。
+  useEffect(() => {
+    const audio = audioRef.current ?? new Audio();
+    audioRef.current = audio;
+    const lipSync = lipSyncRef.current;
+    return () => {
+      audio.pause();
+      if (lipSync.animationFrame !== null) cancelAnimationFrame(lipSync.animationFrame);
+      if (lipSync.context && lipSync.context.state !== "closed") void lipSync.context.close();
+    };
+  }, []);
 
   // 组件卸载或切换掉麦克风流时释放，避免麦克风占用指示一直亮着
   useEffect(() => {
@@ -102,10 +129,17 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
         setSubtitle(text);
         if (!ttsEnabled || ttsBrokenRef.current) continue;
         try {
-          await playAudio(audioRef, `/api/tts?text=${encodeURIComponent(text)}`, setSpeaking);
+          await playAudio(
+            audioRef,
+            lipSyncRef,
+            `/api/tts?text=${encodeURIComponent(text)}`,
+            setSpeaking,
+            setMouthLevel
+          );
         } catch {
           ttsBrokenRef.current = true; // 降级为纯字幕，流程继续
           setSpeaking(false);
+          setMouthLevel(0);
         }
       }
     },
@@ -370,7 +404,12 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
           <div className="grid min-h-[560px] lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
             {/* 左侧：大大的数字医生（改版主视觉，意见4）*/}
             <aside className="flex flex-col items-center justify-center gap-7 border-b border-[var(--line)] bg-[var(--surface-blue)] px-8 py-12 text-center lg:border-r lg:border-b-0">
-              <DoctorAvatar speaking={speaking} mode={state.capabilities.avatarMode} size="xl" />
+              <DoctorAvatar
+                speaking={speaking}
+                mouthLevel={mouthLevel}
+                mode={state.capabilities.avatarMode}
+                size="xl"
+              />
               <div>
                 <p className="text-3xl font-extrabold text-[var(--ink)]">数字医生</p>
                 <p className="mt-2 text-xl leading-8 text-[var(--ink-muted)]">
@@ -594,27 +633,105 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 /** 播放一段 TTS 音频；播放期间置 speaking=true。失败（503/网络）时 reject 由调用方降级 */
 function playAudio(
   audioRef: React.RefObject<HTMLAudioElement | null>,
+  lipSyncRef: React.RefObject<LipSyncRuntime>,
   src: string,
-  setSpeaking: (value: boolean) => void
+  setSpeaking: (value: boolean) => void,
+  setMouthLevel: (value: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const audio = audioRef.current ?? new Audio();
     audioRef.current = audio;
     audio.src = src;
     audio.onended = () => {
+      stopLipSync(lipSyncRef.current, setMouthLevel);
       setSpeaking(false);
       resolve();
     };
     audio.onerror = () => {
+      stopLipSync(lipSyncRef.current, setMouthLevel);
       setSpeaking(false);
       reject(new Error("音频播放失败"));
     };
+    setMouthLevel(0);
     setSpeaking(true);
-    audio.play().catch((error: unknown) => {
-      setSpeaking(false);
-      reject(error instanceof Error ? error : new Error("音频播放失败"));
-    });
+    audio
+      .play()
+      .then(() => void startLipSync(audio, lipSyncRef, setMouthLevel))
+      .catch((error: unknown) => {
+        stopLipSync(lipSyncRef.current, setMouthLevel);
+        setSpeaking(false);
+        reject(error instanceof Error ? error : new Error("音频播放失败"));
+      });
   });
+}
+
+/**
+ * 用 TTS 音频的短时能量控制开/闭口图层；若浏览器禁用 Web Audio，按播放时间生成
+ * 保守的节奏口型，保证语音仍正常播放且形象不会退回静态占位图。
+ */
+async function startLipSync(
+  audio: HTMLAudioElement,
+  lipSyncRef: React.RefObject<LipSyncRuntime>,
+  setMouthLevel: (value: number) => void
+): Promise<void> {
+  const runtime = lipSyncRef.current;
+  if (runtime.animationFrame !== null) cancelAnimationFrame(runtime.animationFrame);
+
+  try {
+    if (!runtime.context) {
+      runtime.context = new AudioContext();
+      runtime.analyser = runtime.context.createAnalyser();
+      runtime.analyser.fftSize = 256;
+      runtime.analyser.smoothingTimeConstant = 0.55;
+      runtime.source = runtime.context.createMediaElementSource(audio);
+      runtime.source.connect(runtime.analyser);
+      runtime.analyser.connect(runtime.context.destination);
+    }
+    if (runtime.context.state === "suspended") await runtime.context.resume();
+  } catch {
+    // 旧浏览器或音频策略不支持 Web Audio 时由下方时间节奏兜底，不影响 TTS 播放。
+  }
+
+  const samples = runtime.analyser ? new Uint8Array(runtime.analyser.fftSize) : null;
+  let lastLevel = -1;
+  const updateMouth = () => {
+    if (audio.paused || audio.ended) {
+      stopLipSync(runtime, setMouthLevel);
+      return;
+    }
+
+    let level: number;
+    if (runtime.context?.state === "running" && runtime.analyser && samples) {
+      runtime.analyser.getByteTimeDomainData(samples);
+      let energy = 0;
+      for (const sample of samples) {
+        const centered = (sample - 128) / 128;
+        energy += centered * centered;
+      }
+      const rms = Math.sqrt(energy / samples.length);
+      // 音量映射到 0～1 口型开合：门限以下闭口，往上线性张开（分级比开/闭硬切更自然）。
+      const RMS_FLOOR = 0.02;
+      const RMS_CEIL = 0.11;
+      level = Math.max(0, Math.min(1, (rms - RMS_FLOOR) / (RMS_CEIL - RMS_FLOOR)));
+    } else {
+      // 不支持 AudioContext 时的视觉兜底：按播放时间生成有停顿的开合节奏。
+      level = Math.floor(audio.currentTime * 7) % 3 === 0 ? 0 : 0.85;
+    }
+    // 量化到 6 档，只在档位变化时更新 state，避免逐帧重渲染肖像。
+    const quantized = Math.round(level * 5) / 5;
+    if (quantized !== lastLevel) {
+      lastLevel = quantized;
+      setMouthLevel(quantized);
+    }
+    runtime.animationFrame = requestAnimationFrame(updateMouth);
+  };
+  updateMouth();
+}
+
+function stopLipSync(runtime: LipSyncRuntime, setMouthLevel: (value: number) => void): void {
+  if (runtime.animationFrame !== null) cancelAnimationFrame(runtime.animationFrame);
+  runtime.animationFrame = null;
+  setMouthLevel(0);
 }
 
 /** 把一次作答转成对话记录里"患者说的话"：按钮取选项文案，语音/文字取原话 */
