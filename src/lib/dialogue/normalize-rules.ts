@@ -84,6 +84,14 @@ function startsWithAny(text: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) => text.startsWith(pattern));
 }
 
+/*
+ * 已知限制（2026-07-15，产品决定本次只改 LLM 提示、规则层暂不动）：本函数是"门槛盲"的——
+ * 它只做是/否关键词匹配，看不懂题干自带的频度/数量/幅度门槛。例如疲乏题"大部分时间感到疲乏"，
+ * 患者答"有一点累"，句首"有"会被 INITIAL_POSITIVE 命中而误判为"是"（正确应为否/追问）。
+ * 该误判仅在 DeepSeek 通道失效、回落到规则时才可能发生（在线时以 LLM 结论为准，见 deepseek.ts
+ * 门槛判定）。替换路径：后续给规则层的门槛题单列"分级词不做单字肯定推断"的保护，或规则层对
+ * 门槛题一律返回 unclear 交由追问/医生补录。
+ */
 function parseBoolean(text: string, options: QuestionOption[]): NormalizationOutcome {
   const initialLabel = startsWithAny(text, INITIAL_POSITIVE_STRONG)
     ? "是"
