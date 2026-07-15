@@ -33,7 +33,7 @@ import type {
 } from "@/lib/dialogue/service";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
-import { RecorderError, requestMicStream } from "./wav-recorder";
+import { RecorderError, WavRecorder, requestMicStream } from "./wav-recorder";
 
 type LoadPhase = "loading" | "ready" | "error";
 type Mode = "voice" | "manual";
@@ -63,6 +63,13 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   /** 本题播报是否已结束，语音模式下驱动 AnswerInput 自动开始听 */
   const [readyForVoice, setReadyForVoice] = useState(false);
+  /** intro 讲解播报是否已结束，语音模式下驱动"听患者说'开始'"的确认监听 */
+  const [readyForConsent, setReadyForConsent] = useState(false);
+  /** intro 确认阶段的临时录音器（只用于"检测到患者开口"，不做转写/评分） */
+  const consentRecorderRef = useRef<WavRecorder | null>(null);
+  /** 确认监听每个 intro 只启动一次；进入第一题只推进一次（防语音+按钮重复触发） */
+  const consentStartedRef = useRef(false);
+  const beginningRef = useRef(false);
   /** 大字体对话记录（意见4）：医生问 + 患者答，客户端累积，自动滚到最新 */
   const [talks, setTalks] = useState<TalkEntry[]>([]);
   const talkScrollRef = useRef<HTMLDivElement | null>(null);
@@ -109,6 +116,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     (next: PatientDialogueStateDto, options: { autoplay: boolean }) => {
       setState(next);
       setReadyForVoice(false);
+      setReadyForConsent(false);
       // 累积医生气泡：进入某题时把该题问题文本记入对话记录（同题去重）
       if (next.phase === "in_question" && next.prompt) {
         const q = next.prompt;
@@ -122,11 +130,13 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
       if (next.speak.length === 0) {
         setSubtitle(fallbackSubtitle);
         if (next.phase === "in_question") setReadyForVoice(true);
+        if (next.phase === "intro") setReadyForConsent(true);
         return;
       }
       if (options.autoplay) {
         void playSpeaks(next.speak, next.capabilities.tts).then(() => {
           if (next.phase === "in_question") setReadyForVoice(true);
+          if (next.phase === "intro") setReadyForConsent(true);
         });
       } else {
         // 无用户手势时不自动播放（浏览器策略），只展示字幕
@@ -223,6 +233,63 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     }
   };
 
+  // ---------- intro 讲解 → 患者确认"开始" → 进入第一题 ----------
+
+  // 患者确认后推进到第一题。语音确认与"开始"按钮共用，靠 beginningRef 保证只推进一次。
+  const beginQuestions = useCallback(async () => {
+    if (beginningRef.current) return;
+    beginningRef.current = true;
+    consentRecorderRef.current?.teardown(); // 停掉确认监听（不动 micStream，第一题作答还要用）
+    consentRecorderRef.current = null;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/patient/sessions/${sessionId}/begin`, { method: "POST" });
+      const dto = (await response.json()) as PatientDialogueStateDto & { error?: string };
+      if (!response.ok) {
+        setNotice(dto.error ?? "无法开始问询");
+        beginningRef.current = false;
+        return;
+      }
+      applyState(dto, { autoplay: true });
+    } catch {
+      setNotice("网络异常，请重试");
+      beginningRef.current = false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [sessionId, applyState]);
+
+  // intro 语音确认：讲解播完开一段轻量录音，检测到患者开口（VAD 判定说完一句）即进入第一题。
+  // 从宽——只判"有没有说话"，不转写、不评分；静默超时保留"开始"按钮兜底。
+  const listenForConsent = useCallback(async () => {
+    if (!micStream || consentStartedRef.current) return;
+    consentStartedRef.current = true;
+    try {
+      const recorder = new WavRecorder();
+      consentRecorderRef.current = recorder;
+      await recorder.start(micStream, {
+        onAutoStop: (reason) => {
+          void recorder.stop();
+          consentRecorderRef.current = null;
+          if (reason === "auto-stop") void beginQuestions(); // 听到患者说话就进第一题
+        },
+      });
+    } catch {
+      consentRecorderRef.current = null; // 失败静默，"开始"按钮兜底
+    }
+  }, [micStream, beginQuestions]);
+
+  // 讲解播完（readyForConsent）且语音模式在 → 自动听患者确认；离开 intro/卸载时清理录音器
+  useEffect(() => {
+    if (readyForConsent && state?.phase === "intro" && mode === "voice" && micStream && !submitting) {
+      void listenForConsent();
+    }
+    return () => {
+      consentRecorderRef.current?.teardown();
+      consentRecorderRef.current = null;
+    };
+  }, [readyForConsent, state?.phase, mode, micStream, submitting, listenForConsent]);
+
   const submitAnswer = async (payload: Record<string, unknown>) => {
     if (!state?.prompt) return;
     const prompt = state.prompt; // 固定当前题：供作答记录与提交用，避免 await 后 state 变化
@@ -307,7 +374,13 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               <div>
                 <p className="text-3xl font-extrabold text-[var(--ink)]">数字医生</p>
                 <p className="mt-2 text-xl leading-8 text-[var(--ink-muted)]">
-                  {speaking ? "正在为您播报问题…" : voiceReady ? "请开口回答就行" : "全程陪伴本次问询"}
+                  {speaking
+                    ? state.phase === "intro"
+                      ? "正在为您讲解…"
+                      : "正在为您播报问题…"
+                    : voiceReady
+                      ? "请开口回答就行"
+                      : "全程陪伴本次问询"}
                 </p>
                 {speaking && subtitle && (
                   <p className="mx-auto mt-3 max-w-[260px] text-base leading-7 text-[var(--ink-faint)]">
@@ -355,18 +428,19 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     您好{patientLabel ? `，${patientLabel}` : ""}
                   </h1>
                   <p className="patient-display-copy max-w-xl">
-                    数字医生会像聊天一样，一句一句地问您几个健康小问题。点下面的大按钮，直接开口说就行。
+                    数字医生会先跟您说说这次评估，然后像聊天一样一句一句地问几个健康小问题。
+                    点下面的大按钮，全程用说话就行。
                   </p>
                   <div className="mt-9 flex w-full flex-col items-center gap-4">
                     <button
                       type="button"
-                      aria-label="开始语音评估，直接开口说话"
+                      aria-label="开始评估，数字医生会先讲解，之后用语音作答"
                       disabled={submitting}
                       onClick={() => void handleStart("voice")}
                       className="patient-primary-action w-full min-w-[280px] max-w-md justify-center text-2xl"
                     >
                       <IconMicrophone size={30} stroke={1.8} aria-hidden="true" />
-                      <span>开始语音评估</span>
+                      <span>开始评估</span>
                     </button>
                     <button
                       type="button"
@@ -379,6 +453,34 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                       <span>不方便说话？改用按钮 / 文字作答</span>
                     </button>
                   </div>
+                </div>
+              )}
+
+              {state.phase === "intro" && (
+                <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:px-12">
+                  <span className="ui-badge">
+                    <IconVolume size={16} stroke={2} aria-hidden="true" />
+                    数字医生正在讲解
+                  </span>
+                  {/* 讲解全文作字幕展示（TTS 关闭/听不清时的兜底），内容见 prompts.ts OPENING_TEXT */}
+                  <p className="patient-display-copy mt-6 max-w-2xl text-[clamp(20px,2.2vw,28px)] font-semibold leading-relaxed text-[var(--ink)]">
+                    {subtitle || "……"}
+                  </p>
+                  <p className="mt-5 text-lg leading-7 text-[var(--ink-muted)]">
+                    {mode === "voice" && micStream && state.capabilities.asr
+                      ? "听完您说一声“好的”或者“开始”就可以，也可以点下面的大按钮。"
+                      : "准备好了就点下面的大按钮开始。"}
+                  </p>
+                  <button
+                    type="button"
+                    aria-label="开始回答健康问题"
+                    disabled={submitting}
+                    onClick={() => void beginQuestions()}
+                    className="patient-primary-action mt-8"
+                  >
+                    <span>开始</span>
+                    <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                  </button>
                 </div>
               )}
 

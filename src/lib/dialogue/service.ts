@@ -42,12 +42,14 @@ export interface PatientPromptDto {
 export interface PatientDialogueStateDto {
   sessionId: string;
   /**
-   * not_started/in_question：问询进行中。
+   * not_started：尚未点击"开始"（未写任何轮次）。
+   * intro：已播报讲解开场白、正在等患者口头确认"开始"，第一题尚未发出（已问候但无题目轮次）。
+   * in_question：问询进行中。
    * awaiting_doctor：问答已全部答完，但评估暂未生成（存在测量/观察题缺口或"待人工确认"未补录），需医生协助后才能生成报告。
    * finished：本次提交刚好完成评分并生成报告——仅作为触发前端跳转去看报告的一次性信号，不会被 GET /state 重复返回。
    * locked：会话已不在 in_progress（通常因为报告已生成，应改为渲染报告页；此值仅作兜底）。
    */
-  phase: "not_started" | "in_question" | "awaiting_doctor" | "finished" | "locked";
+  phase: "not_started" | "intro" | "in_question" | "awaiting_doctor" | "finished" | "locked";
   scaleNames: string[];
   capabilities: VoiceCapabilities;
   progress: { answered: number; total: number };
@@ -199,6 +201,21 @@ function buildState(
     };
   }
   const step = nextStep(context.questions, context.snapshot);
+  // 已问候但还没发出任何题目（无带 questionId 的 doctor 轮次）＝讲解+确认阶段：
+  // 数字医生已播讲解开场白，正在等患者说"开始"，第一题待 beginPatientQuestions 才发。
+  // 仅当确实还有题可问（step 为 prompt）时才停在 intro；若医生已代填全部（finished）则照常收尾。
+  const questionsBegun = context.snapshot.doctorAskCount.size > 0;
+  if (!questionsBegun && step.kind === "prompt") {
+    return {
+      sessionId: context.session.id,
+      phase: "intro",
+      scaleNames,
+      capabilities,
+      progress,
+      prompt: null,
+      speak,
+    };
+  }
   if (step.kind === "finished") {
     // 到达这里时 session 仍是 in_progress：说明问答已问完，但评分未成功
     // （测量/观察题缺口，或存在"待人工确认"的题目），需医生协助补录后才能生成报告。
@@ -261,7 +278,10 @@ export async function getPatientDialogueState(sessionId: string): Promise<Patien
   const context = await loadContext(prisma, sessionId);
   const scaleNames = scaleNamesOf(context);
   const state = buildState(context, scaleNames, []);
-  // 刷新场景：把当前题文案放进 speak，供患者端"重听一遍"
+  // 刷新场景：intro 重播讲解、in_question 重播当前题，供患者端"重听一遍"
+  if (state.phase === "intro") {
+    return { ...state, speak: [OPENING_TEXT] };
+  }
   if (state.phase === "in_question" && state.prompt) {
     return { ...state, speak: [state.prompt.text] };
   }
@@ -269,8 +289,10 @@ export async function getPatientDialogueState(sessionId: string): Promise<Patien
 }
 
 /**
- * 开始问询（幂等）：写入开场白轮次与第一题提问轮次。
- * 已开始的会话重复调用不再写轮次，直接返回当前状态。
+ * 开始问询（幂等）：只写入讲解开场白轮次，进入 intro 阶段等患者口头确认"开始"；
+ * 第一题的提问轮次留给 beginPatientQuestions（患者确认后）写入。
+ * 已开始的会话重复调用不再写轮次，直接返回当前状态（intro 重播讲解、in_question 重播当前题）。
+ * 特例：医生已通过表单代填全部患者可答题目 → 开场白后直接收尾并尝试出报告，不停在 intro。
  */
 export async function startPatientDialogue(sessionId: string): Promise<PatientDialogueStateDto> {
   return prisma.$transaction(async (tx) => {
@@ -281,6 +303,7 @@ export async function startPatientDialogue(sessionId: string): Promise<PatientDi
     const scaleNames = scaleNamesOf(context);
     if (context.started) {
       const state = buildState(context, scaleNames, []);
+      if (state.phase === "intro") return { ...state, speak: [OPENING_TEXT] };
       return state.phase === "in_question" && state.prompt
         ? { ...state, speak: [state.prompt.text] }
         : state;
@@ -289,22 +312,17 @@ export async function startPatientDialogue(sessionId: string): Promise<PatientDi
     await tx.dialogueTurn.create({
       data: { sessionId, role: "doctor", questionId: null, text: OPENING_TEXT },
     });
-    const speak = [OPENING_TEXT];
     const step = nextStep(context.questions, context.snapshot);
     if (step.kind === "prompt") {
-      await tx.dialogueTurn.create({
-        data: { sessionId, role: "doctor", questionId: step.prompt.item.question.id, text: step.prompt.text },
-      });
-      bumpCount(context.snapshot.doctorAskCount, step.prompt.item.question.id);
-      speak.push(step.prompt.text);
-      return buildState({ ...context, started: true }, scaleNames, speak);
+      // 讲解播完进入 intro：不写第一题轮次，等患者确认后由 beginPatientQuestions 推进
+      return buildState({ ...context, started: true }, scaleNames, [OPENING_TEXT]);
     }
     if (step.kind === "finished") {
-      // 医生已通过表单代填全部患者可答题目：直接播报结束语并尝试自动生成报告
+      // 医生已代填全部患者可答题目：开场白后直接播报结束语并尝试自动生成报告
       await tx.dialogueTurn.create({
         data: { sessionId, role: "doctor", questionId: null, text: CLOSING_TEXT },
       });
-      speak.push(CLOSING_TEXT);
+      const speak = [OPENING_TEXT, CLOSING_TEXT];
       const outcome = await tryAutoFinalize(tx, sessionId);
       if (outcome.kind === "completed") {
         return reportReadyState({ ...context, started: true }, scaleNames, speak);
@@ -312,6 +330,51 @@ export async function startPatientDialogue(sessionId: string): Promise<PatientDi
       return buildState({ ...context, started: true }, scaleNames, speak);
     }
     throw new Error("状态机不变量被打破：开场后不应处于 awaiting");
+  });
+}
+
+/**
+ * 讲解确认后推进到第一题（幂等）：患者在 intro 阶段口头/点击确认"开始"后调用，
+ * 写入第一题提问轮次并进入 in_question。已开始答题（幂等重复调用）直接返回当前状态。
+ * 特例：医生已代填全部题目 → 直接收尾出报告。
+ */
+export async function beginPatientQuestions(sessionId: string): Promise<PatientDialogueStateDto> {
+  return prisma.$transaction(async (tx) => {
+    const context = await loadContext(tx, sessionId);
+    if (context.session.status !== "in_progress") {
+      throw new DialogueConflictError("当前会话不在采集中，无法开始问询");
+    }
+    const scaleNames = scaleNamesOf(context);
+    if (!context.started) {
+      // 还没播讲解就要进第一题：调用次序异常，交前端先 /start
+      throw new DialogueConflictError("问询尚未开始，请先开始评估");
+    }
+    // 已经在答题（有题目轮次）→ 幂等返回当前状态
+    if (context.snapshot.doctorAskCount.size > 0) {
+      const state = buildState(context, scaleNames, []);
+      return state.phase === "in_question" && state.prompt
+        ? { ...state, speak: [state.prompt.text] }
+        : state;
+    }
+    const step = nextStep(context.questions, context.snapshot);
+    if (step.kind === "prompt") {
+      await tx.dialogueTurn.create({
+        data: { sessionId, role: "doctor", questionId: step.prompt.item.question.id, text: step.prompt.text },
+      });
+      bumpCount(context.snapshot.doctorAskCount, step.prompt.item.question.id);
+      return buildState(context, scaleNames, [step.prompt.text]);
+    }
+    if (step.kind === "finished") {
+      await tx.dialogueTurn.create({
+        data: { sessionId, role: "doctor", questionId: null, text: CLOSING_TEXT },
+      });
+      const outcome = await tryAutoFinalize(tx, sessionId);
+      if (outcome.kind === "completed") {
+        return reportReadyState(context, scaleNames, [CLOSING_TEXT]);
+      }
+      return buildState(context, scaleNames, [CLOSING_TEXT]);
+    }
+    throw new Error("状态机不变量被打破：确认后不应处于 awaiting");
   });
 }
 
