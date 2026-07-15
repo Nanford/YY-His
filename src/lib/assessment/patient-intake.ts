@@ -8,6 +8,9 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 
+/** 患者本机"记住我的会话"cookie 名（数据隔离用：患者首页据此只显示自己的会话） */
+export const PATIENT_SESSION_COOKIE = "yy_patient_session";
+
 export function textOrNull(formData: FormData, key: string): string | null {
   const value = formData.get(key);
   const trimmed = typeof value === "string" ? value.trim() : "";

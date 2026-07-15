@@ -5,9 +5,11 @@
  *         状态分流与医生端会话页（src/app/doctor/sessions/[id]/page.tsx）同构：都以
  *         session.status 决定渲染哪个子视图，避免患者端另起一套状态判断逻辑。
  */
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
+import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 import type { AssessmentTag } from "@/lib/scoring";
 import type { RecommendedIntervention } from "@/lib/recommend";
 import { InterviewScreen } from "./interview-screen";
@@ -19,6 +21,10 @@ export default async function PatientSessionPage({
   params,
 }: PageProps<"/patient/sessions/[id]">) {
   const { id } = await params;
+  // 数据隔离（demo 级）：本机建过档就只能看自己那次会话，手打别人的 URL 会被挡回首页。
+  // 无 cookie 时不拦（可能是刚建档跳转/新设备），避免误伤演示流程；真正的鉴权是 V2。
+  const myId = (await cookies()).get(PATIENT_SESSION_COOKIE)?.value;
+  if (myId && myId !== id) redirect("/patient");
   const session = await prisma.assessmentSession.findUnique({
     where: { id },
     include: {

@@ -13,6 +13,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   IconAlertTriangle,
@@ -601,6 +602,11 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                   <p className="mt-3 text-xl leading-8 text-[var(--ink-muted)]">
                     还有一点信息需要医生帮您确认，请稍候，或者请医生过来看一下。
                   </p>
+                  {/* 修复死路：给患者一个明确的返回首页出口，不再卡在此页 */}
+                  <Link href="/patient" className="ui-button ui-button-secondary ui-button-lg mt-8">
+                    <IconArrowRight size={21} stroke={1.9} aria-hidden="true" />
+                    <span>返回首页</span>
+                  </Link>
                 </div>
               )}
 
