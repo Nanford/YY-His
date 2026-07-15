@@ -750,6 +750,42 @@ a {
   clip-path: inset(50%);
 }
 
+/* 多选评估项卡片（患者自助建档"选择评估内容"）：左对齐、含说明文字，
+   区别于 .patient-choice 的居中大字单选样式；勾选态复用同一套品牌高亮。 */
+.patient-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border: 2px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.patient-check:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  transform: translateY(-1px);
+}
+
+.patient-check:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: 0 0 0 4px var(--brand-ring);
+}
+
+/* 与 .patient-choice 不同，这里的勾选框保持可见（患者需看清选了哪几项）。 */
+.patient-check input[type="checkbox"] {
+  margin-block-start: 3px;
+  inline-size: 22px;
+  block-size: 22px;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
 .patient-primary-action {
   display: inline-flex;
   min-height: 68px;

@@ -1,9 +1,10 @@
 /**
  * INPUT:  路由查询参数（错误提示）
  * OUTPUT: 患者自助建档表单页（大屏适老化样式，提交至 registerPatient Server Action）
- * POS:    产品口径（2026-07-14 与用户确认）：患者自助建档只收姓名/性别/年龄（必填）+
- *         测量数据（选填），量表固定 FRAIL+跌倒 预设（能纯自助出报告的组合），提交后直接
- *         进入问询界面。更全面/需临床观察的评估走医护入口（见 registerPatient 说明）。
+ * POS:    产品口径（2026-07-15 修订，覆盖当日早先"固定 FRAIL+跌倒"的锁定口径）：患者自助
+ *         建档只收姓名/性别/年龄（必填）+ 测量数据（选填），并可自选评估内容（四量表多选，
+ *         默认勾 FRAIL+跌倒）。含舌象/测量题的量表（MNA-SF/中医体质）在选项上如实提示"需医生
+ *         补齐后出报告"，答完先落 awaiting_doctor 走医生补录——优雅降级，见 registerPatient 说明。
  *         身份证/手机/住址/住院号/门诊号等留给医生后续在患者详情页补充，不在此阻塞流程。
  */
 import Link from "next/link";
@@ -11,15 +12,47 @@ import {
   IconAlertCircle,
   IconArrowLeft,
   IconArrowRight,
+  IconCircleCheck,
+  IconClipboardList,
   IconGenderFemale,
   IconGenderMale,
   IconRulerMeasure,
+  IconStethoscope,
   IconUser,
 } from "@tabler/icons-react";
 import { registerPatient } from "@/lib/actions/patient";
+import { scales } from "@/lib/rules";
 import { firstQueryValue } from "@/lib/query";
 
 const inputCls = "patient-input w-full";
+
+/** 默认勾选：FRAIL+跌倒——不含观察题，能纯自助当场出报告，未改动即与旧行为一致。 */
+const DEFAULT_SCALE_IDS = new Set(["frail", "fall"]);
+
+/** 适老化短标题（量表正式名含英文缩写，老人不易懂），缺省回落量表库名称。 */
+const SCALE_LABELS: Record<string, string> = {
+  frail: "衰弱评估",
+  mnasf: "营养评估",
+  fall: "跌倒风险",
+  tcm: "中医体质辨识",
+};
+
+/** 每项评估的一句大白话用途说明（非诊断表述，仅帮助老人理解选的是什么）。 */
+const SCALE_SUBTITLES: Record<string, string> = {
+  frail: "了解您的体力和是否容易疲劳",
+  mnasf: "了解您近期的营养状况",
+  fall: "了解您走路、站立的稳定情况",
+  tcm: "辨识您的中医体质类型",
+};
+
+/**
+ * 该量表是否含需临床观察/测量的题（舌象、BMI、腹围、小腿围等）。
+ * 含则患者自助答完会先落"需要医生协助"，由医生补录后出完整报告——据此在选项上如实提示。
+ * 直接从题库派生，不硬编码量表名，量表增删/改题时自动同步。
+ */
+function needsClinicianAssist(questions: (typeof scales)[number]["questions"]): boolean {
+  return questions.some((question) => question.measurement || question.observerAssisted);
+}
 
 export default async function PatientRegisterPage({
   searchParams,
@@ -60,6 +93,12 @@ export default async function PatientRegisterPage({
             <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
               <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>身高体重等数据格式不对，请填合理的数字，或者留空跳过。</span>
+            </div>
+          )}
+          {error === "scales" && (
+            <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
+              <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>请至少选择一项评估内容。</span>
             </div>
           )}
 
@@ -107,6 +146,55 @@ export default async function PatientRegisterPage({
                 />
               </label>
             </div>
+
+            <fieldset className="space-y-3">
+              <legend className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
+                <IconClipboardList size={21} stroke={2} className="text-blue-600" aria-hidden="true" />
+                选择评估内容 <span className="text-[#c23b4a]">*</span>
+              </legend>
+              <p className="text-base leading-7 text-[#62779a]">
+                默认已选可以当场出报告的两项，您也可以按需增减。
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {scales.map((scale) => {
+                  const needsClinician = needsClinicianAssist(scale.questions);
+                  return (
+                    <label key={scale.id} className="patient-check">
+                      <input
+                        type="checkbox"
+                        name="scaleIds"
+                        value={scale.id}
+                        defaultChecked={DEFAULT_SCALE_IDS.has(scale.id)}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-lg font-extrabold leading-tight text-[#173766]">
+                          {SCALE_LABELS[scale.id] ?? scale.name}
+                        </span>
+                        <span className="mt-1 block text-sm leading-6 text-[#62779a]">
+                          {SCALE_SUBTITLES[scale.id] ?? ""}
+                        </span>
+                        <span
+                          className={`mt-2 flex items-start gap-1.5 text-sm font-semibold leading-6 ${
+                            needsClinician ? "text-[#b06a1a]" : "text-[#1f8a54]"
+                          }`}
+                        >
+                          {needsClinician ? (
+                            <IconStethoscope size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                          ) : (
+                            <IconCircleCheck size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                          )}
+                          <span>
+                            {needsClinician
+                              ? "含舌象、测量等需医生查看的项，答完后由医生补齐再出完整报告"
+                              : "可当场生成评估报告"}
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
 
             <section className="ui-panel-subtle p-5 sm:p-6" aria-labelledby="optional-measurements-title">
               <div className="flex items-start gap-3">

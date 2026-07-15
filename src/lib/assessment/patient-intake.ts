@@ -7,6 +7,7 @@
  */
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { scales } from "@/lib/rules";
 
 /** 患者本机"记住我的会话"cookie 名（数据隔离用：患者首页据此只显示自己的会话） */
 export const PATIENT_SESSION_COOKIE = "yy_patient_session";
@@ -46,6 +47,30 @@ export function parseMeasurements(formData: FormData): Measurements | null {
     calfCm: numberOrNull(formData, "calfCm"),
   });
   return parsed.success ? parsed.data : null;
+}
+
+/** 自助建档可选量表的固定顺序（取自量表库顺序，保证与题库一致，量表增删时自动同步）。 */
+export const SELF_SELECTABLE_SCALE_IDS: readonly string[] = scales.map((scale) => scale.id);
+
+/**
+ * 从建档表单解析患者勾选的量表（多选 checkbox，name="scaleIds"）。
+ * 校验：每项都在量表库内、至少 1 项；去重后按量表库顺序归一化，
+ * 使问询与展示顺序稳定，不受勾选先后影响。空选或含未知量表 → null（调用方回退错误提示）。
+ * 与 parseMeasurements/patientIdentitySchema 一样是医患两条入口共用的校验，避免逻辑漂移。
+ */
+export function parseScaleSelection(formData: FormData): string[] | null {
+  const selected = new Set(
+    formData
+      .getAll("scaleIds")
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter((value) => value !== "")
+  );
+  if (selected.size === 0) return null;
+  for (const id of selected) {
+    if (!SELF_SELECTABLE_SCALE_IDS.includes(id)) return null;
+  }
+  return SELF_SELECTABLE_SCALE_IDS.filter((id) => selected.has(id));
 }
 
 /** 生成可读的患者唯一编号，如 P20260714-X3F9。出网调用只允许携带此编号（PII 红线） */
