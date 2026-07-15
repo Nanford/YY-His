@@ -26,6 +26,11 @@ export type VadStopReason = "auto-stop" | "timeout";
 export interface VadListener {
   /** 首次检测到持续说话时触发一次，供 UI 切换"正在听您说话" */
   onSpeechStart?: () => void;
+  /**
+   * 每个音频块的实时音量（未归一化 RMS，约 0～0.3），供 UI 语音波浪显示。
+   * 纯只读旁路：不参与 VAD 判定，归一化与平滑交给上层组件（answer-input.tsx）。
+   */
+  onLevel?: (rms: number) => void;
   /** auto-stop=检测到说完静音超时；timeout=从未检测到说话即超时兜底 */
   onAutoStop: (reason: VadStopReason) => void;
 }
@@ -168,7 +173,10 @@ export class WavRecorder {
       const data = event.inputBuffer.getChannelData(0);
       this.chunks.push(new Float32Array(data));
       if (!detector || !vad) return;
-      const decision = detector.push(computeRms(data), chunkMs);
+      // RMS 只算一次，既喂 VAD 又旁路给 UI 声波，避免重复计算、也保证两者同源
+      const rms = computeRms(data);
+      vad.onLevel?.(rms);
+      const decision = detector.push(rms, chunkMs);
       if (decision.speechStarted) vad.onSpeechStart?.();
       if (decision.stop) vad.onAutoStop(decision.stop);
     };

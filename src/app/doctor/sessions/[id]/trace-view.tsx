@@ -47,21 +47,21 @@ export interface TraceViewProps {
 
 const SOURCE_META: Record<TraceAnswerSource, { label: string; cls: string }> = {
   voice: { label: "语音作答", cls: "border-blue-200 bg-blue-50 text-blue-700" },
-  text: { label: "文字输入", cls: "border-cyan-200 bg-cyan-50 text-cyan-700" },
+  text: { label: "文字输入", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   button: { label: "快捷按钮", cls: "border-slate-200 bg-slate-50 text-slate-700" },
-  doctor: { label: "医生补录", cls: "border-violet-200 bg-violet-50 text-violet-700" },
-  measurement: { label: "测量换算", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  doctor: { label: "医生补录", cls: "border-blue-200 bg-blue-50 text-blue-700" },
+  measurement: { label: "测量换算", cls: "border-blue-200 bg-blue-50 text-blue-700" },
 };
 
 const STATUS_META: Record<TraceAnswerStatus, { label: string; cls: string }> = {
-  confirmed: { label: "已确认", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  confirmed: { label: "已确认", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   pending: { label: "待确认", cls: "border-amber-200 bg-amber-50 text-amber-700" },
   manual: { label: "待人工确认", cls: "border-red-200 bg-red-50 text-red-700" },
   superseded: { label: "已失效", cls: "border-slate-200 bg-slate-100 text-slate-500" },
 };
 
 const AUDIO_META: Record<TraceAudioStatus, { label: string; cls: string }> = {
-  available: { label: "文件已保存", cls: "bg-emerald-50 text-emerald-700" },
+  available: { label: "文件已保存", cls: "bg-blue-50 text-blue-700" },
   missing: { label: "文件缺失", cls: "bg-red-50 text-red-700" },
   processing: { label: "处理中", cls: "bg-amber-50 text-amber-700" },
   not_recorded: { label: "未录音", cls: "bg-slate-100 text-slate-500" },
@@ -140,7 +140,7 @@ function EditHistory({ history }: { history: readonly TraceEditRecordDto[] }) {
     <ol className="space-y-3 border-l border-slate-200 pl-4">
       {history.map((record, index) => (
         <li key={`${record.at}-${record.field}-${index}`} className="relative">
-          <span className="absolute -left-[19px] top-1.5 size-2 rounded-full bg-blue-500 ring-4 ring-slate-50" />
+          <span className="absolute -left-[19px] top-1.5 size-2 rounded-full bg-blue-500 ring-4 ring-[#f8fbff]" />
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
             <span>{formatDate(record.at)}</span>
             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
@@ -174,18 +174,18 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
   const editedCount = answers.filter((answer) => answer.editHistory.length > 0).length;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-slate-950 px-6 py-5 text-white">
+    <section className="ui-panel overflow-hidden">
+      <div className="border-b border-[#dbe7f6] bg-[#eff6ff] px-6 py-5 text-[#173766]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium tracking-wider text-slate-400">AUDIT TRACE</p>
-            <h2 className="mt-1 text-lg font-semibold">答案与采集追溯</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-300">逐题核对标准化结果、原始回答、修改记录与录音存储状态。</p>
+            <p className="page-eyebrow">AUDIT TRACE</p>
+            <h2 className="mt-1 text-lg font-extrabold">答案与采集追溯</h2>
+            <p className="mt-2 text-sm leading-6 text-[#6b82a4]">逐题核对标准化结果、原始回答、修改记录与录音存储状态。</p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1">{answers.length} 道答案</span>
-            <span className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1">{editedCount} 道已修改</span>
-            <span className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1">{manualCount} 道待确认</span>
+            <span className="ui-badge">{answers.length} 道答案</span>
+            <span className="ui-badge">{editedCount} 道已修改</span>
+            <span className="ui-badge ui-badge-warning">{manualCount} 道待确认</span>
           </div>
         </div>
       </div>

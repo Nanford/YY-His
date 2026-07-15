@@ -238,6 +238,57 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
   );
 }
 
+/** 声波条数：奇数带中心，21 根在大屏与移动端都饱满不拥挤 */
+const WAVE_BAR_COUNT = 21;
+/** 声条高度范围（px），与 globals.css .voice-wave 的 60px 容器匹配 */
+const WAVE_MIN_PX = 6;
+const WAVE_MAX_PX = 52;
+
+/** 静息基线：中间略高的对称小丘，配合 CSS 呼吸动画即成"待命声波" */
+function idleWaveLevels(): number[] {
+  return Array.from({ length: WAVE_BAR_COUNT }, (_, index) => {
+    const t = index / (WAVE_BAR_COUNT - 1); // 0..1
+    return 0.14 + 0.05 * Math.sin(t * Math.PI); // 0.14~0.19
+  });
+}
+
+/**
+ * 真实 RMS → 0..1 归一化。语音 RMS 常见 0.02~0.15；减去底噪门限再线性拉伸，
+ * 末尾轻微压缩曲线让小音量也可见、大音量不顶格。常量为经验值，与 wav-recorder
+ * 的 VAD 阈值同属"现场可微调"性质。
+ */
+function normalizeLevel(rms: number): number {
+  const NOISE_FLOOR = 0.006;
+  const SPAN = 0.11;
+  const linear = (rms - NOISE_FLOOR) / SPAN;
+  const clamped = Math.min(1, Math.max(0, linear));
+  return Math.pow(clamped, 0.85);
+}
+
+/**
+ * 语音波浪：真实麦克风音量（经 wav-recorder 的 onLevel 引出的 RMS）驱动的一排声条。
+ * speaking=false（等待说话）：整体缓呼吸 + 逐条静息起伏（CSS）；
+ * speaking=true（检测到说话）：高度纯随真实音量跳动、转暖色（CSS 按 data-active 切换）。
+ * 纯装饰性可视化，对读屏无意义，aria-hidden。
+ */
+function VoiceWave({ levels, speaking }: { levels: number[]; speaking: boolean }) {
+  return (
+    <div className="voice-wave" data-active={speaking} aria-hidden="true">
+      {levels.map((level, index) => (
+        <span
+          key={index}
+          className="voice-wave-bar"
+          style={{
+            height: `${WAVE_MIN_PX + level * (WAVE_MAX_PX - WAVE_MIN_PX)}px`,
+            // 静息时逐条相位差形成波动；说话时该动画被 CSS 撤除，仅剩真实高度
+            animationDelay: `${(index % 7) * 0.16}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /**
  * 录音按钮：语音模式下播报一结束就自动开始（autoStart 由父组件在 TTS 播完后置 true），
  * 声音活动检测（VAD）判断患者说完了自动上传 /api/asr 转写，全程不用患者动手。
@@ -264,6 +315,8 @@ function VoiceButton({
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  /** 语音波浪的实时高度缓冲：新音量从右侧入队、逐帧左移，形成滚动声波 */
+  const [waveLevels, setWaveLevels] = useState<number[]>(idleWaveLevels);
   /** autoStart 每次挂载只应触发一次自动开始，防止后续重渲染重复触发 */
   const autoStartedRef = useRef(false);
 
@@ -310,9 +363,17 @@ function VoiceButton({
 
   const startRecording = useCallback(async () => {
     try {
+      setWaveLevels(idleWaveLevels()); // 每次开录先回到静息波形
       const recorder = new WavRecorder();
       await recorder.start(micStream, {
         onSpeechStart: () => setSpeaking(true),
+        // 真实音量入队：整条缓冲左移一格、右端补入归一化后的新音量，驱动滚动声波
+        onLevel: (rms) =>
+          setWaveLevels((prev) => {
+            const next = prev.slice(1);
+            next.push(normalizeLevel(rms));
+            return next;
+          }),
         onAutoStop: (reason) => {
           void stopRecording(reason);
         },
@@ -345,21 +406,29 @@ function VoiceButton({
   if (recording) {
     return (
       <div className="flex flex-col items-center gap-3">
-        <span
+        <div
           className={[
-            "inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[14px] border px-5 py-3 text-lg font-semibold transition",
+            "flex flex-col items-center gap-2 rounded-[18px] border px-6 py-4 transition-colors",
             speaking
-              ? "border-[#f1c4ca] bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--line-strong)] bg-[var(--surface-blue)] text-[var(--brand-strong)]",
+              ? "border-[#f1c4ca] bg-[var(--danger-soft)]"
+              : "border-[var(--line-strong)] bg-[var(--surface-blue)]",
           ].join(" ")}
         >
-          {speaking ? (
-            <IconWaveSine className="animate-pulse" size={23} stroke={1.8} aria-hidden="true" />
-          ) : (
-            <IconMicrophone size={22} stroke={1.8} aria-hidden="true" />
-          )}
-          <span>{speaking ? "正在听您说话…" : "请开始说话…"}</span>
-        </span>
+          <VoiceWave levels={waveLevels} speaking={speaking} />
+          <span
+            className={[
+              "inline-flex items-center gap-2 text-lg font-semibold",
+              speaking ? "text-[var(--danger)]" : "text-[var(--brand-strong)]",
+            ].join(" ")}
+          >
+            {speaking ? (
+              <IconWaveSine size={22} stroke={1.8} aria-hidden="true" />
+            ) : (
+              <IconMicrophone size={21} stroke={1.8} aria-hidden="true" />
+            )}
+            <span>{speaking ? "正在听您说话…" : "请开始说话…"}</span>
+          </span>
+        </div>
         <button
           type="button"
           disabled={disabled}
