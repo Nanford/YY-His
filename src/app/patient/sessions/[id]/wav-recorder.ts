@@ -48,6 +48,39 @@ const VAD_SPEECH_MULTIPLIER = 3;
 /** 环境接近绝对静音时的阈值下限，避免 noiseFloor≈0 导致任何声响都触发说话 */
 const VAD_ABSOLUTE_MIN_RMS = 0.01;
 const VAD_SILENCE_RATIO = 0.6;
+/** 说话门槛上限：答题档默认不设限（Infinity），保持既有行为完全不变 */
+const VAD_MAX_SPEECH_THRESHOLD = Infinity;
+
+/**
+ * VAD 可覆盖参数：不传时全部回落上面的答题档常量，因此答题录音路径行为与改动前字节一致。
+ * intro 语音确认传 CONSENT_VAD_CONFIG 走"宽进"档（见其注释）。
+ */
+export interface VadConfig {
+  calibrationMs?: number;
+  minSpeechMs?: number;
+  silenceHoldMs?: number;
+  maxDurationMs?: number;
+  noSpeechTimeoutMs?: number;
+  speechMultiplier?: number;
+  absoluteMinRms?: number;
+  silenceRatio?: number;
+  /** 门槛上限：防止校准期混入说话/回声把门槛顶到正常语音都够不着（答题档为 Infinity=不设限） */
+  maxSpeechThreshold?: number;
+}
+
+/**
+ * intro 语音确认专用"宽进"档：确认是低风险动作——宁可误进也别漏判（第一题本就要问）。
+ * 相比答题档：最短说话时长更短（短促"好的/开始"也算数）、出声门槛更低、说完判定更快、
+ * 无声超时更早（上层据此重新听而非死锁），并加门槛上限兜住"讲解一结束就抢答、
+ * 说话落进 300ms 校准期把门槛顶高"这一最常见的漏判成因。
+ */
+export const CONSENT_VAD_CONFIG: VadConfig = {
+  minSpeechMs: 150,
+  silenceHoldMs: 700,
+  noSpeechTimeoutMs: 4_000,
+  speechMultiplier: 2,
+  maxSpeechThreshold: 0.06,
+};
 
 function computeRms(samples: Float32Array): number {
   let sumSquares = 0;
@@ -55,16 +88,43 @@ function computeRms(samples: Float32Array): number {
   return Math.sqrt(sumSquares / samples.length);
 }
 
-/** 能量阈值 VAD 状态机：校准噪声底噪 → 等待说话 → 说话中 → 静音超时/硬顶后停止 */
-class VoiceActivityDetector {
+/**
+ * 能量阈值 VAD 状态机：校准噪声底噪 → 等待说话 → 说话中 → 静音超时/硬顶后停止。
+ * 档位参数经构造函数注入（缺省回落答题档常量）：答题不传 config 即行为与改动前一致，
+ * intro 确认传 CONSENT_VAD_CONFIG 走宽进档。导出供纯状态机单测。
+ */
+export class VoiceActivityDetector {
   private phase: "calibrating" | "waiting" | "speaking" | "stopped" = "calibrating";
   private elapsedMs = 0;
   private noiseSamples: number[] = [];
-  private speechThreshold = VAD_ABSOLUTE_MIN_RMS;
-  private silenceThreshold = VAD_ABSOLUTE_MIN_RMS;
+  private speechThreshold: number;
+  private silenceThreshold: number;
   private continuousSpeechMs = 0;
   private continuousSilenceMs = 0;
-  private hasSpoken = false;
+
+  private readonly calibrationMs: number;
+  private readonly minSpeechMs: number;
+  private readonly silenceHoldMs: number;
+  private readonly maxDurationMs: number;
+  private readonly noSpeechTimeoutMs: number;
+  private readonly speechMultiplier: number;
+  private readonly absoluteMinRms: number;
+  private readonly silenceRatio: number;
+  private readonly maxSpeechThreshold: number;
+
+  constructor(config?: VadConfig) {
+    this.calibrationMs = config?.calibrationMs ?? VAD_CALIBRATION_MS;
+    this.minSpeechMs = config?.minSpeechMs ?? VAD_MIN_SPEECH_MS;
+    this.silenceHoldMs = config?.silenceHoldMs ?? VAD_SILENCE_HOLD_MS;
+    this.maxDurationMs = config?.maxDurationMs ?? VAD_MAX_DURATION_MS;
+    this.noSpeechTimeoutMs = config?.noSpeechTimeoutMs ?? VAD_NO_SPEECH_TIMEOUT_MS;
+    this.speechMultiplier = config?.speechMultiplier ?? VAD_SPEECH_MULTIPLIER;
+    this.absoluteMinRms = config?.absoluteMinRms ?? VAD_ABSOLUTE_MIN_RMS;
+    this.silenceRatio = config?.silenceRatio ?? VAD_SILENCE_RATIO;
+    this.maxSpeechThreshold = config?.maxSpeechThreshold ?? VAD_MAX_SPEECH_THRESHOLD;
+    this.speechThreshold = this.absoluteMinRms;
+    this.silenceThreshold = this.absoluteMinRms;
+  }
 
   /** 每个音频块推进一次状态机，触发时返回对应事件，否则返回空对象 */
   push(rms: number, chunkMs: number): { speechStarted?: true; stop?: VadStopReason } {
@@ -73,10 +133,14 @@ class VoiceActivityDetector {
 
     if (this.phase === "calibrating") {
       this.noiseSamples.push(rms);
-      if (this.elapsedMs < VAD_CALIBRATION_MS) return {};
+      if (this.elapsedMs < this.calibrationMs) return {};
       const noiseFloor = this.noiseSamples.reduce((sum, value) => sum + value, 0) / this.noiseSamples.length;
-      this.speechThreshold = Math.max(noiseFloor * VAD_SPEECH_MULTIPLIER, VAD_ABSOLUTE_MIN_RMS);
-      this.silenceThreshold = this.speechThreshold * VAD_SILENCE_RATIO;
+      // 门槛下限防"绝对静音→任何声响都触发"；上限防"校准期混入说话→门槛高到正常语音都够不着"。
+      this.speechThreshold = Math.min(
+        Math.max(noiseFloor * this.speechMultiplier, this.absoluteMinRms),
+        this.maxSpeechThreshold
+      );
+      this.silenceThreshold = this.speechThreshold * this.silenceRatio;
       this.phase = "waiting";
       return {};
     }
@@ -84,16 +148,15 @@ class VoiceActivityDetector {
     if (this.phase === "waiting") {
       if (rms >= this.speechThreshold) {
         this.continuousSpeechMs += chunkMs;
-        if (this.continuousSpeechMs >= VAD_MIN_SPEECH_MS) {
+        if (this.continuousSpeechMs >= this.minSpeechMs) {
           this.phase = "speaking";
-          this.hasSpoken = true;
           this.continuousSilenceMs = 0;
           return { speechStarted: true };
         }
       } else {
         this.continuousSpeechMs = 0;
       }
-      if (this.elapsedMs >= VAD_NO_SPEECH_TIMEOUT_MS) {
+      if (this.elapsedMs >= this.noSpeechTimeoutMs) {
         this.phase = "stopped";
         return { stop: "timeout" };
       }
@@ -103,14 +166,14 @@ class VoiceActivityDetector {
     // speaking
     if (rms < this.silenceThreshold) {
       this.continuousSilenceMs += chunkMs;
-      if (this.continuousSilenceMs >= VAD_SILENCE_HOLD_MS) {
+      if (this.continuousSilenceMs >= this.silenceHoldMs) {
         this.phase = "stopped";
         return { stop: "auto-stop" };
       }
     } else {
       this.continuousSilenceMs = 0;
     }
-    if (this.elapsedMs >= VAD_MAX_DURATION_MS) {
+    if (this.elapsedMs >= this.maxDurationMs) {
       this.phase = "stopped";
       return { stop: "auto-stop" };
     }
@@ -159,7 +222,7 @@ export class WavRecorder {
    * 传入 vad 时自动检测"说完了"并回调 onAutoStop，调用方收到回调后自行调用 stop() 完成上传；
    * 不传则保持"手动调用 stop() 才结束"的行为。
    */
-  async start(stream: MediaStream, vad?: VadListener): Promise<void> {
+  async start(stream: MediaStream, vad?: VadListener, config?: VadConfig): Promise<void> {
     this.context = new AudioContext();
     this.inputSampleRate = this.context.sampleRate;
     this.source = this.context.createMediaStreamSource(stream);
@@ -167,7 +230,7 @@ export class WavRecorder {
     // 演示场景取稳妥方案。替换路径：迁移到 AudioWorkletNode（见 M4 打磨项）。
     this.processor = this.context.createScriptProcessor(4096, 1, 1);
     this.chunks = [];
-    const detector = vad ? new VoiceActivityDetector() : null;
+    const detector = vad ? new VoiceActivityDetector(config) : null;
     const chunkMs = (4096 / this.inputSampleRate) * 1000;
     this.processor.onaudioprocess = (event) => {
       const data = event.inputBuffer.getChannelData(0);

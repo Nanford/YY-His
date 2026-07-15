@@ -34,7 +34,7 @@ import type {
 } from "@/lib/dialogue/service";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
-import { RecorderError, WavRecorder, requestMicStream } from "./wav-recorder";
+import { CONSENT_VAD_CONFIG, RecorderError, WavRecorder, requestMicStream } from "./wav-recorder";
 
 type LoadPhase = "loading" | "ready" | "error";
 type Mode = "voice" | "manual";
@@ -75,6 +75,8 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   const [readyForVoice, setReadyForVoice] = useState(false);
   /** intro 讲解播报是否已结束，语音模式下驱动"听患者说'开始'"的确认监听 */
   const [readyForConsent, setReadyForConsent] = useState(false);
+  /** intro 语音确认没听清时置真：提示患者可再说一声或直接点「开始」（后台已在自动重新听） */
+  const [consentHint, setConsentHint] = useState(false);
   /** intro 确认阶段的临时录音器（只用于"检测到患者开口"，不做转写/评分） */
   const consentRecorderRef = useRef<WavRecorder | null>(null);
   /** 确认监听每个 intro 只启动一次；进入第一题只推进一次（防语音+按钮重复触发） */
@@ -152,6 +154,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
       setState(next);
       setReadyForVoice(false);
       setReadyForConsent(false);
+      setConsentHint(false);
       // 累积医生气泡：进入某题时把该题问题文本记入对话记录（同题去重）
       if (next.phase === "in_question" && next.prompt) {
         const q = next.prompt;
@@ -295,23 +298,37 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   }, [sessionId, applyState]);
 
   // intro 语音确认：讲解播完开一段轻量录音，检测到患者开口（VAD 判定说完一句）即进入第一题。
-  // 从宽——只判"有没有说话"，不转写、不评分；静默超时保留"开始"按钮兜底。
+  // 从宽——只判"有没有说话"，不转写、不评分，走 CONSENT_VAD_CONFIG 宽进档（短促"好的/开始"也算）。
+  // 关键：没听到（timeout）不再静默死锁，给提示后自动重新听，直到听到说话或患者点「开始」兜底；
+  // 离开 intro / 卸载时由下方 effect 的清理 teardown 停住这条重听链。
   const listenForConsent = useCallback(async () => {
     if (!micStream || consentStartedRef.current) return;
     consentStartedRef.current = true;
-    try {
-      const recorder = new WavRecorder();
-      consentRecorderRef.current = recorder;
-      await recorder.start(micStream, {
-        onAutoStop: (reason) => {
-          void recorder.stop();
-          consentRecorderRef.current = null;
-          if (reason === "auto-stop") void beginQuestions(); // 听到患者说话就进第一题
-        },
-      });
-    } catch {
-      consentRecorderRef.current = null; // 失败静默，"开始"按钮兜底
-    }
+    const armOnce = async () => {
+      try {
+        const recorder = new WavRecorder();
+        consentRecorderRef.current = recorder;
+        await recorder.start(
+          micStream,
+          {
+            onAutoStop: (reason) => {
+              void recorder.stop();
+              consentRecorderRef.current = null;
+              if (reason === "auto-stop") {
+                void beginQuestions(); // 听到患者说话就进第一题
+              } else {
+                setConsentHint(true); // 没听清：提示可再说一声或点按钮，并重新听（不死锁）
+                void armOnce();
+              }
+            },
+          },
+          CONSENT_VAD_CONFIG
+        );
+      } catch {
+        consentRecorderRef.current = null; // 失败静默，"开始"按钮兜底
+      }
+    };
+    await armOnce();
   }, [micStream, beginQuestions]);
 
   // 讲解播完（readyForConsent）且语音模式在 → 自动听患者确认；离开 intro/卸载时清理录音器
@@ -506,11 +523,17 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                   <p className="patient-display-copy mt-6 max-w-2xl text-[clamp(20px,2.2vw,28px)] font-semibold leading-relaxed text-[var(--ink)]">
                     {subtitle || "……"}
                   </p>
-                  <p className="mt-5 text-lg leading-7 text-[var(--ink-muted)]">
-                    {mode === "voice" && micStream && state.capabilities.asr
-                      ? "听完您说一声“好的”或者“开始”就可以，也可以点下面的大按钮。"
-                      : "准备好了就点下面的大按钮开始。"}
-                  </p>
+                  {consentHint ? (
+                    <p className="mt-5 text-lg font-semibold leading-7 text-[var(--warning)]">
+                      没太听清您说话，直接点下面的「开始」大按钮就可以 👇（也可以再说一声“开始”）
+                    </p>
+                  ) : (
+                    <p className="mt-5 text-lg leading-7 text-[var(--ink-muted)]">
+                      {mode === "voice" && micStream && state.capabilities.asr
+                        ? "听完您说一声“好的”或者“开始”就可以，也可以点下面的大按钮。"
+                        : "准备好了就点下面的大按钮开始。"}
+                    </p>
+                  )}
                   <button
                     type="button"
                     aria-label="开始回答健康问题"
