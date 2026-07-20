@@ -74,7 +74,8 @@ describe("干预推荐 — §4.3 黄金示例", () => {
     expect(m06.text).toContain("抬起膝盖"); // 运动动作文字要点（来源 docx）
     const d03 = result.flat.find((i) => i.code === "D03")!;
     expect(d03.mediaType).toBe("image");
-    expect(d03.mediaSrc).toBe("/interventions/D03.png");
+    // 图片 mediaSrc 带内容哈希缓存版本号（convert-rules 生成，immutable 长缓存配套）
+    expect(d03.mediaSrc).toMatch(/^\/interventions\/D03\.png\?v=[0-9a-f]{8}$/);
     expect(d03.sourceFile).toBe("优质蛋白加餐.png");
   });
 });

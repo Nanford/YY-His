@@ -1,6 +1,6 @@
 {
   "generatedFrom": "docs/source/评估-干预标签积分规则表.xlsx + docs/source/12种运动干预.docx + 膳食/中医食养干预图片",
-  "generatedAt": "2026-07-20T11:36:51.134Z",
+  "generatedAt": "2026-07-20T11:55:37.318Z",
   "categories": [
     {
       "key": "exercise",
@@ -217,7 +217,7 @@
       "category": "膳食干预",
       "name": "每日鸡蛋加餐",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D01.png",
+      "mediaSrc": "/interventions/D01.png?v=f635f78f",
       "mediaAvailable": true,
       "sourceFile": "每日鸡蛋加餐.png",
       "text": null
@@ -227,7 +227,7 @@
       "category": "膳食干预",
       "name": "每日奶类补充",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D02.png",
+      "mediaSrc": "/interventions/D02.png?v=01a63b70",
       "mediaAvailable": true,
       "sourceFile": "每日奶类补充.png",
       "text": null
@@ -237,7 +237,7 @@
       "category": "膳食干预",
       "name": "优质蛋白加餐",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D03.png",
+      "mediaSrc": "/interventions/D03.png?v=7f13cdbe",
       "mediaAvailable": true,
       "sourceFile": "优质蛋白加餐.png",
       "text": null
@@ -247,7 +247,7 @@
       "category": "膳食干预",
       "name": "一掌蛋白质",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D04.png",
+      "mediaSrc": "/interventions/D04.png?v=a9d3f510",
       "mediaAvailable": true,
       "sourceFile": "一掌蛋白质.png",
       "text": null
@@ -257,7 +257,7 @@
       "category": "膳食干预",
       "name": "少量多餐",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D05.png",
+      "mediaSrc": "/interventions/D05.png?v=35389a52",
       "mediaAvailable": true,
       "sourceFile": "少量多餐.png",
       "text": null
@@ -267,7 +267,7 @@
       "category": "膳食干预",
       "name": "早餐强化",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D06.png",
+      "mediaSrc": "/interventions/D06.png?v=8f8b2dcb",
       "mediaAvailable": true,
       "sourceFile": "早餐强化.png",
       "text": null
@@ -277,7 +277,7 @@
       "category": "膳食干预",
       "name": "营养餐盘",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D07.png",
+      "mediaSrc": "/interventions/D07.png?v=0882518c",
       "mediaAvailable": true,
       "sourceFile": "营养餐盘.png",
       "text": null
@@ -287,7 +287,7 @@
       "category": "膳食干预",
       "name": "减油替换",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D08.png",
+      "mediaSrc": "/interventions/D08.png?v=f3e7460a",
       "mediaAvailable": true,
       "sourceFile": "减油替换.png",
       "text": null
@@ -297,7 +297,7 @@
       "category": "膳食干预",
       "name": "减糖替换",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D09.png",
+      "mediaSrc": "/interventions/D09.png?v=76f589d3",
       "mediaAvailable": true,
       "sourceFile": "减糖替换.png",
       "text": null
@@ -307,7 +307,7 @@
       "category": "膳食干预",
       "name": "口服营养补充",
       "mediaType": "image",
-      "mediaSrc": "/interventions/D10.png",
+      "mediaSrc": "/interventions/D10.png?v=e5f7bd90",
       "mediaAvailable": true,
       "sourceFile": "口服营养补充.png",
       "text": null
@@ -317,7 +317,7 @@
       "category": "中医食养干预",
       "name": "山药大枣小米粥",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C01.png",
+      "mediaSrc": "/interventions/C01.png?v=a0032cbd",
       "mediaAvailable": true,
       "sourceFile": "山药大枣小米粥.png",
       "text": null
@@ -327,7 +327,7 @@
       "category": "中医食养干预",
       "name": "生姜大枣小米粥",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C02.png",
+      "mediaSrc": "/interventions/C02.png?v=d02736d5",
       "mediaAvailable": true,
       "sourceFile": "生姜大枣小米粥.png",
       "text": null
@@ -337,7 +337,7 @@
       "category": "中医食养干预",
       "name": "银耳雪梨羹",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C03.png",
+      "mediaSrc": "/interventions/C03.png?v=835ffd2e",
       "mediaAvailable": true,
       "sourceFile": "银耳雪梨羹.png",
       "text": null
@@ -347,7 +347,7 @@
       "category": "中医食养干预",
       "name": "山药薏苡仁粥",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C04.png",
+      "mediaSrc": "/interventions/C04.png?v=b62299ea",
       "mediaAvailable": true,
       "sourceFile": "山药薏苡仁粥.png",
       "text": null
@@ -357,7 +357,7 @@
       "category": "中医食养干预",
       "name": "赤小豆冬瓜汤",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C05.png",
+      "mediaSrc": "/interventions/C05.png?v=daecc645",
       "mediaAvailable": true,
       "sourceFile": "赤小豆冬瓜汤.png",
       "text": null
@@ -367,7 +367,7 @@
       "category": "中医食养干预",
       "name": "玫瑰陈皮饮",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C06.png",
+      "mediaSrc": "/interventions/C06.png?v=e815cd1f",
       "mediaAvailable": true,
       "sourceFile": "玫瑰陈皮饮.png",
       "text": null
@@ -377,7 +377,7 @@
       "category": "中医食养干预",
       "name": "山楂玫瑰饮",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C07.png",
+      "mediaSrc": "/interventions/C07.png?v=e136ef84",
       "mediaAvailable": true,
       "sourceFile": "山楂玫瑰饮.png",
       "text": null
@@ -387,7 +387,7 @@
       "category": "中医食养干预",
       "name": "百合莲子羹",
       "mediaType": "image",
-      "mediaSrc": "/interventions/C08.png",
+      "mediaSrc": "/interventions/C08.png?v=a8545e6a",
       "mediaAvailable": true,
       "sourceFile": "百合莲子羹.png",
       "text": null

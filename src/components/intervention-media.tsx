@@ -62,6 +62,8 @@ export function InterventionImage({
 }) {
   const [failed, setFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  // 同名 WebP 派生图（convert-rules 生成，体积约为 PNG 一半）：<picture> 优先取用，不支持时回退 src 的 PNG
+  const webpSrc = src.replace(/\.png(\?.*)?$/, ".webp$1");
 
   if (!available || failed) {
     return (
@@ -80,8 +82,18 @@ export function InterventionImage({
         className="group relative block w-full overflow-hidden rounded-xl border border-[var(--line,#dbe7f6)]"
         aria-label={`放大查看「${name}」图文教程`}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- 本地干预图文教程，非远程图片，无需 next/image 优化 */}
-        <img src={src} alt={`${name}图文教程`} onError={() => setFailed(true)} className="w-full" />
+        {/* loading=lazy：首屏只加载可视区图片，带宽受限服务器减负；内容不变（同源 WebP/PNG 双格式） */}
+        <picture>
+          <source srcSet={webpSrc} type="image/webp" />
+          <img
+            src={src}
+            alt={`${name}图文教程`}
+            onError={() => setFailed(true)}
+            loading="lazy"
+            decoding="async"
+            className="w-full"
+          />
+        </picture>
         <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2.5 py-1 text-xs font-bold text-white opacity-90">
           <IconZoomIn size={14} aria-hidden="true" />
           放大查看
@@ -99,8 +111,10 @@ export function InterventionImage({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setZoomed(false)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- 同上，本地图片放大预览 */}
-          <img src={src} alt={`${name}图文教程`} className="max-h-full max-w-full rounded-lg" />
+          <picture>
+            <source srcSet={webpSrc} type="image/webp" />
+            <img src={src} alt={`${name}图文教程`} className="max-h-full max-w-full rounded-lg" />
+          </picture>
           <button
             type="button"
             onClick={() => setZoomed(false)}

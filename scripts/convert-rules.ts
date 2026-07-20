@@ -6,7 +6,8 @@
  *           - 评估标签-干预标签知识图谱映射表_Demo.xlsx、干预标签_Demo.xlsx（V1 历史资料，仍校验但不参与 V2 排序）
  *           - data/scales.json（从量表题目_Demo.txt 手工整理的题库，本脚本只校验不生成）
  * OUTPUT: data/intervention-scoring.json（V2 积分矩阵 + 30 干预项元数据 + 素材索引）；
- *         public/interventions/<编码>.png（膳食/中医食养图片按稳定编码压缩拷贝供 Web 访问，palette PNG，目标单张 <600KB）；
+ *         public/interventions/<编码>.png（膳食/中医食养图片按稳定编码压缩拷贝供 Web 访问，palette PNG，目标单张 <600KB）
+ *         + 同名 .webp 派生（<picture> 优先取用）；mediaSrc 附内容哈希 ?v= 供 immutable 长缓存；
  *         data/tag-mapping.json、data/interventions.json（V1 历史资料，保留生成）。
  * POS:    规则数据层的唯一生成与校验入口。医学规则变更只能改源文件后重跑本脚本；
  *         校验失败即退出非零码，禁止产出不完整数据。
@@ -14,8 +15,14 @@
 import * as XLSX from "xlsx";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 import sharp from "sharp";
 import { readDocxParagraphs } from "./read-docx";
+
+/** 文件内容 md5 前 8 位，作为静态素材缓存版本号：内容不变则 URL 不变，可安全 immutable 长缓存 */
+function contentHash(file: string): string {
+  return crypto.createHash("md5").update(fs.readFileSync(file)).digest("hex").slice(0, 8);
+}
 
 const ROOT = path.resolve(__dirname, "..");
 const SOURCE_DIR = path.join(ROOT, "docs", "source");
@@ -420,66 +427,19 @@ if (failed) {
 }
 
 // ============================================================
-// 写出数据文件与素材
+// 写出数据文件与素材（异步：图片压缩 → mediaSrc 加内容哈希 → 写 data/*.json → 汇总）
 // ============================================================
 fs.mkdirSync(DATA_DIR, { recursive: true });
-
-// 1) 压缩拷贝膳食/中医食养图片到 public/interventions/<编码>.png（ASCII 稳定路径，避免中文 URL 问题）
-//    源图约 1.7MB/张、在线首屏加载慢：统一 palette 量化压缩，目标单张 <600KB，超出告警不中止。
-//    压缩放在数据文件写出后异步执行，保证进程等图片写完再退出、汇总日志最后输出。
 fs.mkdirSync(PUBLIC_INTERVENTIONS_DIR, { recursive: true });
 // 视频占位目录（M01-M12 视频文件由业务方后续放入，缺失时卡片回退文字）
 fs.mkdirSync(path.join(PUBLIC_INTERVENTIONS_DIR, "videos"), { recursive: true });
 
-// 2) intervention-scoring.json（V2 推荐引擎唯一数据源）
-const scoringDoc = {
-  generatedFrom: "docs/source/评估-干预标签积分规则表.xlsx + docs/source/12种运动干预.docx + 膳食/中医食养干预图片",
-  generatedAt: new Date().toISOString(),
-  categories: CATEGORY_DEFS.map((d) => ({ key: d.key, label: d.label, codePrefix: d.codePrefix, mediaType: d.mediaType })),
-  assessmentTags: [...tagNameByCode].map(([code, name]) => ({ code, name })),
-  interventions: interventionItems,
-  matrix,
-};
-assertNoPii(scoringDoc, "intervention-scoring.json");
-fs.writeFileSync(
-  path.join(DATA_DIR, "intervention-scoring.json"),
-  JSON.stringify(scoringDoc, null, 2) + "\n",
-  "utf8"
-);
-
-// 3) V1 历史资料（保留生成，V2 推荐不引用）
-fs.writeFileSync(
-  path.join(DATA_DIR, "tag-mapping.json"),
-  JSON.stringify(
-    {
-      generatedFrom: "docs/source/评估标签-干预标签知识图谱映射表_Demo.xlsx（V1 历史资料）",
-      generatedAt: new Date().toISOString(),
-      assessmentTags: EXPECTED_ASSESSMENT_TAGS,
-      edges,
-    },
-    null,
-    2
-  ) + "\n",
-  "utf8"
-);
-fs.writeFileSync(
-  path.join(DATA_DIR, "interventions.json"),
-  JSON.stringify(
-    {
-      generatedFrom: "docs/source/干预标签_Demo.xlsx（V1 历史资料）",
-      generatedAt: new Date().toISOString(),
-      categories: ["运动干预", "膳食补充", "中医食养"],
-      interventions: v1Interventions,
-    },
-    null,
-    2
-  ) + "\n",
-  "utf8"
-);
-
 void (async () => {
+  // 1) 压缩拷贝膳食/中医食养图片到 public/interventions/<编码>.png（ASCII 稳定路径，避免中文 URL 问题）
+  //    源图约 1.7MB/张、在线首屏加载慢：统一 palette 量化压缩，目标单张 <600KB，超出告警不中止；
+  //    同步派生同名 .webp（体积再降约一半，前端 <picture> 优先取 WebP、老浏览器回退 PNG）。
   const TARGET_BYTES = 600 * 1024; // 单张上线大小目标（2026-07-20 用户确认 <600KB）
-  let copied = 0;
+  const versionByCode = new Map<string, string>();
   for (const [code, src] of sourceImageByCode) {
     const out = path.join(PUBLIC_INTERVENTIONS_DIR, `${code}.png`);
     const input = path.join(src.dir, src.file);
@@ -490,10 +450,69 @@ void (async () => {
     }
     const kb = fs.statSync(out).size / 1024;
     if (kb > 600) console.warn(`⚠ ${code}.png 压缩后仍 ${kb.toFixed(0)}KB，超过 600KB 目标`);
-    copied++;
+    await sharp(input).webp({ quality: 90 }).toFile(path.join(PUBLIC_INTERVENTIONS_DIR, `${code}.webp`));
+    versionByCode.set(code, contentHash(out));
   }
+
+  // 2) mediaSrc 追加内容哈希查询参数：内容变 → URL 变，配合 /interventions 的 immutable 长缓存
+  //    （服务器带宽受限，2026-07-20 确认）；视频文件已放入时同样加哈希，未放入保持约定路径。
+  for (const item of interventionItems) {
+    if (item.mediaType === "image") {
+      item.mediaSrc = `${item.mediaSrc}?v=${versionByCode.get(item.code)}`;
+    } else {
+      const videoFile = path.join(VIDEO_DIR, `${item.code}.mp4`);
+      if (fs.existsSync(videoFile)) item.mediaSrc = `${item.mediaSrc}?v=${contentHash(videoFile)}`;
+    }
+  }
+
+  // 3) intervention-scoring.json（V2 推荐引擎唯一数据源）
+  const scoringDoc = {
+    generatedFrom: "docs/source/评估-干预标签积分规则表.xlsx + docs/source/12种运动干预.docx + 膳食/中医食养干预图片",
+    generatedAt: new Date().toISOString(),
+    categories: CATEGORY_DEFS.map((d) => ({ key: d.key, label: d.label, codePrefix: d.codePrefix, mediaType: d.mediaType })),
+    assessmentTags: [...tagNameByCode].map(([code, name]) => ({ code, name })),
+    interventions: interventionItems,
+    matrix,
+  };
+  assertNoPii(scoringDoc, "intervention-scoring.json");
+  fs.writeFileSync(
+    path.join(DATA_DIR, "intervention-scoring.json"),
+    JSON.stringify(scoringDoc, null, 2) + "\n",
+    "utf8"
+  );
+
+  // 4) V1 历史资料（保留生成，V2 推荐不引用）
+  fs.writeFileSync(
+    path.join(DATA_DIR, "tag-mapping.json"),
+    JSON.stringify(
+      {
+        generatedFrom: "docs/source/评估标签-干预标签知识图谱映射表_Demo.xlsx（V1 历史资料）",
+        generatedAt: new Date().toISOString(),
+        assessmentTags: EXPECTED_ASSESSMENT_TAGS,
+        edges,
+      },
+      null,
+      2
+    ) + "\n",
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(DATA_DIR, "interventions.json"),
+    JSON.stringify(
+      {
+        generatedFrom: "docs/source/干预标签_Demo.xlsx（V1 历史资料）",
+        generatedAt: new Date().toISOString(),
+        categories: ["运动干预", "膳食补充", "中医食养"],
+        interventions: v1Interventions,
+      },
+      null,
+      2
+    ) + "\n",
+    "utf8"
+  );
+
   console.log(`✓ intervention-scoring.json：17 标签 × 30 干预 = ${records.length} 条积分，§4.3 示例复算一致`);
-  console.log(`✓ public/interventions：压缩拷贝 ${copied} 张膳食/中医食养图片（palette PNG，目标 <600KB；视频目录已就绪，待补 M01-M12）`);
+  console.log(`✓ public/interventions：压缩拷贝 ${versionByCode.size} 张膳食/中医食养图片（palette PNG <600KB + WebP 派生 + 哈希缓存版本；视频目录已就绪，待补 M01-M12）`);
   console.log(`✓ tag-mapping.json / interventions.json（V1 历史资料）：${edges.length} 条映射边，${v1Interventions.length} 个干预标签`);
   console.log("✓ 全部校验通过");
 })();
