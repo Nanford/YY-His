@@ -1,7 +1,8 @@
 /**
  * INPUT:  医生端页面、独立 E2E SQLite 数据库、黄金评分用例
  * OUTPUT: 新建患者到医生确认最终干预方案的端到端验收结果
- * POS:    M2 无语音完整流程回归；覆盖 4 个评估标签、8 个候选方案及审核留痕。
+ * POS:    M2 无语音完整流程回归（V2 积分推荐口径）；覆盖 4 个评估标签、6 项积分候选及
+ *         保留/删除/同类替换审核留痕（来源：需求更新说明 V2.0 §4.2）。
  */
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
@@ -33,15 +34,15 @@ async function readVersionStatuses(
 }
 
 const expectedTags = ["衰弱", "存在营养不良风险", "跌倒风险筛查阴性", "阴虚质"];
+// V2 积分排名结果（由 src/lib/recommend 实算复核）：衰弱+存在营养不良风险+跌倒阴性+阴虚质
+// 运动 M06/M12 同分 5（编码升序）；膳食 D02/D03 均 6 分；中医食养 C08=6/C01=5
 const expectedInterventions = [
-  "八段锦",
-  "太极拳",
-  "抗阻训练",
-  "平衡训练",
-  "均衡膳食维持",
-  "优质蛋白强化",
-  "能量与营养强化",
-  "滋阴食养",
+  "坐位抬腿踏步",
+  "步行训练",
+  "每日奶类补充",
+  "优质蛋白加餐",
+  "百合莲子羹",
+  "山药大枣小米粥",
 ];
 
 /** 按题号和标准分值选择医生代填答案，同时校验测试数据与当前题库仍然一致。 */
@@ -112,7 +113,9 @@ test("医生完成全量代填、评估、方案调整与确认", async ({ page 
   const collectionForm = page.locator("form").filter({ has: page.locator('input[name="answer.frail_1"]') });
   await collectionForm.getByRole("button", { name: /完成采集/ }).click();
 
-  const resultSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /评估标签/ }) });
+  // 医生端布局（doctor/layout.tsx）本身是一个 <section>，filter(has:) 会把布局也算进来，
+  // 导致 details 计数连追溯区一起翻倍；改从标题出发取最近的祖先 section（组件自身面板）。
+  const resultSection = page.getByRole("heading", { name: /评估标签/ }).locator("xpath=ancestor::section[1]");
   await expect(resultSection.getByRole("heading", { name: "评估标签", exact: true })).toBeVisible();
   await expect(resultSection.getByText("4 个标签", { exact: true })).toBeVisible();
   await expect(resultSection.locator("details")).toHaveCount(4);
@@ -124,48 +127,61 @@ test("医生完成全量代填、评估、方案调整与确认", async ({ page 
   await expect(frailDetail.getByRole("columnheader", { name: "标准答案", exact: true })).toBeVisible();
   await expect(frailDetail.locator("tbody tr").first().locator("td").nth(2)).toHaveText("是");
 
-  const reviewSection = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "候选干预方案审核", exact: true }),
-  });
+  const reviewSection = page
+    .getByRole("heading", { name: "候选干预方案审核", exact: true })
+    .locator("xpath=ancestor::section[1]");
   await expect(reviewSection).toBeVisible();
-  await expect(reviewSection.getByText("8 项候选", { exact: true })).toBeVisible();
-  await expect(reviewSection.locator('input[type="checkbox"][name^="keep."]')).toHaveCount(8);
+  await expect(reviewSection.getByText("6 项候选", { exact: true })).toBeVisible();
+  await expect(reviewSection.locator('input[type="radio"][name^="action."][value="keep"]')).toHaveCount(6);
   for (const intervention of expectedInterventions) {
     await expect(reviewSection.getByText(intervention, { exact: true })).toBeVisible();
   }
-  for (const category of ["运动干预", "膳食补充", "中医食养"]) {
+  for (const category of ["运动干预", "膳食干预", "中医食养干预"]) {
     await expect(reviewSection.getByRole("heading", { name: category, exact: true })).toBeVisible();
   }
-  await expect(reviewSection.getByText(/枸杞.*银耳/)).toBeVisible();
-  await expect(reviewSection.locator('aside[aria-label="优质蛋白强化禁忌提示"]')).toContainText("肾功能");
+  // V2 展示形态：运动项视频未上线回退文字要点；膳食/中医食养展示完整图文（正文即图片）
+  await expect(reviewSection.getByText("视频教程待上线，请先参考下方动作要点", { exact: true })).toHaveCount(2);
+  await expect(reviewSection.locator('img[alt="优质蛋白加餐图文教程"]')).toBeVisible();
+  await expect(reviewSection.locator('img[alt="百合莲子羹图文教程"]')).toBeVisible();
+  // 积分来源明细逐项下钻：6 项各有明细，匹配分 6 分项 ×3、5 分项 ×3
+  await expect(reviewSection.getByText("积分来源：", { exact: true })).toHaveCount(6);
+  await expect(reviewSection.getByText("匹配分 6", { exact: true })).toHaveCount(3);
+  await expect(reviewSection.getByText("匹配分 5", { exact: true })).toHaveCount(3);
 
-  const adjustedTag = "八段锦";
-  const removedTag = "太极拳";
-  const adjustedPlan = reviewSection.locator(`textarea[name="plan.${adjustedTag}"]`);
-  const originalPlan = await adjustedPlan.inputValue();
-  const adjustmentText = "E2E 调整：每次练习后记录耐受情况。";
-  await adjustedPlan.fill(`${originalPlan}\n${adjustmentText}`);
-  await reviewSection.locator(`input[name="note.${adjustedTag}"]`).fill("结合患者耐力调整并留痕");
-  await reviewSection.locator(`input[name="keep.${removedTag}"]`).uncheck();
+  // V2 审核操作：M06 同类替换为 M01（留痕前后编码），M12 删除（留痕原因）
+  const replacedCode = "M06";
+  const replacementCode = "M01";
+  const removedCode = "M12";
+  const replaceNote = "E2E：患者下肢耐力不足，改用上肢训练";
+  const removeNote = "E2E：患者步行受限";
+  await reviewSection.locator(`input[name="action.${replacedCode}"][value="replace"]`).check();
+  await reviewSection.locator(`select[name="replaceWith.${replacedCode}"]`).selectOption(replacementCode);
+  await reviewSection.locator(`input[name="note.${replacedCode}"]`).fill(replaceNote);
+  await reviewSection.locator(`input[name="action.${removedCode}"][value="remove"]`).check();
+  await reviewSection.locator(`input[name="note.${removedCode}"]`).fill(removeNote);
   await reviewSection.getByRole("button", { name: /确认最终干预方案/ }).click();
 
-  const finalSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /最终干预方案/ }) });
+  const finalSection = page.getByRole("heading", { name: /最终干预方案/ }).locator("xpath=ancestor::section[1]");
   await expect(finalSection).toBeVisible();
   await expect(finalSection.getByText("医生已确认", { exact: true })).toBeVisible();
-  await expect(finalSection.getByText("最终保留 7 项", { exact: true })).toBeVisible();
-  await expect(finalSection.getByText("调整 1 项", { exact: true })).toBeVisible();
+  // 6 候选 − 1 删除 = 5 项（替换不改变总数）；替换/删除各 1 项留痕
+  await expect(finalSection.getByText("最终保留 5 项", { exact: true })).toBeVisible();
+  await expect(finalSection.getByText("替换 1 项", { exact: true })).toBeVisible();
   await expect(finalSection.getByText("删除 1 项", { exact: true })).toBeVisible();
-  await expect(finalSection.getByText(adjustmentText, { exact: false })).toBeVisible();
+  await expect(finalSection.getByRole("heading", { name: "扶椅坐站", exact: true })).toBeVisible();
+  await expect(finalSection.getByText("替换自 M06", { exact: true })).toBeVisible();
   const auditSection = finalSection.locator('section[aria-label="方案审核记录"]');
-  await expect(auditSection.getByText("已调整", { exact: true })).toBeVisible();
+  await expect(auditSection.getByText("已替换", { exact: true })).toBeVisible();
   await expect(auditSection.getByText("已删除", { exact: true })).toBeVisible();
-  await expect(auditSection.getByText(adjustedTag, { exact: true })).toBeVisible();
-  await expect(auditSection.getByText(removedTag, { exact: true })).toBeVisible();
-  await expect(page.locator('textarea[name^="plan."]')).toHaveCount(0);
+  await expect(auditSection.getByText("M06 → M01", { exact: true })).toBeVisible();
+  await expect(auditSection.getByText("M12", { exact: true })).toBeVisible();
+  await expect(auditSection.getByText(replaceNote, { exact: true })).toBeVisible();
+  await expect(auditSection.getByText(removeNote, { exact: true })).toBeVisible();
+  await expect(page.locator('input[name^="action."]')).toHaveCount(0);
 
   await page.reload();
-  await expect(finalSection.getByText("最终保留 7 项", { exact: true })).toBeVisible();
-  await expect(finalSection.getByText(adjustmentText, { exact: false })).toBeVisible();
+  await expect(finalSection.getByText("最终保留 5 项", { exact: true })).toBeVisible();
+  await expect(finalSection.getByRole("heading", { name: "扶椅坐站", exact: true })).toBeVisible();
 
   // 已确认会话重新打开后修改标准答案：旧结果/方案保留，新答案必须产生逐字段审计记录。
   await page.getByRole("button", { name: /重新打开并修正答案/ }).click();
@@ -176,9 +192,9 @@ test("医生完成全量代填、评估、方案调整与确认", async ({ page 
   const sessionId = new URL(page.url()).pathname.split("/").at(-1);
   if (!sessionId) throw new Error("无法从会话页面 URL 读取会话编号");
 
-  const traceSection = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "答案与采集追溯", exact: true }),
-  });
+  const traceSection = page
+    .getByRole("heading", { name: "答案与采集追溯", exact: true })
+    .locator("xpath=ancestor::section[1]");
   const editedAnswer = traceSection.locator("details").filter({ hasText: "医生曾经告诉你存在5种以上" });
   await editedAnswer.locator("summary").click();
   const answerEdits = editedAnswer.getByText("原因：医生代填或修改标准答案", { exact: true });

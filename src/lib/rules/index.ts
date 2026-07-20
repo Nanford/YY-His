@@ -7,6 +7,7 @@
 import scalesJson from "@data/scales.json";
 import mappingJson from "@data/tag-mapping.json";
 import interventionsJson from "@data/interventions.json";
+import interventionScoringJson from "@data/intervention-scoring.json";
 
 // ---------- 类型定义（与 data/*.json 结构一一对应） ----------
 
@@ -80,6 +81,35 @@ export interface Intervention {
   plan: string;
 }
 
+// ---------- V2 积分推荐数据类型（来源：data/intervention-scoring.json） ----------
+
+/** 单个干预项元数据（30 项：运动 M01-M12 / 膳食 D01-D10 / 中医食养 C01-C08） */
+export interface InterventionItem {
+  /** 稳定编码，素材关联的唯一标识（不随文案调整变化） */
+  code: string;
+  /** 三大类展示标签：运动干预 / 膳食干预 / 中医食养干预 */
+  category: string;
+  name: string;
+  /** 展示形态：运动=视频教程（视频缺失回退文字要点）；膳食/中医食养=图文教程 */
+  mediaType: "video" | "image";
+  /** Web 可访问素材路径：/interventions/videos/M06.mp4 或 /interventions/D03.png */
+  mediaSrc: string;
+  /** 素材是否已就绪：图片恒 true；视频取决于是否已放入 public/interventions/videos（缺失则卡片回退文字） */
+  mediaAvailable: boolean;
+  /** 图片原始文件名（供医生端展示核对）；运动项为 null */
+  sourceFile: string | null;
+  /** 运动动作文字要点（来源：12种运动干预.docx）；图片项为 null（正文即图片） */
+  text: string | null;
+}
+
+/** 三大类定义（固定展示顺序） */
+export interface ScoringCategoryDef {
+  key: string;
+  label: string;
+  codePrefix: string;
+  mediaType: "video" | "image";
+}
+
 // ---------- 数据实例 ----------
 
 export const scales = scalesJson.scales as unknown as Scale[];
@@ -87,6 +117,18 @@ export const mappingEdges = mappingJson.edges as MappingEdge[];
 export const interventions = interventionsJson.interventions as Intervention[];
 /** 三大类展示顺序，来源：需求文档"最终干预方案按照三大类进行展示" */
 export const interventionCategories = interventionsJson.categories as string[];
+
+// V2 积分推荐数据实例
+/** 30 个干预项元数据（按类别 + 编码升序，展示顺序稳定） */
+export const interventionItems = interventionScoringJson.interventions as InterventionItem[];
+/** 三大类定义（固定展示顺序：运动干预 → 膳食干预 → 中医食养干预） */
+export const scoringCategories = interventionScoringJson.categories as ScoringCategoryDef[];
+/** 积分矩阵：matrix[评估标签名称][干预编码] = 匹配分（0-3）。来源：评估-干预标签积分规则表.xlsx */
+export const interventionScoreMatrix = interventionScoringJson.matrix as Record<string, Record<string, number>>;
+/** 干预编码 → 干预项元数据 */
+export const interventionItemByCode: ReadonlyMap<string, InterventionItem> = new Map(
+  interventionItems.map((i) => [i.code, i])
+);
 
 // ---------- 查询索引（模块加载时构建一次） ----------
 

@@ -1,6 +1,6 @@
 /**
  * INPUT:  患者端表单提交（FormData）、Prisma 数据库
- * OUTPUT: registerPatient —— 患者自助建档 + 直接创建评估会话（Server Action）
+ * OUTPUT: registerPatient（自助建档 + 首次评估会话）、createSupplementarySession（补充评估会话）
  * POS:    患者端业务流的写入口，与 src/lib/actions/doctor.ts（医生端写入口）分开维护。
  *         产品口径（2026-07-14 建档自助确认；2026-07-15 定型）：患者可以自己建档并开始
  *         评估，不需要医生先录入。自助建档只收姓名/性别/年龄（必填）+ 测量数据（选填）；
@@ -27,6 +27,7 @@ import {
   textOrNull,
 } from "@/lib/assessment/patient-intake";
 import { syncMeasurementAnswers } from "@/lib/assessment/measurement-sync";
+import { completedScaleIds } from "@/lib/assessment/supplementary";
 
 export async function registerPatient(formData: FormData): Promise<void> {
   const identity = patientIdentitySchema.safeParse({
@@ -71,4 +72,50 @@ export async function registerPatient(formData: FormData): Promise<void> {
     maxAge: 60 * 60 * 24 * 7,
   });
   redirect(`/patient/sessions/${session.id}`);
+}
+
+/**
+ * 补充评估（来源：需求更新说明 V2.0 §3）：患者完成一次评估后，从报告页对"尚未完成的量表"
+ * 发起新一轮评估。复用既有患者档案与测量数据；每次补充评估创建独立会话，既有会话、评估
+ * 快照与已确认方案均不受影响。对既有量表的复评属"医生授权"范畴——患者端只列未完成量表，
+ * 服务端同样拒绝已完成的量表（防手改表单绕过）；复评由医生在患者详情页发起。
+ */
+export async function createSupplementarySession(sessionId: string, formData: FormData): Promise<void> {
+  const source = await prisma.assessmentSession.findUnique({
+    where: { id: sessionId },
+    include: { patient: true },
+  });
+  if (!source) throw new Error("会话不存在");
+
+  const scaleIds = parseScaleSelection(formData);
+  if (!scaleIds) redirect(`/patient/sessions/${sessionId}?error=scales`);
+
+  const siblings = await prisma.assessmentSession.findMany({
+    where: { patientId: source.patientId },
+    select: { status: true, scaleIds: true, startedAt: true },
+  });
+  const done = completedScaleIds(
+    siblings.map((s) => ({ status: s.status, scaleIds: s.scaleIds as string[], startedAt: s.startedAt }))
+  );
+  if (scaleIds.some((id) => done.has(id))) {
+    redirect(`/patient/sessions/${sessionId}?error=repeat`);
+  }
+
+  const created = await prisma.$transaction(async (tx) => {
+    const s = await tx.assessmentSession.create({
+      data: { patientId: source.patientId, scaleIds, status: "in_progress" },
+    });
+    // 复用既有测量数据换算测量题答案（与建档/医生端创建同一条路径）
+    await syncMeasurementAnswers(tx, s.id, scaleIds, source.patient);
+    return s;
+  });
+
+  // cookie 切换到新会话（同机患者继续自己的补充评估；历史报告经报告页入口互访）
+  (await cookies()).set(PATIENT_SESSION_COOKIE, created.id, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+  redirect(`/patient/sessions/${created.id}`);
 }

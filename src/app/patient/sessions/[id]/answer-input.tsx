@@ -23,6 +23,7 @@ import {
 } from "@tabler/icons-react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
 import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
+import { logTiming } from "./timing";
 
 export interface VoiceAnswer {
   text: string;
@@ -331,6 +332,8 @@ function VoiceButton({
       setSpeaking(false);
       if (!recorder) return;
       const blob = await recorder.stop();
+      // 链路埋点（V2.0 §2.1）：录音结束（VAD 判定说完 / 手动提交 / 超时）
+      logTiming("recording_end", { reason });
       if (!blob) {
         onNotice(reason === "timeout" ? "没有听到您说话，请再试一次" : "没有录到声音，请再试一次");
         return;
@@ -340,6 +343,7 @@ function VoiceButton({
         const form = new FormData();
         form.append("sessionId", sessionId);
         form.append("audio", blob, "answer.wav");
+        logTiming("asr_request");
         const response = await fetch("/api/asr", { method: "POST", body: form });
         const body = (await response.json()) as {
           text?: string;
@@ -347,6 +351,7 @@ function VoiceButton({
           raw?: unknown;
           error?: string;
         };
+        logTiming("asr_response", { status: response.status });
         if (!response.ok || !body.text) {
           onNotice(body.error ?? "没听清，请再说一次，或改用按钮作答");
           return;

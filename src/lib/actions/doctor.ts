@@ -11,7 +11,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
-import type { RecommendedIntervention } from "@/lib/recommend";
+import { buildIntervention, type RecommendedIntervention } from "@/lib/recommend";
+import type { AssessmentTag } from "@/lib/scoring/types";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { applyPlanReview, type PlanReviewInput } from "@/lib/assessment/plan-review";
 import { acquireFinalizingLock, scoreAndSnapshot } from "@/lib/assessment/finalize";
@@ -255,21 +256,36 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
     where: { sessionId, status: "draft" },
     orderBy: { createdAt: "desc" },
   });
+  // 取本次当前评估标签，用于计算"同类替换"项对本次患者的积分（可追溯）
+  const result = await prisma.assessmentResult.findFirst({
+    where: { sessionId, status: "current" },
+    orderBy: { createdAt: "desc" },
+  });
+  const tags = (result?.tags ?? []) as unknown as AssessmentTag[];
+
   const candidates = plan.candidates as unknown as RecommendedIntervention[];
   const inputs: Record<string, PlanReviewInput> = {};
   for (const candidate of candidates) {
-    const adjustedPlan = textOrNull(formData, `plan.${candidate.tag}`);
-    const note = textOrNull(formData, `note.${candidate.tag}`);
-    if (adjustedPlan && adjustedPlan.length > 20_000) throw new Error(`方案正文过长：${candidate.tag}`);
-    if (note && note.length > 500) throw new Error(`审核说明过长：${candidate.tag}`);
-    inputs[candidate.tag] = {
-      keep: formData.get(`keep.${candidate.tag}`) === "on",
-      plan: adjustedPlan ?? candidate.plan,
-      note: note ?? undefined,
-    };
+    const action = textOrNull(formData, `action.${candidate.code}`) ?? "keep";
+    const note = textOrNull(formData, `note.${candidate.code}`);
+    if (note && note.length > 500) throw new Error(`审核说明过长：${candidate.code}`);
+
+    if (action === "remove") {
+      inputs[candidate.code] = { action: "remove", note: note ?? undefined };
+    } else if (action === "replace") {
+      const toCode = textOrNull(formData, `replaceWith.${candidate.code}`);
+      if (!toCode) throw new Error(`未选择替换项：${candidate.code}`);
+      const replacement = buildIntervention(toCode, tags, candidate.rankInCategory);
+      if (!replacement) throw new Error(`替换项不存在：${toCode}`);
+      if (replacement.category !== candidate.category) throw new Error(`只能在同类别内替换：${candidate.code}`);
+      inputs[candidate.code] = { action: "replace", replacement, note: note ?? undefined };
+    } else {
+      inputs[candidate.code] = { action: "keep", note: note ?? undefined };
+    }
   }
   const now = new Date();
-  const reviewed = applyPlanReview(candidates, inputs, now);
+  // Demo 阶段无鉴权，操作人固定为 "doctor"（正式版接入登录后替换为真实医生标识）
+  const reviewed = applyPlanReview(candidates, inputs, "doctor", now);
   // 允许空候选或医生删除全部候选；“暂无推荐”也是需要留痕确认的正式结论。
   await prisma.$transaction(async (tx) => {
     const planUpdated = await tx.interventionPlan.updateMany({

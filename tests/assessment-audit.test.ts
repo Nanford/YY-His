@@ -24,33 +24,48 @@ describe("答案修改留痕", () => {
   });
 });
 
-describe("干预方案审核", () => {
+describe("干预方案审核（V2：保留 / 删除 / 同类替换）", () => {
+  /** 构造候选项（推荐引擎结构，测试只关心 code/category/name） */
+  function candidate(code: string, category: string, name: string, rank: number): RecommendedIntervention {
+    return {
+      code, category, name, mediaType: "video", mediaSrc: `/interventions/videos/${code}.mp4`,
+      sourceFile: null, text: "动作要点", score: 5, rankInCategory: rank, matchDetail: [],
+    };
+  }
   const candidates: RecommendedIntervention[] = [
-    { tag: "八段锦", category: "运动干预", plan: "原方案A", triggeredBy: [] },
-    { tag: "太极拳", category: "运动干预", plan: "原方案B", triggeredBy: [] },
-    { tag: "平衡训练", category: "运动干预", plan: "原方案C", triggeredBy: [] },
+    candidate("M06", "运动干预", "坐位抬腿踏步", 1),
+    candidate("M12", "运动干预", "步行训练", 2),
+    candidate("M01", "运动干预", "扶椅坐站", 3),
   ];
 
-  it("同时形成保留、删除和调整三类决策", () => {
+  it("同时形成保留、删除和同类替换三类决策，并记录操作人/前后编码", () => {
+    const replacement = { ...candidate("M07", "运动干预", "墙壁俯卧撑", 2), score: 3 };
     const result = applyPlanReview(
       candidates,
       {
-        八段锦: { keep: true, plan: "原方案A" },
-        太极拳: { keep: false, note: "膝关节不适" },
-        平衡训练: { keep: true, plan: "调整后方案C", note: "降低强度" },
+        M06: { action: "keep" },
+        M12: { action: "remove", note: "步行受限" },
+        M01: { action: "replace", replacement, note: "改用上肢训练" },
       },
-      new Date("2026-07-14T01:00:00.000Z")
+      "doctor",
+      new Date("2026-07-19T01:00:00.000Z")
     );
 
-    expect(result.finalPlan.map((item) => [item.tag, item.plan])).toEqual([
-      ["八段锦", "原方案A"],
-      ["平衡训练", "调整后方案C"],
-    ]);
-    expect(result.decisions.map((item) => item.action)).toEqual(["keep", "remove", "adjust"]);
-    expect(result.decisions[2]).toMatchObject({ originalPlan: "原方案C", finalPlan: "调整后方案C" });
+    expect(result.finalPlan.map((item) => item.code)).toEqual(["M06", "M07"]);
+    expect(result.decisions.map((item) => item.action)).toEqual(["keep", "remove", "replace"]);
+    expect(result.decisions[2]).toMatchObject({
+      action: "replace", fromCode: "M01", toCode: "M07", operator: "doctor", note: "改用上肢训练",
+    });
+  });
+
+  it("跨类别替换被拒绝（破坏每类 1-2 项约束）", () => {
+    const dietItem = candidate("D03", "膳食干预", "优质蛋白加餐", 1);
+    expect(() =>
+      applyPlanReview(candidates, { M06: { action: "replace", replacement: dietItem } }, "doctor", new Date())
+    ).toThrow(/同一类别/);
   });
 
   it("允许候选与最终方案都为空", () => {
-    expect(applyPlanReview([], {}, new Date()).finalPlan).toEqual([]);
+    expect(applyPlanReview([], {}, "doctor", new Date()).finalPlan).toEqual([]);
   });
 });

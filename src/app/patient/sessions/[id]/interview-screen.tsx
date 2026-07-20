@@ -35,6 +35,7 @@ import type {
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
 import { CONSENT_VAD_CONFIG, RecorderError, WavRecorder, requestMicStream } from "./wav-recorder";
+import { logTiming } from "./timing";
 
 type LoadPhase = "loading" | "ready" | "error";
 type Mode = "voice" | "manual";
@@ -128,7 +129,9 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
   const playSpeaks = useCallback(
     async (texts: string[], ttsEnabled: boolean) => {
-      for (const text of texts) {
+      for (const [index, text] of texts.entries()) {
+        // 链路埋点（V2.0 §2.1）：每轮播报起播第一条记一次"下一题播报开始"
+        if (index === 0) logTiming("speak_start");
         setSubtitle(text);
         if (!ttsEnabled || ttsBrokenRef.current) continue;
         try {
@@ -347,6 +350,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     const prompt = state.prompt; // 固定当前题：供作答记录与提交用，避免 await 后 state 变化
     setSubmitting(true);
     try {
+      logTiming("answer_request", { questionId: prompt.questionId });
       const response = await fetch(`/api/patient/sessions/${sessionId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -358,6 +362,8 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
         if (response.status === 409) await refreshState();
         return;
       }
+      // 链路埋点（V2.0 §2.1）：标准答案确认（归一化决策返回）
+      logTiming("answer_confirm", { action: body.resolution.action });
       // 累积患者气泡：把这次作答（按钮选项文案 / 语音·文字原话）记入对话记录
       const said = describeAnswer(prompt, payload);
       if (said) {
@@ -410,13 +416,21 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     <main className="patient-shell flex-1">
       <PatientSessionTopbar />
 
-      <div className="patient-main">
-        {notice && (
-          <div className="ui-alert ui-alert-warning mb-5 text-lg md:text-xl" role="status">
+      {/* 例外提示层（V2.0 §2.2）：固定定位浮层，不占用主内容流，出现/消失都不会引起
+          数字医生、字幕、对话记录或作答区上下跳动；4 秒后自动关闭（见上方 effect） */}
+      {notice && (
+        <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+          <div
+            className="ui-alert ui-alert-warning pointer-events-auto max-w-2xl text-lg shadow-lg md:text-xl"
+            role="status"
+          >
             <IconAlertTriangle size={24} stroke={1.8} aria-hidden="true" />
             <span>{notice}</span>
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="patient-main">
 
         <section className="patient-panel overflow-hidden u-rise-in">
           <div className="grid min-h-[560px] lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
@@ -772,10 +786,12 @@ function describeAnswer(prompt: PatientPromptDto, payload: Record<string, unknow
   return typeof payload.utterance === "string" ? payload.utterance : "";
 }
 
+// 来源：需求更新说明 V2.0 §2.2 —— 标准答案确认后患者的回答气泡即为主要反馈载体，
+// 不再弹"已记录"提示；仅追问外的例外情形（待确认/转医生）走固定浮层提示。
 function resolutionNotice(resolution: SubmitAnswerResult["resolution"]): string | null {
   switch (resolution.action) {
     case "confirm":
-      return `好的，已记录：${resolution.optionLabel}`;
+      return null; // 气泡即反馈，不再插入"已记录"提示
     case "markPending":
       return "这道题先记下来，稍后我再和您确认一次。";
     case "markManual":

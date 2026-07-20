@@ -19,7 +19,7 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react";
 import { prisma } from "@/lib/db";
-import { scales } from "@/lib/rules";
+import { scaleById, scales } from "@/lib/rules";
 import { createSession, updateMeasurements } from "@/lib/actions/doctor";
 import { firstQueryValue } from "@/lib/query";
 
@@ -249,7 +249,10 @@ export default async function PatientDetailPage({
                 return (
                   <tr key={session.id}>
                     <td>{session.startedAt.toLocaleString("zh-CN")}</td>
-                    <td className="text-[#62779a]">{(session.scaleIds as string[]).length} 个量表</td>
+                    {/* V2.0 §3：评估范围需可识别（量表名称），新旧结果按时间分别展示可下钻 */}
+                    <td className="text-[#62779a]">
+                      {(session.scaleIds as string[]).map((scaleId) => scaleById.get(scaleId)?.name ?? scaleId).join("、")}
+                    </td>
                     <td>
                       <span className={meta.cls}>{meta.label}</span>
                     </td>
