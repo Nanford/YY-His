@@ -62,3 +62,7 @@ next-env.d.ts
 
 # Office 临时锁文件
 ~$*
+
+# 便携包产物与便携 Node 运行时（大文件，不入库）
+/dist/
+/runtime/

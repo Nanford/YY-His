@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 绿色便携包（scripts/pack-share.mjs）：standalone 产物 + 便携 Node + 预迁移 SQLite，
+  // 收件人解压双击启动.bat即用，无需装 Node/联网（语音链路缺密钥自动降级）
+  output: "standalone",
   async headers() {
     return [
       {
@@ -14,3 +17,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

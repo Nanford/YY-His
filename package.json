@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "prisma:generate": "prisma generate",
-    "convert-rules": "tsx scripts/convert-rules.ts"
+    "convert-rules": "tsx scripts/convert-rules.ts",
+    "pack-share": "node scripts/pack-share.mjs"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
