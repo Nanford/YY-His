@@ -511,8 +511,9 @@ void (async () => {
     "utf8"
   );
 
+  const videoReady = interventionItems.filter((i) => i.mediaType === "video" && i.mediaAvailable).length;
   console.log(`✓ intervention-scoring.json：17 标签 × 30 干预 = ${records.length} 条积分，§4.3 示例复算一致`);
-  console.log(`✓ public/interventions：压缩拷贝 ${versionByCode.size} 张膳食/中医食养图片（palette PNG <600KB + WebP 派生 + 哈希缓存版本；视频目录已就绪，待补 M01-M12）`);
+  console.log(`✓ public/interventions：压缩拷贝 ${versionByCode.size} 张膳食/中医食养图片（palette PNG <600KB + WebP 派生 + 哈希缓存版本）；运动视频已就绪 ${videoReady}/12${videoReady < 12 ? "（待补 M01-M12）" : ""}`);
   console.log(`✓ tag-mapping.json / interventions.json（V1 历史资料）：${edges.length} 条映射边，${v1Interventions.length} 个干预标签`);
   console.log("✓ 全部校验通过");
 })();

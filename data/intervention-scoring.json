@@ -1,6 +1,6 @@
 {
   "generatedFrom": "docs/source/评估-干预标签积分规则表.xlsx + docs/source/12种运动干预.docx + 膳食/中医食养干预图片",
-  "generatedAt": "2026-07-20T11:55:37.318Z",
+  "generatedAt": "2026-07-20T13:48:38.535Z",
   "categories": [
     {
       "key": "exercise",
@@ -97,8 +97,8 @@
       "category": "运动干预",
       "name": "扶椅坐站",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M01.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M01.mp4?v=5a8c4a58",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "坐在稳固椅子前部，双脚踩稳，身体稍向前倾后缓慢站起，再缓慢坐下，每次5～10个，每周训练2～3次。"
     },
@@ -107,8 +107,8 @@
       "category": "运动干预",
       "name": "坐位伸膝",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M02.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M02.mp4?v=65922114",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "坐在椅子上，将一侧小腿缓慢伸直，保持2～3秒后放下，左右交替，每侧8～12次。"
     },
@@ -117,8 +117,8 @@
       "category": "运动干预",
       "name": "扶椅提踵",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M03.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M03.mp4?v=7a2753ca",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "双手扶住椅背，缓慢抬起脚后跟，再缓慢落下，每次10～15个，主要训练小腿力量。"
     },
@@ -127,8 +127,8 @@
       "category": "运动干预",
       "name": "扶椅侧抬腿",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M04.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M04.mp4?v=cad13e05",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "双手扶椅，将一侧腿缓慢向外侧抬起，保持身体直立，每侧8～12次。"
     },
@@ -137,8 +137,8 @@
       "category": "运动干预",
       "name": "扶椅后抬腿",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M05.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M05.mp4?v=e55f1783",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "双手扶椅，一侧腿缓慢向后伸展，避免身体前倾，每侧8～12次。"
     },
@@ -147,8 +147,8 @@
       "category": "运动干预",
       "name": "坐位抬腿踏步",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M06.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M06.mp4?v=69f6033f",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "坐在椅子上，左右交替抬起膝盖，连续进行1～3分钟，改善下肢力量和活动耐量。"
     },
@@ -157,8 +157,8 @@
       "category": "运动干预",
       "name": "墙壁俯卧撑",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M07.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M07.mp4?v=4d82e291",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "面对墙壁站立，双手撑墙，屈肘靠近墙面后再推回，每次8～12个。"
     },
@@ -167,8 +167,8 @@
       "category": "运动干预",
       "name": "弹力带划船",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M08.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M08.mp4?v=33952faf",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "坐位或站位握住弹力带，双手向后拉，使肩胛骨靠近，再缓慢还原，每次8～12个。"
     },
@@ -177,8 +177,8 @@
       "category": "运动干预",
       "name": "脚跟对脚尖站立",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M09.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M09.mp4?v=150e071b",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "一只脚放在另一只脚前方，扶椅保持10～30秒，左右脚交替进行。"
     },
@@ -187,8 +187,8 @@
       "category": "运动干预",
       "name": "扶椅重心转移",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M10.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M10.mp4?v=73760419",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "双手扶椅，身体重心缓慢向左、向右移动，每侧重复8～10次。"
     },
@@ -197,8 +197,8 @@
       "category": "运动干预",
       "name": "原地踏步",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M11.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M11.mp4?v=29bceff2",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "扶住椅背或墙面，左右交替抬腿踏步，每次1～5分钟，根据体力逐步增加。"
     },
@@ -207,8 +207,8 @@
       "category": "运动干预",
       "name": "步行训练",
       "mediaType": "video",
-      "mediaSrc": "/interventions/videos/M12.mp4",
-      "mediaAvailable": false,
+      "mediaSrc": "/interventions/videos/M12.mp4?v=91fe2f77",
+      "mediaAvailable": true,
       "sourceFile": null,
       "text": "选择安全平整的路线，以能够正常说话的速度步行10～30分钟，每周进行3～5次。"
     },

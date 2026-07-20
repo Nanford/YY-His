@@ -70,7 +70,8 @@ describe("干预推荐 — §4.3 黄金示例", () => {
   it("候选携带素材信息：运动为视频位、膳食/中医食养为图片", () => {
     const m06 = result.flat.find((i) => i.code === "M06")!;
     expect(m06.mediaType).toBe("video");
-    expect(m06.mediaSrc).toBe("/interventions/videos/M06.mp4");
+    // 视频已放入后 mediaSrc 同样带内容哈希；未放入时为约定路径（无哈希）
+    expect(m06.mediaSrc).toMatch(/^\/interventions\/videos\/M06\.mp4(\?v=[0-9a-f]{8})?$/);
     expect(m06.text).toContain("抬起膝盖"); // 运动动作文字要点（来源 docx）
     const d03 = result.flat.find((i) => i.code === "D03")!;
     expect(d03.mediaType).toBe("image");
