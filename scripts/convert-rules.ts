@@ -6,7 +6,7 @@
  *           - 评估标签-干预标签知识图谱映射表_Demo.xlsx、干预标签_Demo.xlsx（V1 历史资料，仍校验但不参与 V2 排序）
  *           - data/scales.json（从量表题目_Demo.txt 手工整理的题库，本脚本只校验不生成）
  * OUTPUT: data/intervention-scoring.json（V2 积分矩阵 + 30 干预项元数据 + 素材索引）；
- *         public/interventions/<编码>.png（膳食/中医食养图片按稳定编码拷贝供 Web 访问）；
+ *         public/interventions/<编码>.png（膳食/中医食养图片按稳定编码压缩拷贝供 Web 访问，palette PNG，目标单张 <600KB）；
  *         data/tag-mapping.json、data/interventions.json（V1 历史资料，保留生成）。
  * POS:    规则数据层的唯一生成与校验入口。医学规则变更只能改源文件后重跑本脚本；
  *         校验失败即退出非零码，禁止产出不完整数据。
@@ -14,6 +14,7 @@
 import * as XLSX from "xlsx";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import sharp from "sharp";
 import { readDocxParagraphs } from "./read-docx";
 
 const ROOT = path.resolve(__dirname, "..");
@@ -423,13 +424,10 @@ if (failed) {
 // ============================================================
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// 1) 拷贝膳食/中医食养图片到 public/interventions/<编码>.png（ASCII 稳定路径，避免中文 URL 问题）
+// 1) 压缩拷贝膳食/中医食养图片到 public/interventions/<编码>.png（ASCII 稳定路径，避免中文 URL 问题）
+//    源图约 1.7MB/张、在线首屏加载慢：统一 palette 量化压缩，目标单张 <600KB，超出告警不中止。
+//    压缩放在数据文件写出后异步执行，保证进程等图片写完再退出、汇总日志最后输出。
 fs.mkdirSync(PUBLIC_INTERVENTIONS_DIR, { recursive: true });
-let copied = 0;
-for (const [code, src] of sourceImageByCode) {
-  fs.copyFileSync(path.join(src.dir, src.file), path.join(PUBLIC_INTERVENTIONS_DIR, `${code}.png`));
-  copied++;
-}
 // 视频占位目录（M01-M12 视频文件由业务方后续放入，缺失时卡片回退文字）
 fs.mkdirSync(path.join(PUBLIC_INTERVENTIONS_DIR, "videos"), { recursive: true });
 
@@ -479,7 +477,23 @@ fs.writeFileSync(
   "utf8"
 );
 
-console.log(`✓ intervention-scoring.json：17 标签 × 30 干预 = ${records.length} 条积分，§4.3 示例复算一致`);
-console.log(`✓ public/interventions：拷贝 ${copied} 张膳食/中医食养图片（视频目录已就绪，待补 M01-M12）`);
-console.log(`✓ tag-mapping.json / interventions.json（V1 历史资料）：${edges.length} 条映射边，${v1Interventions.length} 个干预标签`);
-console.log("✓ 全部校验通过");
+void (async () => {
+  const TARGET_BYTES = 600 * 1024; // 单张上线大小目标（2026-07-20 用户确认 <600KB）
+  let copied = 0;
+  for (const [code, src] of sourceImageByCode) {
+    const out = path.join(PUBLIC_INTERVENTIONS_DIR, `${code}.png`);
+    const input = path.join(src.dir, src.file);
+    // quality 逐级下调直到达标（palette 量化对图文教程近乎无损，逐级是为保住能达标图的最高质量）
+    for (const quality of [90, 80, 70, 60, 50]) {
+      await sharp(input).png({ palette: true, quality, compressionLevel: 9 }).toFile(out);
+      if (fs.statSync(out).size <= TARGET_BYTES) break;
+    }
+    const kb = fs.statSync(out).size / 1024;
+    if (kb > 600) console.warn(`⚠ ${code}.png 压缩后仍 ${kb.toFixed(0)}KB，超过 600KB 目标`);
+    copied++;
+  }
+  console.log(`✓ intervention-scoring.json：17 标签 × 30 干预 = ${records.length} 条积分，§4.3 示例复算一致`);
+  console.log(`✓ public/interventions：压缩拷贝 ${copied} 张膳食/中医食养图片（palette PNG，目标 <600KB；视频目录已就绪，待补 M01-M12）`);
+  console.log(`✓ tag-mapping.json / interventions.json（V1 历史资料）：${edges.length} 条映射边，${v1Interventions.length} 个干预标签`);
+  console.log("✓ 全部校验通过");
+})();

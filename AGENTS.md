@@ -59,7 +59,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `量表题目_Demo.txt` | 4 类评估的标准题目、选项、评分规则、判定规则（V2.0 不变，仍是评分唯一依据） |
 | `评估-干预标签积分规则表.xlsx` | **V2.0 干预选择唯一计分依据**：17 评估标签 × 30 干预项 = 510 条积分（0-3 分） |
 | `12种运动干预.docx` | M01-M12 运动动作的名称/要点/剂量，运动卡片文字正文与视频脚本依据 |
-| `膳食干预图片/`、`中医食养干预图片/` | D01-D10、C01-C08 图文教程（图片即方案正文），转换时拷贝到 `public/interventions/` |
+| `膳食干预图片/`、`中医食养干预图片/` | D01-D10、C01-C08 图文教程（图片即方案正文），转换时压缩拷贝到 `public/interventions/`（palette PNG，<600KB） |
 | `评估标签-干预标签知识图谱映射表_Demo.xlsx` | V1 历史医学资料，不再参与 V2.0 候选方案的排序与截取 |
 | `干预标签_Demo.xlsx` | V1 历史医学资料（15 个干预标签执行方案文本），同上 |
 | `老年健康智能评估与干预系统 Demo 需求文档.docx` | 总体需求（架构依据） |
@@ -154,7 +154,7 @@ npm run convert-rules  # xlsx → data/*.json 转换 + 校验
 - 体质第 9 题（BMI）、第 28 题（腹围）、MNA-SF F 题（BMI）/F替代（小腿围）依赖测量数据：基础信息录入含身高/体重/腹围/小腿围选填字段，缺失时相关题目走"待人工确认"，医生补录后重算。
 - 现场网络不可控 → TTS 按文本哈希预热缓存 + 文字/按钮作答兜底 + 归一化规则兜底。
 - 部分干预方案自带禁忌提示（优质蛋白强化-肾功能异常、活血食养-抗凝药物、温阳食养-口干烦热、滋阴食养-糖尿病不加糖），医生审核界面必须醒目展示。V2.0 起安全提示/适宜人群随素材正文展示（图片内含温馨提示，运动项随文字要点），不再单独抽取。
-- V2.0 干预素材：D01-D10/C01-C08 图片由 convert-rules 从 docs/source 拷贝到 `public/interventions/`；**M01-M12 视频待业务方放入 `public/interventions/videos/`**，未放入前 `mediaAvailable=false`，运动卡片自动回退展示动作文字要点（《12种运动干预.docx》）；视频放入后**重跑 `npm run convert-rules`** 即自动置就绪（`mediaAvailable` 为转换期判定），无需改代码。
+- V2.0 干预素材：D01-D10/C01-C08 图片由 convert-rules 从 docs/source **palette 量化压缩**（目标单张 <600KB，quality 90→50 逐级下调至达标，超出告警不中止）后拷贝到 `public/interventions/`；**M01-M12 视频待业务方放入 `public/interventions/videos/`**，未放入前 `mediaAvailable=false`，运动卡片自动回退展示动作文字要点（《12种运动干预.docx》）；视频放入后**重跑 `npm run convert-rules`** 即自动置就绪（`mediaAvailable` 为转换期判定），无需改代码。
 - V2.0 补充评估（§3）：患者在报告页可对**尚未完成的量表**发起补充评估（`createSupplementarySession`，独立新会话、复用档案与测量数据、cookie 切换）；复评既有量表属医生授权，由医生在患者详情页"发起新评估"勾选。报告页展示评估时间 + 各量表"新增/复评"标识 + 历史报告入口；历史报告互访按"同患者"放宽 cookie 数据隔离（`src/app/patient/sessions/[id]/page.tsx`）。派生口径（哪些量表已完成/新增还是复评）收敛在 `src/lib/assessment/supplementary.ts`，有单测。
 - V2.0 语音链路（§2.1/§2.2）：录音结束/ASR 请求与返回/答案提交/标准答案确认/播报开始均有 `logTiming` 时间戳埋点（`timing.ts`，只记事件与耗时、绝不记回答内容，输出在本机控制台）；标准答案确认后**不再弹"已记录"提示**（患者回答气泡即反馈），例外提示（网络异常/麦克风失败/识别失败/待确认）走**固定定位浮层**，不占用主内容流、不引起界面跳动。
 - 47 题全量演示过长 → 会话创建时可勾选量表，演示默认只跑 FRAIL+跌倒。**患者自助建档现在也可自选四量表（2026-07-15 修订，默认仍勾 FRAIL+跌倒）**——不再固定锁死。医学分工靠"优雅降级"而非入口限制：语音问询流程（`state-machine.ts` 的 `askableQuestions`）恒跳过 `measurement`（BMI/腹围/小腿围，由建档测量数据换算）与 `observerAssisted`（舌象、面色晦黯、神经心理等需临床观察）两类题。FRAIL/跌倒无这两类题 → 纯自助当场出报告；MNA-SF/中医体质含这两类题 → 患者答完能答的题后 `tryAutoFinalize` 因缺项回退，会话落 `awaiting_doctor`，患者端显示"需要医生帮您确认"，由医生在患者详情页 `CollectForm` 补录观察/测量题并确认方案后报告才出现。观察题仍只由医护判断，硬约束不变；建档页在含观察题的量表选项上如实提示，患者不会被"卡住"感突袭。
