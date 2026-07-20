@@ -25,8 +25,9 @@ export function InterventionVideo({
     <div className="space-y-3">
       {showVideo ? (
         <video
-          className="w-full rounded-xl bg-black"
+          className="aspect-video w-full rounded-xl bg-black"
           controls
+          playsInline
           preload="metadata"
           onError={() => setFailed(true)}
         >
