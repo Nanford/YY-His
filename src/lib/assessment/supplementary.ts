@@ -59,8 +59,8 @@ export function scaleScopes(
 
 /**
  * 该量表是否含需临床观察/测量的题（舌象、BMI、腹围、小腿围等）。
- * 含则患者自助答完会先落"需要医生协助"，由医生补录后出完整报告——补充评估选项上据此如实提示。
- * 直接从题库派生（与建档页 needsClinicianAssist 同一口径），不硬编码量表名。
+ * 含则这些题在患者自助路径豁免计分（deferClinical，Demo 口径 2026-07-20），先出部分计分报告——
+ * 补充评估选项上据此如实提示。直接从题库派生（与建档页 needsClinicianAssist 同一口径），不硬编码量表名。
  */
 export function scaleNeedsClinician(scaleId: string): boolean {
   const scale = scaleById.get(scaleId);

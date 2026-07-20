@@ -41,5 +41,20 @@ export interface ScaleScoreResult {
   ok: boolean;
   /** 缺失标准答案的题目 id（含待人工确认未补录的题） */
   missing: string[];
+  /**
+   * 被豁免计分的"医生题" id（测量/临床观察类），仅 deferClinical 模式下可能非空：
+   * 这些题未参与计分，对应量表结论为部分计分，报告页须如实标注。
+   */
+  deferred: string[];
   tags: AssessmentTag[];
+}
+
+/**
+ * 评分选项。Demo 口径（2026-07-20 用户拍板）：患者自助答完一律先出报告，
+ * 医生检查题（舌象/BMI/腹围/小腿围等测量或临床观察题）暂不计分——
+ * 传 deferClinical=true 时这些题缺失不再阻断评分，忽略其分值并在 deferred 中列明；
+ * 普通问答题缺失（如"待人工确认"未补录）在任何模式下都阻断评分。
+ */
+export interface ScoreOptions {
+  deferClinical?: boolean;
 }

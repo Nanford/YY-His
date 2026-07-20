@@ -7,12 +7,12 @@ import { scoreFrail } from "./frail";
 import { scoreMnasf } from "./mnasf";
 import { scoreFall } from "./fall";
 import { scoreTcm } from "./tcm";
-import type { AnswersByQuestionId, AssessmentTag, ScaleScoreResult } from "./types";
+import type { AnswersByQuestionId, AssessmentTag, ScaleScoreResult, ScoreOptions } from "./types";
 
-export type { AnswersByQuestionId, AssessmentTag, ScaleScoreResult, TagLevel, QuestionScoreDetail } from "./types";
+export type { AnswersByQuestionId, AssessmentTag, ScaleScoreResult, TagLevel, QuestionScoreDetail, ScoreOptions } from "./types";
 export { scoreFrail, scoreMnasf, scoreFall, scoreTcm };
 
-const scorers: Record<string, (answers: AnswersByQuestionId) => ScaleScoreResult> = {
+const scorers: Record<string, (answers: AnswersByQuestionId, opts?: ScoreOptions) => ScaleScoreResult> = {
   frail: scoreFrail,
   mnasf: scoreMnasf,
   fall: scoreFall,
@@ -27,13 +27,13 @@ export interface ScoreAllResult {
   incompleteScaleIds: string[];
 }
 
-export function scoreAll(scaleIds: string[], answers: AnswersByQuestionId): ScoreAllResult {
+export function scoreAll(scaleIds: string[], answers: AnswersByQuestionId, opts?: ScoreOptions): ScoreAllResult {
   const results = scaleIds.map((id) => {
     const scorer = scorers[id];
     if (!scorer) {
       throw new Error(`未知量表 id：${id}`);
     }
-    return scorer(answers);
+    return scorer(answers, opts);
   });
   return {
     results,

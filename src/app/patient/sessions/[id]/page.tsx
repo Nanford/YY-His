@@ -16,6 +16,7 @@ import { completedScaleIds, scaleNeedsClinician, scaleScopes } from "@/lib/asses
 import { firstQueryValue } from "@/lib/query";
 import type { AssessmentTag } from "@/lib/scoring";
 import type { RecommendedIntervention } from "@/lib/recommend";
+import type { DeferredScale } from "./patient-report";
 import { InterviewScreen } from "./interview-screen";
 import { PatientReport } from "./patient-report";
 
@@ -122,6 +123,7 @@ export default async function PatientSessionPage({
           assessedAt={session.completedAt ?? session.startedAt}
           reportScales={reportScales}
           tags={latestResult.tags as unknown as AssessmentTag[]}
+          deferredScales={(latestResult.deferred ?? []) as unknown as DeferredScale[]}
           planStatus={planStatus}
           plan={plan}
           confirmedAt={latestPlan.confirmedAt}

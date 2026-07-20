@@ -45,7 +45,8 @@ export interface PatientDialogueStateDto {
    * not_started：尚未点击"开始"（未写任何轮次）。
    * intro：已播报讲解开场白、正在等患者口头确认"开始"，第一题尚未发出（已问候但无题目轮次）。
    * in_question：问询进行中。
-   * awaiting_doctor：问答已全部答完，但评估暂未生成（存在测量/观察题缺口或"待人工确认"未补录），需医生协助后才能生成报告。
+   * awaiting_doctor：问答已全部答完，但评估暂未生成（存在普通问答题"待人工确认"未补录），需医生协助后才能生成报告。
+   * （测量/观察类医生题缺口不再进入此态——Demo 口径 deferClinical 豁免其计分，直接出部分计分报告。）
    * finished：本次提交刚好完成评分并生成报告——仅作为触发前端跳转去看报告的一次性信号，不会被 GET /state 重复返回。
    * locked：会话已不在 in_progress（通常因为报告已生成，应改为渲染报告页；此值仅作兜底）。
    */
@@ -218,7 +219,8 @@ function buildState(
   }
   if (step.kind === "finished") {
     // 到达这里时 session 仍是 in_progress：说明问答已问完，但评分未成功
-    // （测量/观察题缺口，或存在"待人工确认"的题目），需医生协助补录后才能生成报告。
+    // （存在普通问答题"待人工确认"未补录；测量/观察类医生题已按 deferClinical 豁免不阻断），
+    // 需医生协助补录后才能生成报告。
     return {
       sessionId: context.session.id,
       phase: "awaiting_doctor",
@@ -261,10 +263,13 @@ function reportReadyState(
  * 患者问答已全部完成（state machine 判定 finished）时尝试自动生成评估报告。
  * 用户已确认的产品口径：评估内容是确定性计算，问答完成即应生成报告，
  * 不需要医生先审核评估结果——干预方案候选医生仍可另行审核调整，互不阻塞。
+ * Demo 口径（2026-07-20 用户拍板）：患者自助路径传 deferClinical——舌象/测量等
+ * 医生检查题缺失不再阻断出报告，忽略其计分并在报告中标注"部分计分"；
+ * 仅普通问答题"待人工确认"未补录时才会落 awaiting_doctor 等医生补录。
  */
 async function tryAutoFinalize(tx: Tx, sessionId: string): Promise<FinalizeOutcome> {
   await acquireFinalizingLock(tx, sessionId);
-  return scoreAndSnapshot(tx, sessionId);
+  return scoreAndSnapshot(tx, sessionId, { deferClinical: true });
 }
 
 function scaleNamesOf(context: LoadedContext): string[] {

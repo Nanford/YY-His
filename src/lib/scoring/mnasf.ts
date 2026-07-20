@@ -4,10 +4,10 @@
  * POS:    MNA-SF 营养评估评分器。纯函数，规则来源：量表题目_Demo.txt"二、MNA-SF营养评估"。
  */
 import { scaleById, type SumRangeJudgment } from "@/lib/rules";
-import { collectScores, resolveSumRangeTag, sumOf } from "./common";
-import type { AnswersByQuestionId, ScaleScoreResult } from "./types";
+import { collectScores, partitionMissing, resolveSumRangeTag, sumOf } from "./common";
+import type { AnswersByQuestionId, ScaleScoreResult, ScoreOptions } from "./types";
 
-export function scoreMnasf(answers: AnswersByQuestionId): ScaleScoreResult {
+export function scoreMnasf(answers: AnswersByQuestionId, opts?: ScoreOptions): ScaleScoreResult {
   const scale = scaleById.get("mnasf")!;
   const fQuestion = scale.questions.find((q) => q.id === "mnasf_F")!;
   const fAltQuestion = scale.questions.find((q) => q.id === "mnasf_F_alt")!;
@@ -26,8 +26,11 @@ export function scoreMnasf(answers: AnswersByQuestionId): ScaleScoreResult {
     details.push(...fResult.details);
   }
 
-  if (missing.length > 0) {
-    return { scaleId: scale.id, scaleName: scale.name, ok: false, missing, tags: [] };
+  // deferClinical（Demo 口径）：E（神经心理观察题）、F/F替代（BMI/小腿围测量题）缺失可豁免计分，
+  // 总分按已答题累加并在 deferred 列明；A~D 等普通问答题缺失仍阻断评分。
+  const { blocking, deferred } = partitionMissing(scale, missing, opts?.deferClinical === true);
+  if (blocking.length > 0) {
+    return { scaleId: scale.id, scaleName: scale.name, ok: false, missing: blocking, deferred: [], tags: [] };
   }
   const total = sumOf(details);
   const tag = resolveSumRangeTag(scale.judgment as SumRangeJudgment, total);
@@ -36,6 +39,7 @@ export function scoreMnasf(answers: AnswersByQuestionId): ScaleScoreResult {
     scaleName: scale.name,
     ok: true,
     missing: [],
+    deferred,
     tags: [{ tag, level: "是", scaleId: scale.id, score: total, detail: details }],
   };
 }

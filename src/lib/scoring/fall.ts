@@ -9,11 +9,12 @@ import type { AnswersByQuestionId, ScaleScoreResult } from "./types";
 
 // 判定：任意一个问题回答"是"，即为跌倒风险筛查阳性。
 // 三题必须全部作答后才出结论（需求文档：完成全部信息采集后统一分析）。
+// 跌倒筛查无测量/观察类医生题，deferClinical 对结果无影响（scoreAll 传入的选项天然不会被用到）
 export function scoreFall(answers: AnswersByQuestionId): ScaleScoreResult {
   const scale = scaleById.get("fall")!;
   const { missing, details } = collectScores(scale, scale.questions, answers);
   if (missing.length > 0) {
-    return { scaleId: scale.id, scaleName: scale.name, ok: false, missing, tags: [] };
+    return { scaleId: scale.id, scaleName: scale.name, ok: false, missing, deferred: [], tags: [] };
   }
   const judgment = scale.judgment as AnyYesJudgment;
   const positiveCount = details.filter((d) => d.effectiveScore === 1).length;
@@ -23,6 +24,7 @@ export function scoreFall(answers: AnswersByQuestionId): ScaleScoreResult {
     scaleName: scale.name,
     ok: true,
     missing: [],
+    deferred: [],
     tags: [{ tag, level: "是", scaleId: scale.id, score: positiveCount, detail: details }],
   };
 }

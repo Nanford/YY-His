@@ -49,6 +49,29 @@ export function resolveSumRangeTag(judgment: SumRangeJudgment, total: number): s
   return hit.tag;
 }
 
+/**
+ * 把缺失题目分成"阻断评分"与"可豁免"两组。
+ * 仅 deferClinical 模式且题目属测量/临床观察类（measurement/observerAssisted，即需医生检查题）
+ * 才可豁免计分；普通问答题缺失（如"待人工确认"未补录）在任何模式下都阻断评分。
+ */
+export function partitionMissing(
+  scale: Scale,
+  missing: readonly string[],
+  deferClinical: boolean
+): { blocking: string[]; deferred: string[] } {
+  const blocking: string[] = [];
+  const deferred: string[] = [];
+  for (const id of missing) {
+    const question = scale.questions.find((q) => q.id === id);
+    if (deferClinical && question && (question.measurement || question.observerAssisted)) {
+      deferred.push(id);
+    } else {
+      blocking.push(id);
+    }
+  }
+  return { blocking, deferred };
+}
+
 export function sumOf(details: QuestionScoreDetail[]): number {
   return details.reduce((acc, d) => acc + d.effectiveScore, 0);
 }

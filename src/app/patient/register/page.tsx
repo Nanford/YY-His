@@ -3,8 +3,9 @@
  * OUTPUT: 患者自助建档表单页（大屏适老化样式，提交至 registerPatient Server Action）
  * POS:    产品口径（2026-07-15 修订，覆盖当日早先"固定 FRAIL+跌倒"的锁定口径）：患者自助
  *         建档只收姓名/性别/年龄（必填）+ 测量数据（选填），并可自选评估内容（四量表多选，
- *         默认勾 FRAIL+跌倒）。含舌象/测量题的量表（MNA-SF/中医体质）在选项上如实提示"需医生
- *         补齐后出报告"，答完先落 awaiting_doctor 走医生补录——优雅降级，见 registerPatient 说明。
+ *         默认勾 FRAIL+跌倒）。含舌象/测量题的量表（MNA-SF/中医体质）在选项上如实提示"这些题
+ *         暂不计分，先出部分计分报告"——Demo 口径（2026-07-20）：答完一律出报告，医生检查题
+ *         按 deferClinical 豁免计分，不再落 awaiting_doctor，见 registerPatient 说明。
  *         身份证/手机/住址/住院号/门诊号等留给医生后续在患者详情页补充，不在此阻塞流程。
  */
 import Link from "next/link";
@@ -47,7 +48,7 @@ const SCALE_SUBTITLES: Record<string, string> = {
 
 /**
  * 该量表是否含需临床观察/测量的题（舌象、BMI、腹围、小腿围等）。
- * 含则患者自助答完会先落"需要医生协助"，由医生补录后出完整报告——据此在选项上如实提示。
+ * 含则这些题在患者自助路径豁免计分（deferClinical），先出部分计分报告——据此在选项上如实提示。
  * 直接从题库派生，不硬编码量表名，量表增删/改题时自动同步。
  */
 function needsClinicianAssist(questions: (typeof scales)[number]["questions"]): boolean {
@@ -185,7 +186,7 @@ export default async function PatientRegisterPage({
                           )}
                           <span>
                             {needsClinician
-                              ? "含舌象、测量等需医生查看的项，答完后由医生补齐再出完整报告"
+                              ? "含舌象、测量等需医生查看的项，这些题暂不计分，答完先出部分计分报告"
                               : "可当场生成评估报告"}
                           </span>
                         </span>

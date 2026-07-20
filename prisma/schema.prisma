@@ -91,6 +91,9 @@ model AssessmentResult {
   sessionId String
   session   AssessmentSession @relation(fields: [sessionId], references: [id])
   tags      Json // [{tag, level(是/倾向是/基本是), scaleId, score, detail}]
+  // 被豁免计分的"医生题"（Demo 口径 deferClinical）：[{scaleId, scaleName, questionIds}]，无豁免为 []；
+  // 老快照无此字段，读取侧按 null 兼容
+  deferred  Json?
   status    String            @default("current") // current | superseded（重评时保留旧快照，但不再作为当前结论）
   createdAt DateTime          @default(now())
 

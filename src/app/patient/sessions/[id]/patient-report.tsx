@@ -60,6 +60,16 @@ export interface RemainingScale {
   needsClinician: boolean;
 }
 
+/**
+ * 部分计分量表（Demo 口径 deferClinical）：这些量表含医生检查题（舌象/测量等）暂未计分，
+ * 报告页须如实标注"结果仅供参考"，医生补录重评后结论可能更新。
+ */
+export interface DeferredScale {
+  scaleId: string;
+  scaleName: string;
+  questionIds: string[];
+}
+
 interface PatientReportProps {
   sessionId: string;
   patientLabel: string;
@@ -67,6 +77,8 @@ interface PatientReportProps {
   assessedAt: Date;
   reportScales: ReportScale[];
   tags: readonly AssessmentTag[];
+  /** 部分计分的量表（快照 AssessmentResult.deferred；老快照无此字段时页面传 []） */
+  deferredScales: readonly DeferredScale[];
   planStatus: "draft" | "confirmed";
   plan: readonly RecommendedIntervention[];
   confirmedAt: Date | null;
@@ -81,6 +93,7 @@ export function PatientReport({
   assessedAt,
   reportScales,
   tags,
+  deferredScales,
   planStatus,
   plan,
   confirmedAt,
@@ -117,6 +130,9 @@ export function PatientReport({
                 >
                   {scale.scope === "repeat" ? "复评" : "新增"}
                 </span>
+                {deferredScales.some((d) => d.scaleId === scale.id) && (
+                  <span className="ui-badge ui-badge-warning">部分计分</span>
+                )}
               </li>
             ))}
           </ul>
@@ -135,7 +151,7 @@ export function PatientReport({
           </div>
         )}
 
-        <TagsSection tags={tags} />
+        <TagsSection tags={tags} deferredScales={deferredScales} />
         <PlanSection planStatus={planStatus} plan={plan} confirmedAt={confirmedAt} />
 
         {remainingScales.length > 0 && (
@@ -192,7 +208,7 @@ function SupplementarySection({
                   )}
                   <span>
                     {scale.needsClinician
-                      ? "含舌象、测量等需医生查看的项，答完后由医生补齐再出完整报告"
+                      ? "含舌象、测量等需医生查看的项，这些题暂不计分，答完先出部分计分报告"
                       : "可当场生成评估报告"}
                   </span>
                 </span>
@@ -262,7 +278,13 @@ function PatientReportTopbar() {
   );
 }
 
-function TagsSection({ tags }: { tags: readonly AssessmentTag[] }) {
+function TagsSection({
+  tags,
+  deferredScales,
+}: {
+  tags: readonly AssessmentTag[];
+  deferredScales: readonly DeferredScale[];
+}) {
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -277,6 +299,19 @@ function TagsSection({ tags }: { tags: readonly AssessmentTag[] }) {
           结果根据本次问询中的标准答案计算生成，供健康管理与医生沟通参考。
         </p>
       </div>
+
+      {/* Demo 口径：医生检查题（舌象/测量等）暂未计分的量表如实标注，医生补录重评后结论可能更新 */}
+      {deferredScales.length > 0 && (
+        <div className="ui-alert ui-alert-warning mt-6" role="note">
+          <IconAlertTriangle size={21} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p>
+            {deferredScales
+              .map((d) => `「${d.scaleName}」有 ${d.questionIds.length} 道需医生查看的题暂未计分`)
+              .join("；")}
+            ，以上结果为部分计分，仅供参考；医生补录后结论可能更新。
+          </p>
+        </div>
+      )}
 
       {tags.length === 0 ? (
         <div className="ui-alert mt-6">
