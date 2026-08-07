@@ -21,6 +21,7 @@ import type { PlanDecision } from "@/lib/assessment/plan-review";
 import { firstQueryValue } from "@/lib/query";
 import { reopenSession } from "@/lib/actions/doctor";
 import { readAnswerEditHistory } from "@/lib/assessment/audit";
+import { V2DemoPipeline } from "@/components/v2-pipeline";
 import { CollectForm } from "./collect-form";
 import { ResultView } from "./result-view";
 import { FinalPlan, PlanReview } from "./plan-review";
@@ -156,7 +157,7 @@ export default async function SessionPage({
     <div className="app-page space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">ASSESSMENT SESSION</p>
+          <p className="page-eyebrow">DEMO V2 · 采集 / 判定 / 匹配</p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="page-title inline-flex items-center gap-2">
               <IconClipboardText size={27} className="text-blue-600" aria-hidden="true" />
@@ -176,6 +177,13 @@ export default async function SessionPage({
           返回患者
         </Link>
       </div>
+
+      <V2DemoPipeline
+        current={
+          session.status === "in_progress" ? 3 : session.status === "collected" ? 5 : 6
+        }
+        compact
+      />
 
       {saved === "1" && (
         <div className="ui-alert">

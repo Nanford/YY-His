@@ -25,6 +25,7 @@ import { scaleV2ById } from "@/lib/rules/v2";
 import type { MedicationEntry, WeightHistory } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
 import SessionCreateForm, { type ScaleGroup } from "./session-create-form";
+import { V2DemoPipeline } from "@/components/v2-pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -114,18 +115,22 @@ export default async function PatientDetailPage({
     <div className="app-page space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">PATIENT PROFILE</p>
+          <p className="page-eyebrow">DEMO V2 · 患者主页</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="page-title">{patient.name}</h1>
             <span className="ui-badge font-mono">{patient.code}</span>
           </div>
-          <p className="page-description">患者档案、测量数据与评估记录集中留存，可随时追溯核验。</p>
+          <p className="page-description">
+            ① 档案与测量在此维护；② 下方发起评估完成量表工具选择；采集后进入 ③～⑥ 判定与干预审核。
+          </p>
         </div>
         <Link href="/doctor" className="ui-button ui-button-quiet">
           <IconArrowLeft size={18} stroke={2} aria-hidden="true" />
           返回列表
         </Link>
       </div>
+
+      <V2DemoPipeline current={2} compact />
 
       {error === "no-scale" && (
         <div className="ui-alert ui-alert-danger" role="alert">

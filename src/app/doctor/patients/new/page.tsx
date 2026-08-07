@@ -22,6 +22,7 @@ import {
   MARITAL_STATUSES,
 } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
+import { V2DemoPipeline } from "@/components/v2-pipeline";
 
 const inputCls = "ui-input";
 
@@ -96,14 +97,28 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
     <div className="app-page-narrow space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">PATIENT INTAKE</p>
-          <h1 className="page-title">新建患者</h1>
-          <p className="page-description">完成基础档案录入后，可立即为患者发起标准化健康评估。</p>
+          <p className="page-eyebrow">DEMO V2 · ① 基础信息填写</p>
+          <h1 className="page-title">新建患者档案</h1>
+          <p className="page-description">
+            依据《Demo_v2更新说明》第 1 部分：基本情况、疾病与用药、人体测量与客观指标。结构化保存后，后续量表直接调用、不再重复询问。
+          </p>
         </div>
         <Link href="/doctor" className="ui-button ui-button-quiet">
           <IconArrowLeft size={18} stroke={2} aria-hidden="true" />
           返回患者管理
         </Link>
+      </div>
+
+      <V2DemoPipeline current={1} compact />
+
+      <div className="v2-section-banner">
+        <div>
+          <strong>本页对应：基础信息填写</strong>
+          <p>
+            必填姓名、性别、年龄；文化程度/婚姻/居住/照护、诊断用药与测量均为选填。握力计传感器、DXA/BIA 文档注明暂不接入，可手工填入。
+          </p>
+        </div>
+        <span className="ui-badge">下一步：患者详情 · 量表工具选择</span>
       </div>
 
       {error === "required" && (
@@ -134,13 +149,16 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
       </div>
 
       <form action={createPatient} className="ui-panel overflow-hidden">
+        {/* §1 基本情况：姓名、性别、年龄、文化程度、婚姻、居住、照护 + 就诊标识 */}
         <section>
           <div className="ui-panel-heading">
             <div>
-              <h2 className="ui-panel-title">基础信息</h2>
-              <p className="mt-1 text-xs text-[#62779a]">带 <span className="text-[#c23b4a]">*</span> 的字段为必填项</p>
+              <h2 className="ui-panel-title">一、基本情况</h2>
+              <p className="mt-1 text-xs text-[#62779a]">
+                姓名 / 性别 / 年龄必填；文化程度、婚姻状况、居住情况、照护情况选填（Demo_v2 §1）
+              </p>
             </div>
-            <span className="ui-badge">患者档案</span>
+            <span className="ui-badge">① 基础信息</span>
           </div>
           <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
             <Field label="姓名" name="name" required placeholder="张三" />
@@ -157,6 +175,10 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
               </select>
             </label>
             <Field label="年龄" name="age" required type="number" placeholder="75" />
+            <SelectField label="文化程度" name="education" options={EDUCATION_LEVELS} />
+            <SelectField label="婚姻状况" name="maritalStatus" options={MARITAL_STATUSES} />
+            <SelectField label="居住情况" name="livingSituation" options={LIVING_SITUATIONS} />
+            <SelectField label="照护情况" name="careSituation" options={CARE_SITUATIONS} />
             <Field label="手机号" name="phone" placeholder="选填" />
             <Field label="身份证号" name="idCard" placeholder="选填" />
             <Field label="住址" name="address" placeholder="选填" />
@@ -165,30 +187,15 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
           </div>
         </section>
 
-        {/* V2 扩展（来源：V2/Demo_v2更新说明.docx §1 基础信息填写），全部选填 */}
         <section className="border-t border-[#dbe7f6]">
           <div className="ui-panel-heading">
             <div>
-              <h2 className="ui-panel-title">基本情况补充</h2>
-              <p className="mt-1 text-xs text-[#62779a]">文化程度供认知评估分层判定使用；均可稍后补录</p>
+              <h2 className="ui-panel-title">二、疾病与用药情况</h2>
+              <p className="mt-1 text-xs text-[#62779a]">
+                现有诊断、既往病史、近期急性疾病；当前西药 / 中成药 / 保健品（结构化后供系统读取题复用）
+              </p>
             </div>
-            <span className="ui-badge">V2 选填</span>
-          </div>
-          <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
-            <SelectField label="文化程度" name="education" options={EDUCATION_LEVELS} />
-            <SelectField label="婚姻状况" name="maritalStatus" options={MARITAL_STATUSES} />
-            <SelectField label="居住情况" name="livingSituation" options={LIVING_SITUATIONS} />
-            <SelectField label="照护情况" name="careSituation" options={CARE_SITUATIONS} />
-          </div>
-        </section>
-
-        <section className="border-t border-[#dbe7f6]">
-          <div className="ui-panel-heading">
-            <div>
-              <h2 className="ui-panel-title">疾病与用药情况</h2>
-              <p className="mt-1 text-xs text-[#62779a]">结构化保存后，后续量表需要相同信息时直接调用，不再重复询问</p>
-            </div>
-            <span className="ui-badge">V2 选填</span>
+            <span className="ui-badge">① 基础信息</span>
           </div>
           <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
             <TextareaField
@@ -218,19 +225,31 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
           </div>
         </section>
 
-        <section className="border-t border-[#dbe7f6]">
-          <div className="ui-panel-heading">
-            <div>
-              <h2 className="ui-panel-title">测量补充</h2>
-              <p className="mt-1 text-xs text-[#62779a]">
-                体重史供非自主体重下降判定；握力计/步速传感器暂不接入，测试后手工填入；BMI 由系统按身高体重自动计算
-              </p>
+        {/* §1 人体测量与客观指标：身高体重 BMI、体重史、小腿围、握力、步速；DXA/BIA 暂不接入 */}
+        <section className="border-t border-[#dbe7f6] bg-[#f8fbff]">
+          <div className="ui-panel-heading bg-transparent">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-blue-600 shadow-[0_4px_12px_rgba(33,87,160,0.07)]">
+                <IconRulerMeasure size={21} stroke={1.9} aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="ui-panel-title">三、人体测量与客观指标</h2>
+                <p className="mt-1 text-xs text-[#62779a]">
+                  身高、体重（现在及 1/2/3/6/12 月前）、BMI 自动计算；小腿围双侧、握力、6 米步速可手工填入（传感器暂不接入）；DXA/BIA 暂不接入
+                </p>
+              </div>
             </div>
-            <span className="ui-badge">V2 选填</span>
+            <span className="ui-badge">① 基础信息</span>
           </div>
           <div className="ui-panel-body space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="身高" name="heightCm" type="number" unit="cm" />
+              <Field label="体重（现在）" name="weightKg" type="number" unit="kg" />
+              <Field label="腹围" name="waistCm" type="number" unit="cm" />
+              <Field label="小腿围（兼容旧字段）" name="calfCm" type="number" unit="cm" />
+            </div>
             <div>
-              <p className="ui-label mb-2">历史体重（kg，现在体重见下方测量数据）</p>
+              <p className="ui-label mb-2">历史体重（kg）</p>
               <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-5">
                 <Field label="1 月前" name="weightM1" type="number" unit="kg" />
                 <Field label="2 月前" name="weightM2" type="number" unit="kg" />
@@ -242,36 +261,19 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="小腿围-左" name="calfLeftCm" type="number" unit="cm" />
               <Field label="小腿围-右" name="calfRightCm" type="number" unit="cm" />
-              <Field label="握力" name="gripStrengthKg" type="number" unit="kg" />
+              <Field label="握力（手工填入）" name="gripStrengthKg" type="number" unit="kg" />
               <Field label="6 米步行用时" name="gaitSpeed6mSec" type="number" unit="秒" />
             </div>
           </div>
         </section>
 
-        <section className="border-t border-[#dbe7f6] bg-[#f8fbff]">
-          <div className="ui-panel-body">
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-blue-600 shadow-[0_4px_12px_rgba(33,87,160,0.07)]">
-                <IconRulerMeasure size={21} stroke={1.9} aria-hidden="true" />
-              </span>
-              <div>
-                <h2 className="ui-panel-title">测量数据（建议现场测量）</h2>
-                <p className="ui-helper mt-1">用于营养评估 BMI 计分与中医体质第 9/28 题换算；缺失时相关题目需医生补录。</p>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="身高" name="heightCm" type="number" unit="cm" />
-              <Field label="体重" name="weightKg" type="number" unit="kg" />
-              <Field label="腹围" name="waistCm" type="number" unit="cm" />
-              <Field label="小腿围" name="calfCm" type="number" unit="cm" />
-            </div>
-          </div>
-        </section>
-
-        <div className="flex justify-end border-t border-[#dbe7f6] px-[22px] py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dbe7f6] px-[22px] py-4">
+          <p className="text-xs leading-5 text-[#7f94b3]">
+            创建后进入患者详情，执行第 ② 步「量表工具选择」并生成采集任务。
+          </p>
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
             <IconUserPlus size={19} stroke={2.1} aria-hidden="true" />
-            创建患者档案
+            保存档案并继续
           </button>
         </div>
       </form>

@@ -1110,6 +1110,177 @@ a {
   }
 }
 
+/* ========== Demo V2 六步主流程（来源：Demo_v2更新说明.docx） ========== */
+.v2-pipeline-full {
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: linear-gradient(165deg, #ffffff 0%, #f4f9ff 100%);
+  padding: 1.25rem 1.35rem 1.4rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.v2-pipeline-compact {
+  width: 100%;
+}
+
+.v2-pipeline-track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 960px) {
+  .v2-pipeline-track {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .v2-pipeline-track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.v2-pipeline-item {
+  position: relative;
+  min-width: 0;
+}
+
+.v2-pipeline-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0.7rem 0.65rem 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.2s var(--ease-rise),
+    box-shadow 0.2s var(--ease-rise),
+    transform 0.2s var(--ease-rise);
+}
+
+a.v2-pipeline-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.v2-pipeline-index {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: var(--surface-blue);
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.v2-pipeline-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.v2-pipeline-desc {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.v2-pipeline-current .v2-pipeline-card {
+  border-color: var(--brand);
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 70%);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+}
+
+.v2-pipeline-current .v2-pipeline-index {
+  background: var(--brand);
+  color: #fff;
+}
+
+.v2-pipeline-done .v2-pipeline-index {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.v2-pipeline-done .v2-pipeline-title {
+  color: var(--success);
+}
+
+.v2-pipeline-todo .v2-pipeline-card {
+  opacity: 0.72;
+}
+
+.v2-pipeline-compact .v2-pipeline-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.v2-pipeline-compact .v2-pipeline-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  min-height: 0;
+}
+
+.v2-pipeline-compact .v2-pipeline-index {
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 0.68rem;
+}
+
+.v2-pipeline-compact .v2-pipeline-title {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+/* 分区标题条：与 Demo_v2 §1/§2 章节对应 */
+.v2-section-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(120deg, #f0f7ff 0%, #ffffff 55%);
+  padding: 1rem 1.15rem;
+}
+
+.v2-section-banner strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.v2-section-banner p {
+  margin: 0.25rem 0 0;
+  max-width: 42rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

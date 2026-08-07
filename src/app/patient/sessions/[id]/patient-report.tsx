@@ -327,12 +327,12 @@ function TagsSection({
         <div>
           <span className="ui-badge">
             <IconClipboardCheck size={16} stroke={1.8} aria-hidden="true" />
-            评估结论
+            ④ 结果判断
           </span>
-          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">评估结果</h2>
+          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">评估结论</h2>
         </div>
         <p className="max-w-md text-sm leading-6 text-[var(--ink-muted)]">
-          按量表分组展示；需要关注的异常标签会排在前面，方便您和医生一起查看。
+          Demo_v2：结果页先展示评估结论（按量表分组，异常标签置顶），再展示干预建议。
         </p>
       </div>
 
@@ -403,9 +403,9 @@ function PlanSection({
         <div>
           <span className="ui-badge">
             <IconHeartHandshake size={16} stroke={1.8} aria-hidden="true" />
-            个体化建议
+            ⑤⑥ 干预匹配与展示
           </span>
-          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">推荐干预方案</h2>
+          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">干预建议</h2>
         </div>
         {planStatus === "confirmed" ? (
           <span className="ui-badge ui-badge-success">

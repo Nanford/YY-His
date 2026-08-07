@@ -76,11 +76,13 @@ export default function SessionCreateForm({ packages, groups, followup, action }
             <IconClipboardText size={21} stroke={1.9} aria-hidden="true" />
           </span>
           <div>
-            <h2 className="ui-panel-title">发起新评估</h2>
-            <p className="mt-1 text-xs text-[#62779a]">选择评估方式与本次需要执行的量表</p>
+            <h2 className="ui-panel-title">② 量表工具选择</h2>
+            <p className="mt-1 text-xs text-[#62779a]">
+              来源 Demo_v2 §2：常规综合评估 · 病历智能评估 · 随访对比评估 · 自选组合评估
+            </p>
           </div>
         </div>
-        <span className="ui-badge">默认常规综合评估包</span>
+        <span className="ui-badge">默认：常规综合评估包</span>
       </div>
       <div className="ui-panel-body space-y-5">
         {followup && (
@@ -95,10 +97,10 @@ export default function SessionCreateForm({ packages, groups, followup, action }
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 font-bold">
                 <IconHistory size={16} stroke={2} aria-hidden="true" />
-                按上次评估内容复评
+                随访对比评估
               </span>
               <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                随访对比评估：复用 {followup.dateLabel} 的 {followup.scaleCount} 个量表
+                复用 {followup.dateLabel} 上次已用 {followup.scaleCount} 个量表进行复评
               </span>
             </span>
           </label>
@@ -134,9 +136,9 @@ export default function SessionCreateForm({ packages, groups, followup, action }
                   onChange={() => setMode(CUSTOM_KEY)}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold">自定义组合</span>
+                  <span className="block font-bold">自选组合 · 临时自定义</span>
                   <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                    临时自定义组合：按分类自由勾选可评分量表
+                    按躯体 / 精神心理 / 社会环境 / 老年综合征 / 中医 分类勾选
                   </span>
                 </span>
               </label>
@@ -153,7 +155,7 @@ export default function SessionCreateForm({ packages, groups, followup, action }
                     病历智能评估
                   </span>
                   <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                    粘贴病历摘要，智能推荐量表（出网前脱敏）
+                    粘贴病历与诊断，系统推荐量表（LLM，出网前脱敏）
                   </span>
                 </span>
               </label>
