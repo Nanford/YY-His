@@ -171,25 +171,34 @@ describe("water_swallow：六档选项 → 三标签逐档映射（操作测试�
   });
 });
 
-describe("iciq：降级口径（Q3 数字题/Q4 多选待 M9.6，本批只出确定性子集）", () => {
-  it("Q1 从不 + Q2 没有 + Q4 从不漏尿 → 不出任何标签（NO_INCONTINENCE 依赖 Q3 总分＝0，不自动产出）", () => {
+describe("iciq：M9.6 Q1+Q2+Q3 总分 + Q4 情形（多选）", () => {
+  it("Q1～Q3 全 0 + Q4 从不 → NO_INCONTINENCE", () => {
     const r = scoreScaleV2("iciq", labelAnswers("iciq", {
-      iciq_1: "从不（0分）", iciq_2: "没有（0分）", iciq_4: "从不漏尿",
+      iciq_1: "从不（0分）",
+      iciq_2: "没有（0分）",
+      iciq_3: "0分（无任何影响）",
+      iciq_4: "从不漏尿",
     }));
     expect(r.ok).toBe(true);
-    expect(r.tags).toEqual([]);
+    expect(tagCodes(r)).toEqual(["ICIQ_NO_INCONTINENCE"]);
   });
 
-  it("Q1 频率 >0 分 → 总分必 >0 → ICIQ_INCONTINENCE_PRESENT（与 Q3 无关的确定性推论）", () => {
+  it("Q1 频率 >0 → PRESENT", () => {
     const r = scoreScaleV2("iciq", labelAnswers("iciq", {
-      iciq_1: "每周2～3次（2分）", iciq_2: "没有（0分）", iciq_4: "从不漏尿",
+      iciq_1: "每周2～3次（2分）",
+      iciq_2: "没有（0分）",
+      iciq_3: "0分（无任何影响）",
+      iciq_4: "从不漏尿",
     }));
     expect(tagCodes(r)).toEqual(["ICIQ_INCONTINENCE_PRESENT"]);
   });
 
-  it("Q2 漏量 >0 分 → ICIQ_INCONTINENCE_PRESENT", () => {
+  it("Q2 漏量 >0 → PRESENT", () => {
     const r = scoreScaleV2("iciq", labelAnswers("iciq", {
-      iciq_1: "从不（0分）", iciq_2: "大量（6分）", iciq_4: "从不漏尿",
+      iciq_1: "从不（0分）",
+      iciq_2: "大量（6分）",
+      iciq_3: "0分（无任何影响）",
+      iciq_4: "从不漏尿",
     }));
     expect(tagCodes(r)).toEqual(["ICIQ_INCONTINENCE_PRESENT"]);
   });
@@ -202,27 +211,41 @@ describe("iciq：降级口径（Q3 数字题/Q4 多选待 M9.6，本批只出确
     ["小便结束并穿好衣服时漏尿", "ICIQ_LEAK_POST_VOID"],
     ["没有明显原因的漏尿", "ICIQ_LEAK_NO_OBVIOUS_REASON"],
     ["一直漏尿（本题不计入总分）", "ICIQ_CONTINUOUS_LEAKAGE"],
-  ])("Q4 情形「%s」→ %s + ICIQ_INCONTINENCE_PRESENT（02 表：任一漏尿情形即存在尿失禁）", (label, leakTag) => {
+  ])("Q4 情形「%s」→ %s + PRESENT（总分 0 时剔除 NO）", (label, leakTag) => {
     const r = scoreScaleV2("iciq", labelAnswers("iciq", {
-      iciq_1: "从不（0分）", iciq_2: "没有（0分）", iciq_4: label,
+      iciq_1: "从不（0分）",
+      iciq_2: "没有（0分）",
+      iciq_3: "0分（无任何影响）",
+      iciq_4: label,
     }));
     expect(tagCodes(r)).toEqual([leakTag, "ICIQ_INCONTINENCE_PRESENT"]);
   });
 
-  it("Q4 缺失（正式问题）→ 阻断不出标签", () => {
-    const r = scoreScaleV2("iciq", labelAnswers("iciq", {
-      iciq_1: "每周2～3次（2分）", iciq_2: "少量（2分）", iciq_4: null,
-    }), { deferClinical: true });
+  it("缺 Q3 或 Q4（正式问题）→ 阻断", () => {
+    const r = scoreScaleV2(
+      "iciq",
+      labelAnswers("iciq", {
+        iciq_1: "每周2～3次（2分）",
+        iciq_2: "少量（2分）",
+        iciq_3: "0分（无任何影响）",
+        iciq_4: null,
+      }),
+      { deferClinical: true }
+    );
     expect(r.ok).toBe(false);
     expect(r.missing).toEqual(["iciq_4"]);
     expect(r.tags).toEqual([]);
   });
 });
 
-describe("constipation_symptom：5 症状标签 + Bristol 7 型（Q1/Q2/Q3 options=null 不纳入）", () => {
+describe("constipation_symptom：M9.6 Q3 低频率 + 症状 + Bristol", () => {
   const base: Record<string, string> = {
-    constipation_symptom_4: "否", constipation_symptom_5: "否", constipation_symptom_6: "否",
-    constipation_symptom_7: "否", constipation_symptom_8: "否",
+    constipation_symptom_3: "5次",
+    constipation_symptom_4: "否",
+    constipation_symptom_5: "否",
+    constipation_symptom_6: "否",
+    constipation_symptom_7: "否",
+    constipation_symptom_8: "否",
     constipation_symptom_9: "腊肠样或蛇状，光滑而柔软",
   };
 
@@ -238,7 +261,10 @@ describe("constipation_symptom：5 症状标签 + Bristol 7 型（Q1/Q2/Q3 optio
     ["constipation_symptom_7", "CONSTIPATION_MANUAL_MANEUVER"],
     ["constipation_symptom_8", "CONSTIPATION_ABDOMINAL_DISCOMFORT_RELIEVED"],
   ])("%s 答「是」→ %s", (itemId, tag) => {
-    const r = scoreScaleV2("constipation_symptom", labelAnswers("constipation_symptom", { ...base, [itemId]: "是" }));
+    const r = scoreScaleV2(
+      "constipation_symptom",
+      labelAnswers("constipation_symptom", { ...base, [itemId]: "是" })
+    );
     expect(tagCodes(r)).toEqual([tag, "STOOL_FORM_TYPE_4"]);
   });
 
@@ -251,25 +277,30 @@ describe("constipation_symptom：5 症状标签 + Bristol 7 型（Q1/Q2/Q3 optio
     ["松散的碎片，边缘破糟，或糊状便", "STOOL_FORM_TYPE_6"],
     ["水样便", "STOOL_FORM_TYPE_7"],
   ])("Bristol「%s」→ %s", (label, tag) => {
-    const r = scoreScaleV2("constipation_symptom",
-      labelAnswers("constipation_symptom", { ...base, constipation_symptom_9: label }));
+    const r = scoreScaleV2(
+      "constipation_symptom",
+      labelAnswers("constipation_symptom", { ...base, constipation_symptom_9: label })
+    );
     expect(tagCodes(r)).toEqual([tag]);
   });
 
-  it("Q1/Q2/Q3（options=null）不被判定引用：明细标 excluded、不计缺失", () => {
+  it("Q1/Q2 年月题 options=null 仍 excluded；Q3 已纳入", () => {
     const r = scoreScaleV2("constipation_symptom", labelAnswers("constipation_symptom", base));
-    for (const id of ["constipation_symptom_1", "constipation_symptom_2", "constipation_symptom_3"]) {
-      expect(r.details.find((d) => d.itemId === id)!.excluded).toBe(true);
-    }
+    expect(r.details.find((d) => d.itemId === "constipation_symptom_1")!.excluded).toBe(true);
+    expect(r.details.find((d) => d.itemId === "constipation_symptom_2")!.excluded).toBe(true);
+    expect(r.details.find((d) => d.itemId === "constipation_symptom_3")!.excluded).toBe(false);
     expect(r.missing).toEqual([]);
   });
 
-  it("临床判定标签（CONSTIPATION_NOT_DIAGNOSED/DIAGNOSED/CLINICAL_TYPE）不自动产出", () => {
-    const r = scoreScaleV2("constipation_symptom", labelAnswers("constipation_symptom", {
-      ...base,
-      constipation_symptom_4: "是",
-      constipation_symptom_5: "是",
-    }));
+  it("临床判定标签不自动产出", () => {
+    const r = scoreScaleV2(
+      "constipation_symptom",
+      labelAnswers("constipation_symptom", {
+        ...base,
+        constipation_symptom_4: "是",
+        constipation_symptom_5: "是",
+      })
+    );
     expect(tagCodes(r)).not.toContain("CONSTIPATION_NOT_DIAGNOSED");
     expect(tagCodes(r)).not.toContain("CONSTIPATION_DIAGNOSED");
     expect(tagCodes(r)).not.toContain("CONSTIPATION_CLINICAL_TYPE");

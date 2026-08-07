@@ -1,14 +1,13 @@
 /**
  * INPUT:  量表套餐定义、按一级分类分组的可评分量表树、上次已出报告会话信息、绑定的 createSession action
  * OUTPUT: 医生端「发起新评估」量表工具选择表单（客户端交互组件）
- * POS:    量表工具选择（来源：V2/Demo_v2更新说明.docx §2）的界面层：预设套餐单选 / 自定义组合分类树 /
- *         随访对比复评。病历智能评估（docx §2 LLM 推荐）属 M10.2，本期仅占位禁用。
- *         提交字段口径见 src/lib/assessment/scale-packages.ts 的 parseSessionScaleSelection。
+ * POS:    量表工具选择（docx §2）：预设套餐 / 自定义 / 随访复评 / 病历智能评估（M10.2）。
+ *         提交字段口径见 parseSessionScaleSelection。
  */
 "use client";
 
 import { useState } from "react";
-import { IconClipboardText, IconHistory } from "@tabler/icons-react";
+import { IconClipboardText, IconHistory, IconSparkles } from "@tabler/icons-react";
 import type { ScalePackage } from "@/lib/assessment/scale-packages";
 
 export interface ScaleGroup {
@@ -30,10 +29,44 @@ interface Props {
 }
 
 const CUSTOM_KEY = "custom";
+const EMR_KEY = "emr";
 
 export default function SessionCreateForm({ packages, groups, followup, action }: Props) {
-  // 选择模式：套餐 key / "custom" 自定义组合 / "followup" 随访复评（互斥单选）
+  // 选择模式：套餐 key / "custom" / "emr" / "followup"
   const [mode, setMode] = useState<string>(packages[0]?.key ?? CUSTOM_KEY);
+  const [emrText, setEmrText] = useState("");
+  const [emrLoading, setEmrLoading] = useState(false);
+  const [emrReason, setEmrReason] = useState<string | null>(null);
+  const [emrSelected, setEmrSelected] = useState<Set<string>>(new Set());
+  const [emrError, setEmrError] = useState<string | null>(null);
+
+  const runEmrSuggest = async () => {
+    setEmrLoading(true);
+    setEmrError(null);
+    setEmrReason(null);
+    try {
+      const res = await fetch("/api/doctor/emr-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emrText }),
+      });
+      const data = (await res.json()) as {
+        scaleIds?: string[];
+        reason?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        setEmrError(data.error ?? "推荐失败");
+        return;
+      }
+      setEmrSelected(new Set(data.scaleIds ?? []));
+      setEmrReason(data.reason ?? null);
+    } catch {
+      setEmrError("网络异常，请稍后重试");
+    } finally {
+      setEmrLoading(false);
+    }
+  };
 
   return (
     <form action={action} className="ui-panel overflow-hidden">
@@ -50,7 +83,6 @@ export default function SessionCreateForm({ packages, groups, followup, action }
         <span className="ui-badge">默认常规综合评估包</span>
       </div>
       <div className="ui-panel-body space-y-5">
-        {/* 随访对比复评（docx §2(3)）：有已出报告的既往会话才出现；选中即隐藏其他选择 */}
         {followup && (
           <label className="ui-choice">
             <input
@@ -74,7 +106,6 @@ export default function SessionCreateForm({ packages, groups, followup, action }
 
         {mode !== "followup" && (
           <>
-            {/* 预设套餐（docx §2(1) 常规综合评估 + §2(2) 系统预设套餐 A–D） */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {packages.map((pkg) => (
                 <label key={pkg.key} className="ui-choice">
@@ -109,19 +140,25 @@ export default function SessionCreateForm({ packages, groups, followup, action }
                   </span>
                 </span>
               </label>
-              {/* 病历智能评估（docx §2）：M10.2 另做，本期入口占位 */}
-              <label className="ui-choice opacity-50" title="病历智能评估由 M10.2 接入，本期暂未开放">
-                <input type="radio" name="package" value="emr" disabled />
+              <label className="ui-choice">
+                {/* 不写 name=package：提交时由下方 hidden 转成 custom + scale.* */}
+                <input
+                  type="radio"
+                  checked={mode === EMR_KEY}
+                  onChange={() => setMode(EMR_KEY)}
+                />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold">病历智能评估</span>
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <IconSparkles size={16} stroke={2} aria-hidden="true" />
+                    病历智能评估
+                  </span>
                   <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                    由病历内容智能推荐量表（待接入）
+                    粘贴病历摘要，智能推荐量表（出网前脱敏）
                   </span>
                 </span>
               </label>
             </div>
 
-            {/* 临时自定义组合：按 01 表一级分类分组，只列已配判定的可评分量表 */}
             {mode === CUSTOM_KEY && (
               <div className="space-y-4 rounded-2xl border border-[#dbe7f6] p-4">
                 {groups.map((group) => (
@@ -143,6 +180,63 @@ export default function SessionCreateForm({ packages, groups, followup, action }
                   </div>
                 ))}
                 <p className="text-xs text-[#7f94b3]">仅列出已配置判定规则、可直接评分的量表；请至少勾选一项。</p>
+              </div>
+            )}
+
+            {mode === EMR_KEY && (
+              <div className="space-y-4 rounded-2xl border border-[#dbe7f6] p-4">
+                {/* 提交时按自定义组合口径：package=custom + scale.* 勾选 */}
+                <input type="hidden" name="package" value={CUSTOM_KEY} />
+                <label className="block text-sm font-bold text-[#29496f]">
+                  粘贴病历摘要
+                  <textarea
+                    value={emrText}
+                    onChange={(e) => setEmrText(e.target.value)}
+                    rows={6}
+                    className="ui-input mt-2 w-full font-normal"
+                    placeholder="粘贴现病史、既往史、诊断等（系统会在出网前脱敏证件号与手机号）"
+                  />
+                </label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    className="ui-button ui-button-secondary"
+                    disabled={emrLoading || emrText.trim().length < 8}
+                    onClick={() => void runEmrSuggest()}
+                  >
+                    <IconSparkles size={17} aria-hidden="true" />
+                    {emrLoading ? "分析中…" : "智能推荐量表"}
+                  </button>
+                  {emrReason && <p className="text-xs text-[#62779a]">{emrReason}</p>}
+                  {emrError && <p className="text-xs text-red-600">{emrError}</p>}
+                </div>
+                {emrSelected.size > 0 && (
+                  <div className="space-y-3 border-t border-[#dbe7f6] pt-4">
+                    <p className="text-xs font-extrabold text-[#62779a]">推荐结果（可再勾选调整）</p>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                      {groups.flatMap((g) =>
+                        g.scales.map((scale) => (
+                          <label key={scale.id} className="ui-choice text-sm">
+                            <input
+                              type="checkbox"
+                              name={`scale.${scale.id}`}
+                              checked={emrSelected.has(scale.id)}
+                              onChange={(e) => {
+                                setEmrSelected((prev) => {
+                                  const next = new Set(prev);
+                                  if (e.target.checked) next.add(scale.id);
+                                  else next.delete(scale.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                            <span className="font-bold">{scale.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>

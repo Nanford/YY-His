@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
+import { MULTI_CHOICE_SEP, optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
 import { parseSessionScaleSelection } from "@/lib/assessment/scale-packages";
 import { buildInterventionV2, type PlanCandidateItemV2, type PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
@@ -144,16 +144,41 @@ async function persistAnswersFromForm(
 
   const allowed = allowedQuestionIds(session.scaleIds as string[]);
   const submitted = new Map<string, { optionLabel: string; score: number }>();
+  // 先按题目聚合（多选 checkbox 同名多值）
+  const byQuestion = new Map<string, string[]>();
   for (const [key, value] of formData.entries()) {
     if (!key.startsWith("answer.") || typeof value !== "string" || value === "") continue;
     const questionId = key.slice("answer.".length);
     if (!allowed.has(questionId)) throw new Error(`题目不属于本次评估：${questionId}`);
-    if (submitted.has(questionId)) throw new Error(`题目重复提交：${questionId}`);
+    const list = byQuestion.get(questionId) ?? [];
+    list.push(value);
+    byQuestion.set(questionId, list);
+  }
+  for (const [questionId, values] of byQuestion) {
     const question = questionById.get(questionId);
     const scale = scaleByQuestionId.get(questionId);
     if (!question || !scale) throw new Error(`未知题目：${questionId}`);
-    // 表单提交的是选项 label（IADL 等量表存在同分选项，按分值提交无法区分）
-    const option = optionsOf(scale, question).find((o) => o.label === value);
+    const options = optionsOf(scale, question);
+    if (question.answerType === "number") {
+      // 数字题：表单提交分值字符串 → 反查 label
+      const score = Number(values[0]);
+      if (!Number.isInteger(score)) throw new Error(`题目分值无效：${questionId}`);
+      const option = options.find((o) => o.score === score);
+      if (!option) throw new Error(`题目选项无效：${questionId}`);
+      submitted.set(questionId, { optionLabel: option.label, score: option.score });
+      continue;
+    }
+    if (question.answerType === "multiChoice") {
+      const labels = [...new Set(values)];
+      for (const lab of labels) {
+        if (!options.some((o) => o.label === lab)) throw new Error(`题目选项无效：${questionId}`);
+      }
+      submitted.set(questionId, { optionLabel: labels.join(MULTI_CHOICE_SEP), score: 0 });
+      continue;
+    }
+    // 单选：label
+    if (values.length !== 1) throw new Error(`题目重复提交：${questionId}`);
+    const option = options.find((o) => o.label === values[0]);
     if (!option) throw new Error(`题目选项无效：${questionId}`);
     submitted.set(questionId, { optionLabel: option.label, score: option.score });
   }

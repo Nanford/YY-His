@@ -84,6 +84,14 @@ function mergeJudgmentResults(scale: ScaleV2, parts: ScaleScoreResultV2[]): Scal
       seen.add(tag.code);
       tags.push(tag);
     }
+    // ICIQ：总分 0 会出 NO，Q4 漏尿情形又会出 PRESENT——安全优先保留阳性、剔除阴性
+    if (
+      tags.some((t) => t.code === "ICIQ_INCONTINENCE_PRESENT") &&
+      tags.some((t) => t.code === "ICIQ_NO_INCONTINENCE")
+    ) {
+      const idx = tags.findIndex((t) => t.code === "ICIQ_NO_INCONTINENCE");
+      if (idx >= 0) tags.splice(idx, 1);
+    }
   }
 
   return {

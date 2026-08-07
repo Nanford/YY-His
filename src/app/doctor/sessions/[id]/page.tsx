@@ -40,7 +40,16 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   confirmed: { label: "已确认", cls: "ui-badge ui-badge-success" },
 };
 
-const TRACE_SOURCES = new Set<TraceAnswerSource>(["voice", "text", "button", "doctor", "measurement", "system"]);
+const TRACE_SOURCES = new Set<TraceAnswerSource>([
+  "voice",
+  "text",
+  "button",
+  "doctor",
+  "measurement",
+  "system",
+  "multi",
+  "drawing",
+]);
 const TRACE_STATUSES = new Set<TraceAnswerStatus>(["confirmed", "pending", "manual", "superseded"]);
 
 function traceSource(value: string): TraceAnswerSource {
@@ -84,8 +93,17 @@ export default async function SessionPage({
   // 代填表单的已保存答案：按选项 label 回填（IADL 等存在同分选项，分值无法唯一区分选项）
   const savedLabels = new Map(
     session.answers
-      .filter((answer) => answer.status === "confirmed" && answer.optionLabel !== null)
+      .filter(
+        (answer) =>
+          (answer.status === "confirmed" || answer.status === "pending") && answer.optionLabel !== null
+      )
       .map((answer) => [answer.questionId, answer.optionLabel as string])
+  );
+  // 画钟等：pending 态仍带 rawText（data URL），代填界面预览用
+  const savedRawTexts = new Map(
+    session.answers
+      .filter((answer) => answer.rawText !== null)
+      .map((answer) => [answer.questionId, answer.rawText as string])
   );
   const answerLabels = Object.fromEntries(
     session.answers
@@ -193,6 +211,7 @@ export default async function SessionPage({
           patientId={session.patientId}
           scaleIds={scaleIds}
           savedLabels={savedLabels}
+          savedRawTexts={savedRawTexts}
         />
       )}
 

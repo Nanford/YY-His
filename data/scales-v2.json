@@ -1,6 +1,6 @@
 {
   "generatedFrom": "V2/01_评估采集规则表.xlsx",
-  "generatedAt": "2026-08-07T09:56:21.094Z",
+  "generatedAt": "2026-08-07T10:09:50.183Z",
   "categories": [
     "全程",
     "躯体功能",
@@ -3468,7 +3468,52 @@
           "entryType": "正式问题",
           "text": "漏尿对您的日常生活影响有多大？请在屏幕上从0到10选一个数字，0表示完全不影响，10表示影响非常严重。",
           "optionsRaw": "从0～10中选择一个整数：0分表示无任何影响，10分表示影响极重",
-          "options": null,
+          "options": [
+            {
+              "label": "0分（无任何影响）",
+              "score": 0
+            },
+            {
+              "label": "1分",
+              "score": 1
+            },
+            {
+              "label": "2分",
+              "score": 2
+            },
+            {
+              "label": "3分",
+              "score": 3
+            },
+            {
+              "label": "4分",
+              "score": 4
+            },
+            {
+              "label": "5分",
+              "score": 5
+            },
+            {
+              "label": "6分",
+              "score": 6
+            },
+            {
+              "label": "7分",
+              "score": 7
+            },
+            {
+              "label": "8分",
+              "score": 8
+            },
+            {
+              "label": "9分",
+              "score": 9
+            },
+            {
+              "label": "10分（影响极重）",
+              "score": 10
+            }
+          ],
           "variableCode": "ICIQ_3",
           "reuseRule": "首次采集；同变量直接复用"
         },
@@ -3581,7 +3626,40 @@
           "entryType": "正式问题",
           "text": "有便秘症状的时候，您一周通常能排几次大便？",
           "optionsRaw": "记录每周排便次数：0次／1次／2次／3次／4次／5次／6次／7次及以上；每周少于3次为该症状阳性",
-          "options": null,
+          "options": [
+            {
+              "label": "0次",
+              "score": 0
+            },
+            {
+              "label": "1次",
+              "score": 1
+            },
+            {
+              "label": "2次",
+              "score": 2
+            },
+            {
+              "label": "3次",
+              "score": 3
+            },
+            {
+              "label": "4次",
+              "score": 4
+            },
+            {
+              "label": "5次",
+              "score": 5
+            },
+            {
+              "label": "6次",
+              "score": 6
+            },
+            {
+              "label": "7次及以上",
+              "score": 7
+            }
+          ],
           "variableCode": "CONST_3",
           "reuseRule": "首次采集；同变量直接复用"
         },

@@ -65,7 +65,7 @@ describe("scaleNeedsClinician", () => {
   it("与题库派生口径一致：frail/mnasf/minicog/mmse 需医生协助，其余纯自助", () => {
     expect(scaleNeedsClinician("frail")).toBe(true); // frail_4/frail_5 系统读取
     expect(scaleNeedsClinician("mnasf")).toBe(true); // mnasf_2/3/5/6 系统读取/逻辑计算
-    expect(scaleNeedsClinician("minicog")).toBe(true); // minicog_2 绘图操作
+    expect(scaleNeedsClinician("minicog")).toBe(false); // M9.6：画钟向患者提问，无 observerAssisted 计分题
     expect(scaleNeedsClinician("mmse")).toBe(true); // 记忆指令/图片识别/操作指令（M10.3a）
     expect(scaleNeedsClinician("fall_3q")).toBe(false);
     expect(scaleNeedsClinician("tcm_constitution")).toBe(false);

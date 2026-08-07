@@ -26,7 +26,7 @@ import {
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleScope } from "@/lib/assessment/supplementary";
-import { scoringCategories } from "@/lib/rules";
+import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 import { createSupplementarySession } from "@/lib/actions/patient";
 
@@ -278,6 +278,18 @@ function PatientReportTopbar() {
   );
 }
 
+/** M11.2：异常标签优先（风险/阳性/依赖等）；阴性/正常后置 */
+function isAbnormalTag(tag: AssessmentTag): boolean {
+  if (tag.level === "倾向是" || tag.level === "基本是") return true;
+  const text = `${tag.tag}${tag.code}`;
+  if (/阴性|正常|无依赖|良好|未提示|NONE|NORMAL|NEGATIVE|GOOD|NO_|_NONE|_NORMAL/.test(text)) {
+    return false;
+  }
+  return /阳性|风险|重度|高|差|障碍|依赖|衰弱|营养不良|谵妄|失禁|疼痛|下降|受损|阳性|PRESENT|RISK|SEVERE|POOR|POSITIVE|DECLINE|IMPAIR/.test(
+    text
+  );
+}
+
 function TagsSection({
   tags,
   deferredScales,
@@ -285,6 +297,30 @@ function TagsSection({
   tags: readonly AssessmentTag[];
   deferredScales: readonly DeferredScale[];
 }) {
+  // 按量表分组；组内异常标签置顶；量表顺序按首个标签出现顺序
+  const byScale = new Map<string, AssessmentTag[]>();
+  for (const tag of tags) {
+    const list = byScale.get(tag.scaleId) ?? [];
+    list.push(tag);
+    byScale.set(tag.scaleId, list);
+  }
+  const groups = [...byScale.entries()].map(([scaleId, scaleTags]) => {
+    const ordered = [...scaleTags].sort((a, b) => {
+      const aa = isAbnormalTag(a) ? 0 : 1;
+      const bb = isAbnormalTag(b) ? 0 : 1;
+      if (aa !== bb) return aa - bb;
+      return a.tag.localeCompare(b.tag, "zh-CN");
+    });
+    return {
+      scaleId,
+      scaleName: scales.find((s) => s.id === scaleId)?.name ?? scaleId,
+      tags: ordered,
+      hasAbnormal: ordered.some(isAbnormalTag),
+    };
+  });
+  // 有异常的量表组置顶
+  groups.sort((a, b) => Number(b.hasAbnormal) - Number(a.hasAbnormal));
+
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -296,7 +332,7 @@ function TagsSection({
           <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">评估结果</h2>
         </div>
         <p className="max-w-md text-sm leading-6 text-[var(--ink-muted)]">
-          结果根据本次问询中的标准答案计算生成，供健康管理与医生沟通参考。
+          按量表分组展示；需要关注的异常标签会排在前面，方便您和医生一起查看。
         </p>
       </div>
 
@@ -319,15 +355,32 @@ function TagsSection({
           <p>本次评估没有发现需要关注的问题，请继续保持良好的生活习惯。</p>
         </div>
       ) : (
-        <div className="mt-6 flex flex-wrap gap-3">
-          {tags.map((tag) => (
-            <span
-              key={`${tag.scaleId}-${tag.tag}`}
-              className="inline-flex min-h-12 items-center rounded-2xl border border-[var(--line-strong)] bg-[var(--brand-soft)] px-4 py-2 text-lg font-bold text-[var(--brand-strong)]"
-            >
-              {tag.tag}
-              {LEVEL_LABEL[tag.level] ?? ""}
-            </span>
+        <div className="mt-6 space-y-5">
+          {groups.map((group) => (
+            <div key={group.scaleId}>
+              <p className="mb-2 text-sm font-extrabold tracking-wide text-[var(--ink-muted)]">
+                {group.scaleName}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {group.tags.map((tag) => {
+                  const abnormal = isAbnormalTag(tag);
+                  return (
+                    <span
+                      key={`${tag.scaleId}-${tag.tag}-${tag.code}`}
+                      className={[
+                        "inline-flex min-h-12 items-center rounded-2xl border px-4 py-2 text-lg font-bold",
+                        abnormal
+                          ? "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]"
+                          : "border-[var(--line-strong)] bg-[var(--brand-soft)] text-[var(--brand-strong)]",
+                      ].join(" ")}
+                    >
+                      {tag.tag}
+                      {LEVEL_LABEL[tag.level] ?? ""}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </div>
       )}

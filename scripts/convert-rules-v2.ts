@@ -176,6 +176,20 @@ function syntheticOptionsFor(itemId: string, optionsRaw: string): ParsedOption[]
       { label: "未达肌少症肌肉量界值", score: null },
     ];
   }
+  // M9.6：ICIQ Q3 生活质量影响分 0～10
+  if (itemId === "iciq_3") {
+    return Array.from({ length: 11 }, (_, n) => ({
+      label: n === 0 ? "0分（无任何影响）" : n === 10 ? "10分（影响极重）" : `${n}分`,
+      score: n,
+    }));
+  }
+  // M9.6：便秘症状 Q3 每周排便次数（＜3 次为低频率阳性）
+  if (itemId === "constipation_symptom_3") {
+    return [0, 1, 2, 3, 4, 5, 6, 7].map((n) => ({
+      label: n === 7 ? "7次及以上" : `${n}次`,
+      score: n,
+    }));
+  }
   // 词数类：optionsRaw 含「4个／3个」等
   if (/4个/.test(optionsRaw) && /0个/.test(optionsRaw) && /复述/.test(optionsRaw)) {
     return [4, 3, 2, 1, 0].map((n) => ({ label: `正确复述${n}个词`, score: n }));

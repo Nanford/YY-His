@@ -32,16 +32,35 @@ export function scorePerQuestionTags(
       details.push({ itemId: item.id, no: item.no, text: item.text, answerLabel: null, score: null, excluded: false });
       continue;
     }
-    // 确定性红线：答案必须命中条目 options 中的某个 label
-    const hit = (item.options ?? []).find((o) => o.label === answer.label);
-    if (!hit) throw new Error(`条目 ${item.id} 的答案「${answer.label}」不在合法选项内`);
+    // M9.6 多选：optionLabel 可能为「A || B」拼接；单选时恰一个 label
+    const MULTI_SEP = " || ";
+    const selectedLabels = answer.label.includes(MULTI_SEP)
+      ? answer.label.split(MULTI_SEP).map((s) => s.trim()).filter(Boolean)
+      : [answer.label];
+    const optionLabels = new Set((item.options ?? []).map((o) => o.label));
+    for (const lab of selectedLabels) {
+      if (!optionLabels.has(lab)) {
+        throw new Error(`条目 ${item.id} 的答案「${lab}」不在合法选项内`);
+      }
+    }
     for (const rule of judgment.rules) {
-      if (rule.itemId === item.id && rule.whenLabel === hit.label && !hitTagCodes.includes(rule.tagCode)) {
+      if (
+        rule.itemId === item.id &&
+        selectedLabels.includes(rule.whenLabel) &&
+        !hitTagCodes.includes(rule.tagCode)
+      ) {
         hitTagCodes.push(rule.tagCode);
       }
     }
-    // 单题标签判定不计分，明细只记录命中 label
-    details.push({ itemId: item.id, no: item.no, text: item.text, answerLabel: hit.label, score: null, excluded: false });
+    // 单题标签判定不计分，明细记录命中 label（多选保留拼接串）
+    details.push({
+      itemId: item.id,
+      no: item.no,
+      text: item.text,
+      answerLabel: selectedLabels.join(MULTI_SEP),
+      score: null,
+      excluded: false,
+    });
   }
 
   const { blocking, deferred } = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);

@@ -1,7 +1,7 @@
 /**
- * INPUT:  路由参数 id、JSON 请求体（题目 id/输入模式/回答文本或按钮分值/录音路径）
+ * INPUT:  路由参数 id、JSON 请求体（题目 id/输入模式/回答文本或按钮分值/多选 labels/画作）
  * OUTPUT: POST —— 提交患者回答，返回处理结论与下一步状态
- * POS:    患者端四种输入模式（语音确认/语音直答/文字/按钮）的统一提交入口。
+ * POS:    患者端输入模式统一提交入口（M9.6 扩 multi/drawing）。
  *         Route Handler 是不可信入口：请求体经 zod 校验，业务校验在 service 层。
  */
 import { z } from "zod";
@@ -9,9 +9,12 @@ import { DialogueConflictError, submitPatientAnswer } from "@/lib/dialogue/servi
 
 const answerSchema = z.object({
   questionId: z.string().min(1).max(64),
-  mode: z.enum(["voice", "text", "button"]),
+  mode: z.enum(["voice", "text", "button", "multi", "drawing"]),
   utterance: z.string().max(2000).optional(),
-  score: z.number().int().min(0).max(5).optional(),
+  /** 含 NRS/ICIQ 影响分 0～10 */
+  score: z.number().int().min(0).max(10).optional(),
+  labels: z.array(z.string().min(1).max(120)).max(12).optional(),
+  drawingDataUrl: z.string().max(800_000).optional(),
   audioPath: z.string().max(300).optional(),
   asrRaw: z.unknown().optional(),
 });

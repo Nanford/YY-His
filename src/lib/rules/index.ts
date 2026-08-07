@@ -25,6 +25,23 @@ export interface QuestionOption {
   score: number;
 }
 
+/**
+ * 作答题型（M9.6 扩展）：
+ * - boolean/choice/likert5：大按钮单选（既有）
+ * - number：数字输入（ICIQ 影响分 0～10、便秘每周次数等）
+ * - multiChoice：多选（ICIQ 漏尿情形、GLIM 病因）
+ * - imageChoice：图片参照选择（Bristol 大便分型）
+ * - drawing：画钟等绘图（患者画 + 医生确认计分）
+ */
+export type AnswerType =
+  | "boolean"
+  | "choice"
+  | "likert5"
+  | "number"
+  | "multiChoice"
+  | "imageChoice"
+  | "drawing";
+
 export interface ScaleQuestion {
   id: string;
   no: string;
@@ -35,14 +52,23 @@ export interface ScaleQuestion {
   colloquialText: string;
   /** 换说法复问文案（V2 暂与题面同源，后续预生成换说法后替换） */
   retryText: string;
-  answerType: "boolean" | "choice" | "likert5";
+  answerType: AnswerType;
   options?: QuestionOption[];
-  /** 需医生/系统侧处理的计分条目（系统读取/逻辑计算/操作测试/绘图操作/医护观察等，
-   *  对应 V2 条目类型 ≠ 正式问题）：患者端不提问，走医生端代填；缺失时按 deferClinical 口径豁免计分 */
+  /** number 题的合法分值范围（来自 options 分值） */
+  numberMin?: number;
+  numberMax?: number;
+  /** imageChoice 参照图（public 路径） */
+  imageSrc?: string;
+  /** 需医生/系统侧处理的计分条目（系统读取/逻辑计算/操作测试/医护观察等）：
+   *  患者端不提问，走医生端代填；缺失时按 deferClinical 口径豁免计分。
+   *  例外：绘图操作（M9.6 患者可画，医生确认计分）仍向患者提问。 */
   observerAssisted?: boolean;
   /** V2 条目类型原文（系统读取/逻辑计算/正式问题…），代填界面展示用 */
   entryType?: string;
 }
+
+/** 多选答案 label 连接符（存储于 Answer.optionLabel，判定时拆分） */
+export const MULTI_CHOICE_SEP = " || ";
 
 export interface Scale {
   id: string;
@@ -97,10 +123,35 @@ function shortTitle(text: string): string {
   return first.length > 24 ? `${first.slice(0, 24)}…` : first;
 }
 
+/** 从条目形态推断作答题型（M9.6；医学选项仍以 scales-v2 options 为准） */
+function detectAnswerType(item: ScaleItemV2): AnswerType {
+  if (item.entryType === "绘图操作") return "drawing";
+  // Bristol 大便分型：便秘症状表 Q9
+  if (item.id === "constipation_symptom_9") return "imageChoice";
+  if (item.optionsRaw.includes("可多选")) return "multiChoice";
+  // 数字选择题：选项为连续整数分值且题干/原文提示数值区间
+  if (
+    item.id === "iciq_3" ||
+    item.id === "constipation_symptom_3" ||
+    item.id === "pain_nrs_1"
+  ) {
+    return "number";
+  }
+  const options = item.options ?? [];
+  const isBoolean =
+    options.length === 2 &&
+    options[0].label.startsWith("是") &&
+    options[1].label.startsWith("否");
+  if (isBoolean) return "boolean";
+  return "choice";
+}
+
 function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
   const options = (item.options ?? []).map((o) => ({ label: o.label, score: compatScore(o.label, o.score) }));
-  const isBoolean =
-    options.length === 2 && options[0].label.startsWith("是") && options[1].label.startsWith("否");
+  const answerType = detectAnswerType(item);
+  const scored = (item.options ?? []).map((o) => o.score).filter((s): s is number => s !== null);
+  // 绘图操作向患者提问（画钟）；其余非正式问题仍走医生代填
+  const observerAssisted = item.entryType !== "正式问题" && item.entryType !== "绘图操作";
   return {
     id: item.id,
     no: item.no,
@@ -108,15 +159,19 @@ function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
     standardText: item.text,
     colloquialText: item.text,
     retryText: item.text,
-    answerType: isBoolean ? "boolean" : "choice",
+    answerType,
     options,
-    observerAssisted: item.entryType !== "正式问题",
+    numberMin: scored.length > 0 ? Math.min(...scored) : undefined,
+    numberMax: scored.length > 0 ? Math.max(...scored) : undefined,
+    imageSrc: answerType === "imageChoice" ? "/interventions/bristol-stool.webp" : undefined,
+    observerAssisted,
     entryType: item.entryType,
   };
 }
 
 function toScale(scale: ScaleV2): Scale {
   const scoredIds = scoredItemIdsOf(scale.id);
+  // 计分条目：有 options 的一律投影；绘图题 options 可解析时纳入
   const questions = scale.items
     .filter((item) => scoredIds.has(item.id) && item.options !== null)
     .map(toScaleQuestion);

@@ -5,7 +5,15 @@
  */
 import { questionById, scaleByQuestionId } from "@/lib/rules";
 
-export type TraceAnswerSource = "voice" | "text" | "button" | "doctor" | "measurement" | "system";
+export type TraceAnswerSource =
+  | "voice"
+  | "text"
+  | "button"
+  | "doctor"
+  | "measurement"
+  | "system"
+  | "multi"
+  | "drawing";
 export type TraceAnswerStatus = "confirmed" | "pending" | "manual" | "superseded";
 export type TraceAudioStatus = "available" | "missing" | "processing" | "not_recorded";
 
@@ -49,6 +57,8 @@ const SOURCE_META: Record<TraceAnswerSource, { label: string; cls: string }> = {
   voice: { label: "语音作答", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   text: { label: "文字输入", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   button: { label: "快捷按钮", cls: "border-slate-200 bg-slate-50 text-slate-700" },
+  multi: { label: "多选作答", cls: "border-blue-200 bg-blue-50 text-blue-700" },
+  drawing: { label: "画钟交卷", cls: "border-amber-200 bg-amber-50 text-amber-700" },
   doctor: { label: "医生补录", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   measurement: { label: "测量换算", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   system: { label: "系统读取", cls: "border-blue-200 bg-blue-50 text-blue-700" },

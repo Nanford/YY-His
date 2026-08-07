@@ -716,6 +716,10 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                           asrRaw: answer.asrRaw,
                         })
                       }
+                      onSubmitMulti={(labels) => void submitAnswer({ mode: "multi", labels })}
+                      onSubmitDrawing={(drawingDataUrl) =>
+                        void submitAnswer({ mode: "drawing", drawingDataUrl })
+                      }
                       onNotice={setNotice}
                     />
                   </div>

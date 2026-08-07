@@ -31,8 +31,15 @@ function optionsHint(question: ScaleQuestion, options: QuestionOption[]): string
     case "likert5":
       // 来源：量表题目_Demo.txt "一般回答选项：1～5级"（没有/很少/有时/经常/总是）
       return '您可以用"没有、很少、有时、经常、总是"这样的说法回答。';
+    case "number":
+      return `您可以说一个${question.numberMin ?? 0}到${question.numberMax ?? 10}之间的数字。`;
+    case "multiChoice":
+      return `可以多选，选项有：${options.map((option) => option.label).join("、")}。`;
+    case "imageChoice":
     case "choice":
       return `您可以从这几个里面选：${options.map((option) => option.label).join("、")}。`;
+    case "drawing":
+      return "请在白板上画好后提交，医生会帮您确认。";
   }
 }
 

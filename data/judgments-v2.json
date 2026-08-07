@@ -197,17 +197,18 @@
       "scaleId": "iciq",
       "judgments": [
         {
+          "type": "sumRange",
+          "comment": "M9.6：Q1+Q2+Q3 总分 0～21；0→无尿失禁，≥1→存在（ICIQ_UI_SF_SCORE 占位不自动产出）。Q4 情形另由 perQuestionTags 补漏尿标签",
+          "scoredItemIds": ["iciq_1", "iciq_2", "iciq_3"],
+          "ranges": [
+            { "tagCode": "ICIQ_NO_INCONTINENCE", "min": 0, "max": 0 },
+            { "tagCode": "ICIQ_INCONTINENCE_PRESENT", "min": 1, "max": 21 }
+          ]
+        },
+        {
           "type": "perQuestionTags",
-          "comment": "M10.3b 降级口径（iciq_3 影响分 0～10 为数字题 options=null、iciq_4 情形为多选，均待 M9.6 新题型）：①Q1 频率/Q2 漏量任一档 >0 分 → 总分必 >0 → ICIQ_INCONTINENCE_PRESENT（02 表「总分＞0分，或漏尿情形选择任一漏尿情形」的确定性子集）；②Q4 各漏尿情形 → 对应 ICIQ_LEAK_* / ICIQ_CONTINUOUS_LEAKAGE + ICIQ_INCONTINENCE_PRESENT（Q4 当前单选作答，多选情形待 M9.6 补全）；③ICIQ_NO_INCONTINENCE 需「总分＝0 且 Q4=从不漏尿」（依赖 Q3），本批不自动产出；④ICIQ_UI_SF_SCORE 为 {score} 占位标签，不自动产出",
+          "comment": "M9.6：Q4 可多选漏尿情形；选漏尿情形时再标 PRESENT（与 sumRange 去重合并）",
           "rules": [
-            { "itemId": "iciq_1", "whenLabel": "大约每周1次或更少（1分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_1", "whenLabel": "每周2～3次（2分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_1", "whenLabel": "大约每天1次（3分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_1", "whenLabel": "每天超过1次（4分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_1", "whenLabel": "一直漏尿（5分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_2", "whenLabel": "少量（2分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_2", "whenLabel": "中等量（4分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
-            { "itemId": "iciq_2", "whenLabel": "大量（6分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
             { "itemId": "iciq_4", "whenLabel": "未到达厕所前漏尿", "tagCode": "ICIQ_LEAK_BEFORE_TOILET" },
             { "itemId": "iciq_4", "whenLabel": "未到达厕所前漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
             { "itemId": "iciq_4", "whenLabel": "咳嗽或打喷嚏时漏尿", "tagCode": "ICIQ_LEAK_COUGH_SNEEZE" },
@@ -243,8 +244,11 @@
       "judgments": [
         {
           "type": "perQuestionTags",
-          "comment": "来源：02 表单题症状标签 + Bristol 7 型。取舍：Q1/Q2 起病时长为年月记录题（options=null）不纳入判定；Q3 每周排便次数（options=null，0次／1次／…／7次及以上）的 CONSTIPATION_LOW_FREQUENCY（每周＜3次）待 M9.6 数字题型/数值阈值判定落地后补；CONSTIPATION_NOT_DIAGNOSED/DIAGNOSED/CLINICAL_TYPE 为医生临床判定标签，不自动产出",
+          "comment": "来源：02 表单题症状标签 + Bristol 7 型。M9.6：Q3 每周次数 0/1/2 → CONSTIPATION_LOW_FREQUENCY；Q1/Q2 年月记录仍不纳入；临床判定标签不自动产出",
           "rules": [
+            { "itemId": "constipation_symptom_3", "whenLabel": "0次", "tagCode": "CONSTIPATION_LOW_FREQUENCY" },
+            { "itemId": "constipation_symptom_3", "whenLabel": "1次", "tagCode": "CONSTIPATION_LOW_FREQUENCY" },
+            { "itemId": "constipation_symptom_3", "whenLabel": "2次", "tagCode": "CONSTIPATION_LOW_FREQUENCY" },
             { "itemId": "constipation_symptom_4", "whenLabel": "是", "tagCode": "CONSTIPATION_INCOMPLETE_EVACUATION" },
             { "itemId": "constipation_symptom_5", "whenLabel": "是", "tagCode": "CONSTIPATION_ANORECTAL_BLOCKAGE" },
             { "itemId": "constipation_symptom_6", "whenLabel": "是", "tagCode": "CONSTIPATION_PROLONGED_DEFECATION" },

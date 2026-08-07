@@ -100,13 +100,14 @@ describe("askableQuestions：患者端题目清单", () => {
   it("observerAssisted 计分条目（系统读取/绘图操作等）不向患者提问（走系统读取/医生代填）", () => {
     const ids = askableQuestions(["frail", "mnasf", "minicog"]).map((item) => item.question.id);
     // V2 条目类型 ≠ 正式问题的计分条目：frail_4/frail_5（系统读取）、
-    // mnasf_2/3/5/6（系统读取/逻辑计算等）、minicog_2（绘图操作）
-    for (const skipped of ["frail_4", "frail_5", "mnasf_2", "mnasf_3", "mnasf_5", "mnasf_6", "minicog_2"]) {
+    // mnasf_2/3/5/6（系统读取/逻辑计算等）不问；M9.6：minicog_2 画钟向患者提问
+    for (const skipped of ["frail_4", "frail_5", "mnasf_2", "mnasf_3", "mnasf_5", "mnasf_6"]) {
       expect(ids).not.toContain(skipped);
     }
+    expect(ids).toContain("minicog_2");
     expect(ids.filter((id) => id.startsWith("frail")).length).toBe(3); // frail_1-3
     expect(ids.filter((id) => id.startsWith("mnasf")).length).toBe(2); // mnasf_1、mnasf_4
-    expect(ids.filter((id) => id.startsWith("minicog")).length).toBe(1); // minicog_3
+    expect(ids.filter((id) => id.startsWith("minicog")).length).toBe(2); // minicog_2 画钟 + minicog_3 回忆 // minicog_3
   });
 
   it("保持量表勾选顺序与题目原始顺序", () => {
@@ -261,8 +262,8 @@ describe("buildTimeline：采集编排时间线（M9.2，来源：V2/Demo_v2更�
     expect(timeline[0]).toMatchObject({ kind: "narration", narration: { id: "narr_3", entryType: "总开场" } });
     expect(timeline[1]).toMatchObject({ kind: "narration", narration: { id: "narr_50", entryType: "分类过渡" } });
     expect(timeline[2]).toMatchObject({ kind: "narration", narration: { id: "narr_51", entryType: "工具说明" } });
-    // 旁白之后才是该量表首题（minicog_2 绘图操作属 observerAssisted 不问，首题为 minicog_3）
-    expect(timeline[3]).toMatchObject({ kind: "question", item: { question: { id: "minicog_3" } } });
+    // 旁白之后是该量表首题（M9.6：minicog_2 画钟向患者提问）
+    expect(timeline[3]).toMatchObject({ kind: "question", item: { question: { id: "minicog_2" } } });
   });
 
   it("只纳入勾选量表锚定的旁白，未勾选量表的旁白不播", () => {

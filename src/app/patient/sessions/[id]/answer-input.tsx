@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   IconArrowRight,
   IconCheck,
@@ -45,6 +45,10 @@ interface AnswerInputProps {
   onSubmitButton: (score: number) => void;
   onSubmitText: (text: string) => void;
   onSubmitVoice: (answer: VoiceAnswer) => void;
+  /** M9.6 多选 */
+  onSubmitMulti: (labels: string[]) => void;
+  /** M9.6 画钟交卷 */
+  onSubmitDrawing: (dataUrl: string) => void;
   onNotice: (message: string) => void;
 }
 
@@ -54,6 +58,14 @@ export function AnswerInput(props: AnswerInputProps) {
   /** 语音直答：转写完成后免确认直接提交。语音模式默认开（尽量免动手），手动模式无意义但保持一致初值 */
   const [directVoice, setDirectVoice] = useState(props.mode === "voice");
   const voiceActive = props.mode === "voice" && props.asrEnabled && props.micStream !== null;
+  const answerType = props.prompt.answerType;
+  // 数字/多选/图片/画钟题以专用控件为主，语音/文字仍作兜底（画钟除外）
+  const specialType =
+    answerType === "number" ||
+    answerType === "multiChoice" ||
+    answerType === "imageChoice" ||
+    answerType === "drawing";
+  const showVoiceTextFallback = !specialType || answerType === "number" || answerType === "multiChoice";
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -77,6 +89,26 @@ export function AnswerInput(props: AnswerInputProps) {
           }}
           onRetry={() => setPendingVoice(null)}
         />
+      ) : answerType === "number" ? (
+        <NumberInputPanel
+          prompt={props.prompt}
+          disabled={props.disabled}
+          onSelect={props.onSubmitButton}
+        />
+      ) : answerType === "multiChoice" ? (
+        <MultiChoicePanel
+          prompt={props.prompt}
+          disabled={props.disabled}
+          onSubmit={props.onSubmitMulti}
+        />
+      ) : answerType === "imageChoice" ? (
+        <ImageChoicePanel
+          prompt={props.prompt}
+          disabled={props.disabled}
+          onSelect={props.onSubmitButton}
+        />
+      ) : answerType === "drawing" ? (
+        <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
       ) : (
         <OptionButtons
           prompt={props.prompt}
@@ -85,7 +117,7 @@ export function AnswerInput(props: AnswerInputProps) {
         />
       )}
 
-      {textOpen && !pendingVoice && (
+      {textOpen && !pendingVoice && showVoiceTextFallback && (
         <TextPanel
           disabled={props.disabled}
           onSubmit={(text) => {
@@ -95,38 +127,40 @@ export function AnswerInput(props: AnswerInputProps) {
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-        {voiceActive && props.micStream && !pendingVoice && (
-          <VoiceButton
-            micStream={props.micStream}
-            autoStart={props.autoStart}
-            sessionId={props.sessionId}
-            disabled={props.disabled}
-            onTranscript={handleTranscript}
-            onNotice={props.onNotice}
-          />
-        )}
-        <button
-          type="button"
-          onClick={() => setTextOpen((open) => !open)}
-          disabled={props.disabled}
-          className="ui-button ui-button-secondary ui-button-lg"
-        >
-          <IconKeyboard size={21} stroke={1.8} aria-hidden="true" />
-          <span>文字输入</span>
-        </button>
-        {voiceActive && (
-          <label className="ui-choice min-h-[52px] rounded-[14px] px-4 text-base">
-            <input
-              type="checkbox"
-              checked={directVoice}
-              onChange={(event) => setDirectVoice(event.target.checked)}
-              className="w-5 h-5"
+      {showVoiceTextFallback && (
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+          {voiceActive && props.micStream && !pendingVoice && (
+            <VoiceButton
+              micStream={props.micStream}
+              autoStart={props.autoStart}
+              sessionId={props.sessionId}
+              disabled={props.disabled}
+              onTranscript={handleTranscript}
+              onNotice={props.onNotice}
             />
-            语音直答（免确认）
-          </label>
-        )}
-      </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setTextOpen((open) => !open)}
+            disabled={props.disabled}
+            className="ui-button ui-button-secondary ui-button-lg"
+          >
+            <IconKeyboard size={21} stroke={1.8} aria-hidden="true" />
+            <span>文字输入</span>
+          </button>
+          {voiceActive && (
+            <label className="ui-choice min-h-[52px] rounded-[14px] px-4 text-base">
+              <input
+                type="checkbox"
+                checked={directVoice}
+                onChange={(event) => setDirectVoice(event.target.checked)}
+                className="w-5 h-5"
+              />
+              语音直答（免确认）
+            </label>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -158,6 +192,246 @@ function OptionButtons({
           <IconArrowRight size={26} stroke={1.7} aria-hidden="true" />
         </button>
       ))}
+    </div>
+  );
+}
+
+/** M9.6 数字输入：大号数字步进 + 滑条（适老化） */
+function NumberInputPanel({
+  prompt,
+  disabled,
+  onSelect,
+}: {
+  prompt: PatientPromptDto;
+  disabled: boolean;
+  onSelect: (score: number) => void;
+}) {
+  const min = prompt.numberMin ?? 0;
+  const max = prompt.numberMax ?? 10;
+  const [value, setValue] = useState(min);
+  return (
+    <div className="patient-panel space-y-5 p-6 text-center">
+      <p className="text-lg font-semibold text-[var(--ink-muted)]">请选择一个数字（{min}～{max}）</p>
+      <p className="text-6xl font-black tabular-nums text-[var(--brand-strong)]">{value}</p>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={1}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => setValue(Number(e.target.value))}
+        className="mx-auto block w-full max-w-md accent-[var(--brand)]"
+        aria-label={`选择 ${min} 到 ${max} 的数字`}
+      />
+      <div className="flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          disabled={disabled || value <= min}
+          className="ui-button ui-button-secondary ui-button-lg"
+          onClick={() => setValue((v) => Math.max(min, v - 1))}
+        >
+          −1
+        </button>
+        <button
+          type="button"
+          disabled={disabled || value >= max}
+          className="ui-button ui-button-secondary ui-button-lg"
+          onClick={() => setValue((v) => Math.min(max, v + 1))}
+        >
+          +1
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          className="ui-button ui-button-primary ui-button-lg"
+          onClick={() => onSelect(value)}
+        >
+          <IconCheck size={22} stroke={2} aria-hidden="true" />
+          <span>确认 {value} 分</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** M9.6 多选大按钮 */
+function MultiChoicePanel({
+  prompt,
+  disabled,
+  onSubmit,
+}: {
+  prompt: PatientPromptDto;
+  disabled: boolean;
+  onSubmit: (labels: string[]) => void;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggle = (label: string) => {
+    setSelected((prev) =>
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
+    );
+  };
+  return (
+    <div className="space-y-4">
+      <p className="text-center text-base font-semibold text-[var(--ink-muted)]">可多选，选完后点确认</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {prompt.options.map((option) => {
+          const on = selected.includes(option.label);
+          return (
+            <button
+              key={option.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => toggle(option.label)}
+              className={[
+                "patient-choice min-h-[72px] w-full text-left",
+                on ? "ring-2 ring-[var(--brand)] bg-[var(--surface-blue)]" : "",
+              ].join(" ")}
+              aria-pressed={on}
+            >
+              <span className="mr-2 inline-block w-6 text-center font-black text-[var(--brand)]">
+                {on ? "✓" : "○"}
+              </span>
+              <span>{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex justify-center">
+        <button
+          type="button"
+          disabled={disabled || selected.length === 0}
+          className="ui-button ui-button-primary ui-button-lg"
+          onClick={() => onSubmit(selected)}
+        >
+          <IconCheck size={22} stroke={2} aria-hidden="true" />
+          <span>确认所选（{selected.length}）</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** M9.6 图片选择（Bristol 等）：上方参照图 + 下方大按钮 */
+function ImageChoicePanel({
+  prompt,
+  disabled,
+  onSelect,
+}: {
+  prompt: PatientPromptDto;
+  disabled: boolean;
+  onSelect: (score: number) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {prompt.imageSrc && (
+        <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={prompt.imageSrc}
+            alt="大便分型参照图"
+            className="mx-auto max-h-[280px] w-auto object-contain"
+          />
+          <p className="mt-2 text-center text-sm text-[var(--ink-faint)]">请对照上图选择最像的一型</p>
+        </div>
+      )}
+      <OptionButtons prompt={prompt} disabled={disabled} onSelect={onSelect} />
+    </div>
+  );
+}
+
+/** M9.6 画钟画布：患者绘制后交卷，医生端确认计分 */
+function DrawingPanel({
+  disabled,
+  onSubmit,
+}: {
+  disabled: boolean;
+  onSubmit: (dataUrl: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawing = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#1e3a5f";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+  }, []);
+
+  const pos = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-center text-base font-semibold text-[var(--ink-muted)]">
+        请在白板上画一个钟，指针指向规定时间；画完后提交，医生会帮您确认对不对
+      </p>
+      <canvas
+        ref={canvasRef}
+        width={480}
+        height={480}
+        className="mx-auto block max-w-full touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
+        onPointerDown={(e) => {
+          drawing.current = true;
+          const ctx = canvasRef.current?.getContext("2d");
+          if (!ctx) return;
+          const p = pos(e);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          if (!drawing.current) return;
+          const ctx = canvasRef.current?.getContext("2d");
+          if (!ctx) return;
+          const p = pos(e);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+        }}
+        onPointerUp={() => {
+          drawing.current = false;
+        }}
+      />
+      <div className="flex flex-wrap justify-center gap-3">
+        <button
+          type="button"
+          disabled={disabled}
+          className="ui-button ui-button-secondary ui-button-lg"
+          onClick={() => {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext("2d");
+            if (!canvas || !ctx) return;
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }}
+        >
+          <IconRefresh size={21} stroke={1.9} aria-hidden="true" />
+          <span>清空重画</span>
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          className="ui-button ui-button-primary ui-button-lg"
+          onClick={() => {
+            const dataUrl = canvasRef.current?.toDataURL("image/png");
+            if (dataUrl) onSubmit(dataUrl);
+          }}
+        >
+          <IconSend size={21} stroke={1.9} aria-hidden="true" />
+          <span>提交画作</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -36,8 +36,13 @@ export interface PatientPromptDto {
   attempt: AskAttempt;
   /** 播报/字幕文案（预生成模板拼装） */
   text: string;
-  answerType: "boolean" | "choice" | "likert5";
+  answerType: "boolean" | "choice" | "likert5" | "number" | "multiChoice" | "imageChoice" | "drawing";
   options: { label: string; score: number }[];
+  /** number 题合法分值范围 */
+  numberMin?: number;
+  numberMax?: number;
+  /** imageChoice 参照图 */
+  imageSrc?: string;
   scaleName: string;
   questionNo: string;
   title: string;
@@ -80,12 +85,19 @@ export interface PatientDialogueStateDto {
 
 export interface SubmitAnswerInput {
   questionId: string;
-  /** 输入模式（AGENTS.md：语音转文字确认 / 语音直答 → voice；文字 → text；大按钮 → button） */
-  mode: "voice" | "text" | "button";
+  /**
+   * 输入模式：
+   * voice/text/button 既有；multi=多选；drawing=画钟交卷（先落 pending 等医生计分）
+   */
+  mode: "voice" | "text" | "button" | "multi" | "drawing";
   /** voice/text 模式的原始回答文本（语音为 ASR 转写） */
   utterance?: string;
   /** button 模式点选的选项分值（服务端按规则选项校验） */
   score?: number;
+  /** multi 模式选中的选项 label 列表 */
+  labels?: string[];
+  /** drawing 模式：画布 PNG data URL（仅存 rawText，不参与计分） */
+  drawingDataUrl?: string;
   /** 语音回答的录音文件相对路径（storage/audio-cache 下），供追溯回放 */
   audioPath?: string;
   /** ASR 原始返回（置信度等） */
@@ -192,6 +204,9 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
     text,
     answerType: item.question.answerType,
     options: item.options,
+    numberMin: item.question.numberMin,
+    numberMax: item.question.numberMax,
+    imageSrc: item.question.imageSrc,
     scaleName: item.scaleName,
     questionNo: item.question.no,
     title: item.question.title,
@@ -504,6 +519,43 @@ function buttonOutcome(item: AskableQuestion, score: number | undefined): Normal
   };
 }
 
+/** 多选：label 列表须全部为合法选项；拼接存盘（M9.6 MULTI_CHOICE_SEP） */
+function multiOutcome(item: AskableQuestion, labels: string[] | undefined): NormalizationOutcome {
+  const selected = [...new Set((labels ?? []).map((l) => l.trim()).filter(Boolean))];
+  if (selected.length === 0) throw new DialogueConflictError("请至少选择一个选项");
+  const allowed = new Set(item.options.map((o) => o.label));
+  for (const lab of selected) {
+    if (!allowed.has(lab)) throw new DialogueConflictError(`选项无效：${lab}`);
+  }
+  // 「从不漏尿」与其它漏尿情形互斥：若同时勾选，以漏尿情形为准剔掉从不
+  const never = "从不漏尿";
+  const filtered =
+    selected.includes(never) && selected.length > 1 ? selected.filter((l) => l !== never) : selected;
+  return {
+    status: "matched",
+    optionLabel: filtered.join(" || "),
+    score: 0,
+    method: "rules",
+    confidence: 1,
+    reason: "患者多选作答",
+  };
+}
+
+/** 画钟交卷：不计分，落 pending 等医生确认（M9.6） */
+function drawingOutcome(drawingDataUrl: string | undefined): NormalizationOutcome {
+  if (!drawingDataUrl || !drawingDataUrl.startsWith("data:image/")) {
+    throw new DialogueConflictError("画作数据无效");
+  }
+  if (drawingDataUrl.length > 800_000) {
+    throw new DialogueConflictError("画作数据过大，请简化后重试");
+  }
+  return {
+    status: "unclear",
+    method: "rules",
+    reason: "患者已提交画作，待医生确认计分",
+  };
+}
+
 /**
  * 提交患者回答：归一化 → 状态机决策 → 事务落库（患者轮次 + 答案 + 下一题提问轮次）。
  * 归一化含网络调用，放在事务外执行；事务内重新校验状态防并发错位。
@@ -524,18 +576,22 @@ export async function submitPatientAnswer(
   const item = previewStep.item;
 
   const utterance = (input.utterance ?? "").trim();
-  if (input.mode !== "button" && utterance.length === 0) {
-    throw new DialogueConflictError("回答内容为空");
+  if (input.mode === "voice" || input.mode === "text") {
+    if (utterance.length === 0) throw new DialogueConflictError("回答内容为空");
   }
   const outcome =
     input.mode === "button"
       ? buttonOutcome(item, input.score)
-      : await normalizeAnswer({
-          question: item.question,
-          options: item.options,
-          utterance,
-          patientCode: preview.session.patientCode,
-        });
+      : input.mode === "multi"
+        ? multiOutcome(item, input.labels)
+        : input.mode === "drawing"
+          ? drawingOutcome(input.drawingDataUrl)
+          : await normalizeAnswer({
+              question: item.question,
+              options: item.options,
+              utterance,
+              patientCode: preview.session.patientCode,
+            });
 
   // 第二步（事务内）：重新校验进度未变化后落库
   return prisma.$transaction(async (tx) => {
@@ -556,7 +612,11 @@ export async function submitPatientAnswer(
     const turnText =
       input.mode === "button"
         ? `[按钮作答] ${outcome.status === "matched" ? outcome.optionLabel : ""}`
-        : utterance;
+        : input.mode === "multi"
+          ? `[多选作答] ${outcome.status === "matched" ? outcome.optionLabel : ""}`
+          : input.mode === "drawing"
+            ? "[画钟交卷] 待医生确认计分"
+            : utterance;
     await tx.dialogueTurn.create({
       data: {
         sessionId,
@@ -570,7 +630,11 @@ export async function submitPatientAnswer(
     bumpCount(context.snapshot.patientReplyCount, input.questionId);
 
     // 2. 按状态机决定答案落库动作
-    const resolution = resolveReply(step.attempt, outcome);
+    // 画钟交卷：直接 pending（不走追问），等医生确认计分（M9.6）
+    const resolution =
+      input.mode === "drawing"
+        ? ({ action: "markPending" } as const)
+        : resolveReply(step.attempt, outcome);
     if (resolution.action !== "clarify") {
       const nextAnswerStatus =
         resolution.action === "confirm"
@@ -641,7 +705,13 @@ async function persistAnswer(
   const next: AnswerSnapshot = {
     optionLabel: outcome.status === "matched" ? outcome.optionLabel : null,
     score: outcome.status === "matched" ? outcome.score : null,
-    rawText: input.mode === "button" ? null : utterance,
+    rawText:
+      input.mode === "drawing"
+        ? (input.drawingDataUrl ?? null)
+        : input.mode === "button" || input.mode === "multi"
+          ? null
+          : utterance,
+    // multi/drawing 写入扩展 source 字面量（追溯界面可识别）
     source: input.mode,
     status,
   };
