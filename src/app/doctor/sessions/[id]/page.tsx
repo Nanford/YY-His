@@ -15,8 +15,8 @@ import {
 } from "@tabler/icons-react";
 import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
-import type { AssessmentTag } from "@/lib/scoring";
-import type { RecommendedIntervention } from "@/lib/recommend";
+import type { AssessmentTag } from "@/lib/assessment/report-types";
+import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { PlanDecision } from "@/lib/assessment/plan-review";
 import { firstQueryValue } from "@/lib/query";
 import { reopenSession } from "@/lib/actions/doctor";
@@ -40,7 +40,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   confirmed: { label: "已确认", cls: "ui-badge ui-badge-success" },
 };
 
-const TRACE_SOURCES = new Set<TraceAnswerSource>(["voice", "text", "button", "doctor", "measurement"]);
+const TRACE_SOURCES = new Set<TraceAnswerSource>(["voice", "text", "button", "doctor", "measurement", "system"]);
 const TRACE_STATUSES = new Set<TraceAnswerStatus>(["confirmed", "pending", "manual", "superseded"]);
 
 function traceSource(value: string): TraceAnswerSource {
@@ -59,6 +59,7 @@ export default async function SessionPage({
   const query = await searchParams;
   const error = firstQueryValue(query.error);
   const missingQuestionIds = firstQueryValue(query.missing);
+  const blockedReasons = firstQueryValue(query.reasons);
   const saved = firstQueryValue(query.saved);
 
   const session = await prisma.assessmentSession.findUnique({
@@ -80,10 +81,11 @@ export default async function SessionPage({
   if (!session) notFound();
 
   const scaleIds = session.scaleIds as string[];
-  const savedScores = new Map(
+  // 代填表单的已保存答案：按选项 label 回填（IADL 等存在同分选项，分值无法唯一区分选项）
+  const savedLabels = new Map(
     session.answers
-      .filter((answer) => answer.status === "confirmed" && answer.score !== null)
-      .map((answer) => [answer.questionId, answer.score as number])
+      .filter((answer) => answer.status === "confirmed" && answer.optionLabel !== null)
+      .map((answer) => [answer.questionId, answer.optionLabel as string])
   );
   const answerLabels = Object.fromEntries(
     session.answers
@@ -160,13 +162,16 @@ export default async function SessionPage({
       {saved === "1" && (
         <div className="ui-alert">
           <IconInfoCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-          草稿已保存（已保存 {savedScores.size} 题）。
+          草稿已保存（已保存 {savedLabels.size} 题）。
         </div>
       )}
       {error === "incomplete" && (
         <div className="ui-alert ui-alert-danger">
           <IconInfoCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-          以下题目尚未确认，无法生成评估：{missingNames || "请检查未作答题目"}。请补齐后再提交。
+          <span>
+            以下题目尚未确认，无法生成评估：{missingNames || "请检查未作答题目"}。请补齐后再提交。
+            {blockedReasons && <span className="mt-1 block">{blockedReasons}</span>}
+          </span>
         </div>
       )}
 
@@ -187,8 +192,7 @@ export default async function SessionPage({
           sessionId={session.id}
           patientId={session.patientId}
           scaleIds={scaleIds}
-          savedScores={savedScores}
-          patient={session.patient}
+          savedLabels={savedLabels}
         />
       )}
 
@@ -199,7 +203,11 @@ export default async function SessionPage({
             评估报告与以下候选方案，患者已可在大屏上直接看到（含禁忌提示原文）。请尽快核实并确认最终方案。
           </div>
           <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
-          <PlanReview sessionId={session.id} candidates={latestPlan.candidates as unknown as RecommendedIntervention[]} />
+          <PlanReview
+            sessionId={session.id}
+            candidates={(latestPlan.candidates as unknown as PlanCandidatesV2).items}
+            forbidden={(latestPlan.candidates as unknown as PlanCandidatesV2).forbidden ?? []}
+          />
         </>
       )}
 
@@ -207,7 +215,7 @@ export default async function SessionPage({
         <>
           <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
           <FinalPlan
-            finalPlan={(latestPlan.finalPlan ?? []) as unknown as RecommendedIntervention[]}
+            finalPlan={(latestPlan.finalPlan ?? []) as unknown as PlanCandidateItemV2[]}
             decisions={(latestPlan.decisions ?? []) as unknown as PlanDecision[]}
             confirmedAt={latestPlan.confirmedAt}
           />

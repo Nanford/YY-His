@@ -1,0 +1,1336 @@
+{
+  "generatedFrom": "V2/02_结果标签判定表.xlsx",
+  "generatedAt": "2026-08-07T09:56:21.094Z",
+  "tags": [
+    {
+      "code": "ADL_DEPENDENCE_NONE",
+      "name": "无依赖",
+      "scaleName": "基本日常生活活动能力评估量表",
+      "rule": "总分＝100分",
+      "placeholder": false
+    },
+    {
+      "code": "ADL_DEPENDENCE_MILD",
+      "name": "轻度依赖",
+      "scaleName": "基本日常生活活动能力评估量表",
+      "rule": "总分61～99分",
+      "placeholder": false
+    },
+    {
+      "code": "ADL_DEPENDENCE_MODERATE",
+      "name": "中度依赖",
+      "scaleName": "基本日常生活活动能力评估量表",
+      "rule": "总分41～60分",
+      "placeholder": false
+    },
+    {
+      "code": "ADL_DEPENDENCE_SEVERE",
+      "name": "重度依赖",
+      "scaleName": "基本日常生活活动能力评估量表",
+      "rule": "总分≤40分",
+      "placeholder": false
+    },
+    {
+      "code": "IADL_NORMAL",
+      "name": "工具性日常生活能力正常",
+      "scaleName": "工具性日常生活活动能力量表",
+      "rule": "总分＝8分",
+      "placeholder": false
+    },
+    {
+      "code": "IADL_DEPENDENCE_MILD",
+      "name": "工具性日常生活能力轻度依赖",
+      "scaleName": "工具性日常生活活动能力量表",
+      "rule": "总分6～7分",
+      "placeholder": false
+    },
+    {
+      "code": "IADL_DEPENDENCE_MODERATE",
+      "name": "工具性日常生活能力中度依赖",
+      "scaleName": "工具性日常生活活动能力量表",
+      "rule": "总分3～5分",
+      "placeholder": false
+    },
+    {
+      "code": "IADL_DEPENDENCE_SEVERE",
+      "name": "工具性日常生活能力严重依赖",
+      "scaleName": "工具性日常生活活动能力量表",
+      "rule": "总分≤2分",
+      "placeholder": false
+    },
+    {
+      "code": "MOTOR_SCREEN_NEGATIVE",
+      "name": "运动功能初筛阴性",
+      "scaleName": "运动功能初筛",
+      "rule": "步行400米及登10阶楼梯均无困难",
+      "placeholder": false
+    },
+    {
+      "code": "MOTOR_SCREEN_POSITIVE",
+      "name": "运动功能初筛阳性",
+      "scaleName": "运动功能初筛",
+      "rule": "步行400米或登10阶楼梯任一有困难",
+      "placeholder": false
+    },
+    {
+      "code": "SPPB_GOOD",
+      "name": "体能状况良好",
+      "scaleName": "简易体能状况量表（SPPB）",
+      "rule": "总分10～12分",
+      "placeholder": false
+    },
+    {
+      "code": "SPPB_MODERATE",
+      "name": "体能状况中等",
+      "scaleName": "简易体能状况量表（SPPB）",
+      "rule": "总分7～9分",
+      "placeholder": false
+    },
+    {
+      "code": "SPPB_POOR",
+      "name": "体能状况较差",
+      "scaleName": "简易体能状况量表（SPPB）",
+      "rule": "总分0～6分",
+      "placeholder": false
+    },
+    {
+      "code": "VISION_NORMAL",
+      "name": "视力正常",
+      "scaleName": "视力简易评估表",
+      "rule": "评估得分＝4分",
+      "placeholder": false
+    },
+    {
+      "code": "VISION_LOW",
+      "name": "低视力",
+      "scaleName": "视力简易评估表",
+      "rule": "评估得分＝3分",
+      "placeholder": false
+    },
+    {
+      "code": "VISION_BLIND",
+      "name": "盲",
+      "scaleName": "视力简易评估表",
+      "rule": "评估得分1～2分",
+      "placeholder": false
+    },
+    {
+      "code": "VISION_TOTAL_BLINDNESS",
+      "name": "完全失明",
+      "scaleName": "视力简易评估表",
+      "rule": "评估得分＝0分",
+      "placeholder": false
+    },
+    {
+      "code": "VISUAL_FUNCTION_GOOD",
+      "name": "视功能良好",
+      "scaleName": "视觉功能简易评估表",
+      "rule": "总分＝3分",
+      "placeholder": false
+    },
+    {
+      "code": "VISUAL_FUNCTION_IMPAIRED",
+      "name": "视功能较差",
+      "scaleName": "视觉功能简易评估表",
+      "rule": "总分＝2分",
+      "placeholder": false
+    },
+    {
+      "code": "VISUAL_FUNCTION_POOR",
+      "name": "视功能差",
+      "scaleName": "视觉功能简易评估表",
+      "rule": "总分≤1分",
+      "placeholder": false
+    },
+    {
+      "code": "VISUAL_DIFFICULTY_DAILY_ACTIVITY",
+      "name": "视物不便",
+      "scaleName": "视觉功能简易评估表",
+      "rule": "第1题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "VISUAL_FIELD_DEFECT_SYMPTOM",
+      "name": "疑似视野缺损表现",
+      "scaleName": "视觉功能简易评估表",
+      "rule": "第2题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "VISUAL_DISTORTION_SYMPTOM",
+      "name": "视物变形表现",
+      "scaleName": "视觉功能简易评估表",
+      "rule": "第3题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "HEARING_NORMAL",
+      "name": "听力正常",
+      "scaleName": "听力简易评估表",
+      "rule": "评估得分＝4分",
+      "placeholder": false
+    },
+    {
+      "code": "HEARING_DECLINE",
+      "name": "听力下降",
+      "scaleName": "听力简易评估表",
+      "rule": "评估得分＝3分",
+      "placeholder": false
+    },
+    {
+      "code": "HEARING_IMPAIRMENT",
+      "name": "听力障碍",
+      "scaleName": "听力简易评估表",
+      "rule": "评估得分1～2分",
+      "placeholder": false
+    },
+    {
+      "code": "HEARING_TOTAL_LOSS",
+      "name": "完全失聪",
+      "scaleName": "听力简易评估表",
+      "rule": "评估得分＝0分",
+      "placeholder": false
+    },
+    {
+      "code": "WHISPER_TEST_NEGATIVE",
+      "name": "耳语试验阴性",
+      "scaleName": "耳语试验",
+      "rule": "双耳均能正确复述不少于3个词",
+      "placeholder": false
+    },
+    {
+      "code": "WHISPER_TEST_POSITIVE",
+      "name": "耳语试验阳性",
+      "scaleName": "耳语试验",
+      "rule": "任一侧耳正确复述少于3个词",
+      "placeholder": false
+    },
+    {
+      "code": "COGNITIVE_BRIEF_SCREEN_NEGATIVE",
+      "name": "认知功能初筛阴性",
+      "scaleName": "简易智力评估量表",
+      "rule": "总分3～5分",
+      "placeholder": false
+    },
+    {
+      "code": "COGNITIVE_BRIEF_SCREEN_POSITIVE",
+      "name": "认知功能初筛阳性",
+      "scaleName": "简易智力评估量表",
+      "rule": "总分0～2分",
+      "placeholder": false
+    },
+    {
+      "code": "MMSE_WITHIN_NORMAL_RANGE",
+      "name": "MMSE认知功能未见明显减退",
+      "scaleName": "简易智力状态检查量表（MMSE）",
+      "rule": "按文化程度判断：文盲总分＞17分；小学（≤6年教育）＞20分；初中/高中/技校/中专＞22分；大学专科及以上＞23分",
+      "placeholder": false
+    },
+    {
+      "code": "MMSE_COGNITIVE_DECLINE",
+      "name": "MMSE提示认知功能减退",
+      "scaleName": "简易智力状态检查量表（MMSE）",
+      "rule": "按文化程度判断：文盲总分≤17分；小学（≤6年教育）≤20分；初中/高中/技校/中专≤22分；大学专科及以上≤23分",
+      "placeholder": false
+    },
+    {
+      "code": "MMSE_UNABLE_TO_COMPLETE",
+      "name": "MMSE无法有效完成",
+      "scaleName": "简易智力状态检查量表（MMSE）",
+      "rule": "因严重听力、视力、语言、意识或配合问题，无法完成足够条目",
+      "placeholder": false
+    },
+    {
+      "code": "DEPRESSION_2Q_NEGATIVE",
+      "name": "抑郁两问筛查阴性",
+      "scaleName": "抑郁两问筛查",
+      "rule": "两题均回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "DEPRESSION_2Q_POSITIVE",
+      "name": "抑郁两问筛查阳性",
+      "scaleName": "抑郁两问筛查",
+      "rule": "任意一题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "GDS15_NORMAL",
+      "name": "抑郁状态正常",
+      "scaleName": "简版老年抑郁量表（GDS-15）",
+      "rule": "总分0～8分",
+      "placeholder": false
+    },
+    {
+      "code": "GDS15_MODERATE_DEPRESSION",
+      "name": "中度抑郁",
+      "scaleName": "简版老年抑郁量表（GDS-15）",
+      "rule": "总分9～11分",
+      "placeholder": false
+    },
+    {
+      "code": "GDS15_SEVERE_DEPRESSION",
+      "name": "重度抑郁",
+      "scaleName": "简版老年抑郁量表（GDS-15）",
+      "rule": "总分12～15分",
+      "placeholder": false
+    },
+    {
+      "code": "ANXIETY_2Q_NEGATIVE",
+      "name": "焦虑两问筛查阴性",
+      "scaleName": "焦虑两问筛查",
+      "rule": "两题均回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "ANXIETY_2Q_POSITIVE",
+      "name": "焦虑两问筛查阳性",
+      "scaleName": "焦虑两问筛查",
+      "rule": "任意一题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "GAD7_NORMAL",
+      "name": "焦虑状态正常",
+      "scaleName": "广泛性焦虑障碍量表（GAD-7）",
+      "rule": "总分0～9分",
+      "placeholder": false
+    },
+    {
+      "code": "GAD7_MODERATE_ANXIETY",
+      "name": "中度焦虑",
+      "scaleName": "广泛性焦虑障碍量表（GAD-7）",
+      "rule": "总分10～14分",
+      "placeholder": false
+    },
+    {
+      "code": "GAD7_SEVERE_ANXIETY",
+      "name": "重度焦虑",
+      "scaleName": "广泛性焦虑障碍量表（GAD-7）",
+      "rule": "总分15～21分",
+      "placeholder": false
+    },
+    {
+      "code": "LUBBEN_SUPPORT_GOOD",
+      "name": "社会支持良好",
+      "scaleName": "Lubben社会网络量表",
+      "rule": "总分≥24分",
+      "placeholder": false
+    },
+    {
+      "code": "LUBBEN_SUPPORT_FAIR",
+      "name": "社会支持一般",
+      "scaleName": "Lubben社会网络量表",
+      "rule": "总分12～23分",
+      "placeholder": false
+    },
+    {
+      "code": "LUBBEN_SUPPORT_POOR",
+      "name": "社会支持较差",
+      "scaleName": "Lubben社会网络量表",
+      "rule": "总分＜12分",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_ENVIRONMENT_SCORE",
+      "name": "居家环境筛查总分：{score}",
+      "scaleName": "居家环境筛查表",
+      "rule": "将适用条目的得分相加；标准总分范围0～14分",
+      "placeholder": true
+    },
+    {
+      "code": "HOME_PATHWAY_OBSTRUCTED",
+      "name": "居家通道受阻",
+      "scaleName": "居家环境筛查表",
+      "rule": "第1题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_FLOOR_UNSAFE",
+      "name": "地板不平整或不牢固",
+      "scaleName": "居家环境筛查表",
+      "rule": "第2题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_FLOOR_SLIPPERY",
+      "name": "地面易打滑",
+      "scaleName": "居家环境筛查表",
+      "rule": "第3题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_ANTI_SLIP_MAT_MISSING",
+      "name": "易滑处缺少固定防滑垫",
+      "scaleName": "居家环境筛查表",
+      "rule": "第4题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_INDOOR_LIGHTING_INADEQUATE",
+      "name": "室内照明不足",
+      "scaleName": "居家环境筛查表",
+      "rule": "第5题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_BEDSIDE_LIGHT_SWITCH_INCONVENIENT",
+      "name": "床边开关灯不便",
+      "scaleName": "居家环境筛查表",
+      "rule": "第6题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_NIGHT_LIGHTING_INADEQUATE",
+      "name": "夜间室外或楼道照明不足",
+      "scaleName": "居家环境筛查表",
+      "rule": "第7题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_BATH_GRAB_BAR_MISSING",
+      "name": "洗澡处缺少扶手",
+      "scaleName": "居家环境筛查表",
+      "rule": "第8题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_BATH_ANTI_SLIP_INADEQUATE",
+      "name": "洗澡处防滑措施不足",
+      "scaleName": "居家环境筛查表",
+      "rule": "第9题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_TOILET_BATHROOM_ACCESS_INCONVENIENT",
+      "name": "厕所与洗澡处动线不便",
+      "scaleName": "居家环境筛查表",
+      "rule": "第10题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_INDOOR_STAIR_HANDRAIL_MISSING",
+      "name": "室内楼梯缺少可用扶手",
+      "scaleName": "居家环境筛查表",
+      "rule": "第11题回答“否”，且该设施适用",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_OUTDOOR_STAIR_HANDRAIL_MISSING",
+      "name": "室外楼梯缺少可用扶手",
+      "scaleName": "居家环境筛查表",
+      "rule": "第12题回答“否”，且该设施适用",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_STAIR_EDGE_UNCLEAR",
+      "name": "楼梯边缘不清晰",
+      "scaleName": "居家环境筛查表",
+      "rule": "第13题回答“否”，且该设施适用",
+      "placeholder": false
+    },
+    {
+      "code": "HOME_SURROUNDING_ROAD_UNSAFE",
+      "name": "房屋周围道路状况不良",
+      "scaleName": "居家环境筛查表",
+      "rule": "第14题回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "FALL_SCREEN_NEGATIVE",
+      "name": "跌倒风险筛查阴性",
+      "scaleName": "跌倒风险三问筛查",
+      "rule": "三题均回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "FALL_SCREEN_POSITIVE",
+      "name": "跌倒风险筛查阳性",
+      "scaleName": "跌倒风险三问筛查",
+      "rule": "任意一题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "FALL_HISTORY_1Y",
+      "name": "过去一年有跌倒史",
+      "scaleName": "跌倒风险三问筛查",
+      "rule": "第1题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "FALL_UNSTEADY_STANDING_WALKING",
+      "name": "站立或行走不稳",
+      "scaleName": "跌倒风险三问筛查",
+      "rule": "第2题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "FALL_FEAR_ACTIVITY_RESTRICTION",
+      "name": "因害怕跌倒而限制活动",
+      "scaleName": "跌倒风险三问筛查",
+      "rule": "第3题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "MORSE_FALL_RISK_LOW",
+      "name": "跌倒低风险",
+      "scaleName": "Morse老年人跌倒风险评估表",
+      "rule": "总分0～24分",
+      "placeholder": false
+    },
+    {
+      "code": "MORSE_FALL_RISK_MODERATE",
+      "name": "跌倒中风险",
+      "scaleName": "Morse老年人跌倒风险评估表",
+      "rule": "建议程序判定为总分25～44分；标准原文写为25～45分",
+      "placeholder": false
+    },
+    {
+      "code": "MORSE_FALL_RISK_HIGH",
+      "name": "跌倒高风险",
+      "scaleName": "Morse老年人跌倒风险评估表",
+      "rule": "总分≥45分",
+      "placeholder": false
+    },
+    {
+      "code": "FRAIL_NONE",
+      "name": "无衰弱",
+      "scaleName": "FRAIL量表",
+      "rule": "总分＝0分",
+      "placeholder": false
+    },
+    {
+      "code": "FRAIL_PREFRAIL",
+      "name": "衰弱前期",
+      "scaleName": "FRAIL量表",
+      "rule": "总分1～2分",
+      "placeholder": false
+    },
+    {
+      "code": "FRAIL_FRAIL",
+      "name": "衰弱",
+      "scaleName": "FRAIL量表",
+      "rule": "总分≥3分",
+      "placeholder": false
+    },
+    {
+      "code": "URINARY_INCONTINENCE_SCREEN_NEGATIVE",
+      "name": "尿失禁筛查阴性",
+      "scaleName": "尿失禁两问筛查",
+      "rule": "两题均回答“否”",
+      "placeholder": false
+    },
+    {
+      "code": "URINARY_INCONTINENCE_SCREEN_POSITIVE",
+      "name": "尿失禁筛查阳性",
+      "scaleName": "尿失禁两问筛查",
+      "rule": "任意一题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_UI_SF_SCORE",
+      "name": "ICIQ-UI SF总分：{score}",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "第1～3题得分相加，范围0～21分",
+      "placeholder": true
+    },
+    {
+      "code": "ICIQ_NO_INCONTINENCE",
+      "name": "未提示尿失禁",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "总分＝0分，且漏尿情形选择“从不漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_INCONTINENCE_PRESENT",
+      "name": "存在尿失禁",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "总分＞0分，或漏尿情形选择任一漏尿情形",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_LEAK_BEFORE_TOILET",
+      "name": "未到厕所前漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“未到达厕所前漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_LEAK_COUGH_SNEEZE",
+      "name": "咳嗽或打喷嚏时漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“咳嗽或打喷嚏时漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_LEAK_ASLEEP",
+      "name": "睡眠中漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“睡着时漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_LEAK_ACTIVITY",
+      "name": "活动或运动时漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“活动或运动时漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_LEAK_POST_VOID",
+      "name": "排尿结束后漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“小便结束并穿好衣服时漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_LEAK_NO_OBVIOUS_REASON",
+      "name": "无明显诱因漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“没有明显原因的漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "ICIQ_CONTINUOUS_LEAKAGE",
+      "name": "持续漏尿",
+      "scaleName": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "rule": "漏尿情形选择“一直漏尿”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_SCREEN_NEGATIVE",
+      "name": "便秘筛查阴性",
+      "scaleName": "便秘一问筛查",
+      "rule": "回答“没有便秘困扰”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_SCREEN_POSITIVE",
+      "name": "便秘筛查阳性",
+      "scaleName": "便秘一问筛查",
+      "rule": "回答“有便秘困扰”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_NOT_DIAGNOSED",
+      "name": "临床判定未诊断便秘",
+      "scaleName": "便秘症状评估表",
+      "rule": "医务人员结合症状和病史判定未达到便秘诊断",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_DIAGNOSED",
+      "name": "临床判定为便秘",
+      "scaleName": "便秘症状评估表",
+      "rule": "医务人员结合症状和病史判定为便秘",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_CLINICAL_TYPE",
+      "name": "便秘类型：{clinical_type}",
+      "scaleName": "便秘症状评估表",
+      "rule": "由医务人员记录便秘类型",
+      "placeholder": true
+    },
+    {
+      "code": "CONSTIPATION_LOW_FREQUENCY",
+      "name": "排便次数减少",
+      "scaleName": "便秘症状评估表",
+      "rule": "每周排便＜3次",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_INCOMPLETE_EVACUATION",
+      "name": "排便不尽感",
+      "scaleName": "便秘症状评估表",
+      "rule": "排便不尽感回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_ANORECTAL_BLOCKAGE",
+      "name": "排便时肛门直肠堵塞感",
+      "scaleName": "便秘症状评估表",
+      "rule": "堵塞感回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_PROLONGED_DEFECATION",
+      "name": "排便费时",
+      "scaleName": "便秘症状评估表",
+      "rule": "排便费时回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_MANUAL_MANEUVER",
+      "name": "需要手法辅助排便",
+      "scaleName": "便秘症状评估表",
+      "rule": "手法辅助排便回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "CONSTIPATION_ABDOMINAL_DISCOMFORT_RELIEVED",
+      "name": "腹痛或腹部不适排便后缓解",
+      "scaleName": "便秘症状评估表",
+      "rule": "相应条目回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_1",
+      "name": "粪便性状1型：干球状便",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“数个干球状便，如坚果，很难排出”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_2",
+      "name": "粪便性状2型：腊肠样、很硬",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“腊肠样，很硬”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_3",
+      "name": "粪便性状3型：腊肠样、表面有裂缝",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“腊肠样，表面有裂缝”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_4",
+      "name": "粪便性状4型：光滑柔软的腊肠样或蛇状便",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“腊肠样或蛇状，光滑而柔软”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_5",
+      "name": "粪便性状5型：切缘清楚的柔软团块",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“柔软团块，切缘清楚（容易排出）”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_6",
+      "name": "粪便性状6型：松散碎片或糊状便",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“松散的碎片，边缘破糟，或糊状便”",
+      "placeholder": false
+    },
+    {
+      "code": "STOOL_FORM_TYPE_7",
+      "name": "粪便性状7型：水样便",
+      "scaleName": "便秘症状评估表",
+      "rule": "选择“水样便”",
+      "placeholder": false
+    },
+    {
+      "code": "SLEEP_DISORDER_SCREEN_NEGATIVE",
+      "name": "睡眠障碍筛查阴性",
+      "scaleName": "睡眠障碍一问筛查",
+      "rule": "回答“没有失眠困扰”",
+      "placeholder": false
+    },
+    {
+      "code": "SLEEP_DISORDER_SCREEN_POSITIVE",
+      "name": "睡眠障碍筛查阳性",
+      "scaleName": "睡眠障碍一问筛查",
+      "rule": "回答“有失眠困扰”",
+      "placeholder": false
+    },
+    {
+      "code": "AIS_NO_SLEEP_DISORDER",
+      "name": "无睡眠障碍",
+      "scaleName": "阿森斯失眠量表（AIS）",
+      "rule": "总分0～3分",
+      "placeholder": false
+    },
+    {
+      "code": "AIS_POSSIBLE_SLEEP_DISORDER",
+      "name": "可能有睡眠障碍",
+      "scaleName": "阿森斯失眠量表（AIS）",
+      "rule": "建议程序判定为总分4～5分；标准原文写为4～6分",
+      "placeholder": false
+    },
+    {
+      "code": "AIS_SLEEP_DISORDER_PRESENT",
+      "name": "存在睡眠障碍",
+      "scaleName": "阿森斯失眠量表（AIS）",
+      "rule": "总分≥6分",
+      "placeholder": false
+    },
+    {
+      "code": "CHRONIC_PAIN_SCREEN_NEGATIVE",
+      "name": "慢性疼痛筛查阴性",
+      "scaleName": "慢性疼痛一问筛查",
+      "rule": "没有反复或持续超过3个月的疼痛",
+      "placeholder": false
+    },
+    {
+      "code": "CHRONIC_PAIN_SCREEN_POSITIVE",
+      "name": "慢性疼痛筛查阳性",
+      "scaleName": "慢性疼痛一问筛查",
+      "rule": "存在反复或持续超过3个月的疼痛",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_NRS_NONE",
+      "name": "无疼痛",
+      "scaleName": "慢性疼痛数字评定量表（NRS）",
+      "rule": "评分＝0分",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_NRS_MILD",
+      "name": "轻度疼痛",
+      "scaleName": "慢性疼痛数字评定量表（NRS）",
+      "rule": "评分1～3分",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_NRS_MODERATE",
+      "name": "中度疼痛",
+      "scaleName": "慢性疼痛数字评定量表（NRS）",
+      "rule": "评分4～6分",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_NRS_SEVERE",
+      "name": "重度疼痛",
+      "scaleName": "慢性疼痛数字评定量表（NRS）",
+      "rule": "评分7～10分",
+      "placeholder": false
+    },
+    {
+      "code": "BEHAVIORAL_PAIN_SCORE",
+      "name": "疼痛行为评估总分：{score}",
+      "scaleName": "慢性疼痛行为评估量表",
+      "rule": "按适用的3个维度计分，总分3～12分",
+      "placeholder": true
+    },
+    {
+      "code": "PAIN_BEHAVIOR_FACE",
+      "name": "面部疼痛表情",
+      "scaleName": "慢性疼痛行为评估量表",
+      "rule": "面部表情评分＞1分",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_BEHAVIOR_UPPER_LIMB",
+      "name": "上肢疼痛防御动作",
+      "scaleName": "慢性疼痛行为评估量表",
+      "rule": "上肢运动评分＞1分",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_BEHAVIOR_VENTILATION",
+      "name": "机械通气不耐受表现",
+      "scaleName": "慢性疼痛行为评估量表",
+      "rule": "插管患者机械通气顺应性评分＞1分",
+      "placeholder": false
+    },
+    {
+      "code": "PAIN_BEHAVIOR_VOCALIZATION",
+      "name": "疼痛相关发声",
+      "scaleName": "慢性疼痛行为评估量表",
+      "rule": "非插管患者发声评分＞1分",
+      "placeholder": false
+    },
+    {
+      "code": "PRESSURE_INJURY_SCREEN_NEGATIVE",
+      "name": "压力性损伤风险筛查阴性",
+      "scaleName": "压力性损伤初步筛查",
+      "rule": "未长期卧床，且查看/触摸皮肤未发现异常",
+      "placeholder": false
+    },
+    {
+      "code": "PRESSURE_INJURY_SCREEN_POSITIVE",
+      "name": "压力性损伤风险筛查阳性",
+      "scaleName": "压力性损伤初步筛查",
+      "rule": "长期卧床，或查看/触摸皮肤发现异常",
+      "placeholder": false
+    },
+    {
+      "code": "PRESSURE_INJURY_LONG_TERM_BEDREST",
+      "name": "长期卧床",
+      "scaleName": "压力性损伤初步筛查",
+      "rule": "长期卧床问题回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "PRESSURE_INJURY_SKIN_ABNORMALITY",
+      "name": "受压部位皮肤异常",
+      "scaleName": "压力性损伤初步筛查",
+      "rule": "查看或触摸皮肤发现异常",
+      "placeholder": false
+    },
+    {
+      "code": "BRADEN_BELOW_LOW_RISK_THRESHOLD",
+      "name": "未达到低度危险阈值",
+      "scaleName": "压力性损伤风险评估量表",
+      "rule": "总分19～23分",
+      "placeholder": false
+    },
+    {
+      "code": "BRADEN_RISK_LOW",
+      "name": "压力性损伤低度危险",
+      "scaleName": "压力性损伤风险评估量表",
+      "rule": "总分15～18分",
+      "placeholder": false
+    },
+    {
+      "code": "BRADEN_RISK_MODERATE",
+      "name": "压力性损伤中度危险",
+      "scaleName": "压力性损伤风险评估量表",
+      "rule": "总分13～14分",
+      "placeholder": false
+    },
+    {
+      "code": "BRADEN_RISK_HIGH",
+      "name": "压力性损伤高度危险",
+      "scaleName": "压力性损伤风险评估量表",
+      "rule": "总分10～12分",
+      "placeholder": false
+    },
+    {
+      "code": "BRADEN_RISK_VERY_HIGH",
+      "name": "压力性损伤极度危险",
+      "scaleName": "压力性损伤风险评估量表",
+      "rule": "总分≤9分",
+      "placeholder": false
+    },
+    {
+      "code": "MEDICATION_COUNT",
+      "name": "当前使用药品数量：{count}",
+      "scaleName": "多重用药评估",
+      "rule": "根据核对后的全部西药、中药及保健品去重计数",
+      "placeholder": true
+    },
+    {
+      "code": "MEDICATION_REVIEW_NO_ISSUE",
+      "name": "未发现多重用药或不适当用药",
+      "scaleName": "多重用药评估",
+      "rule": "医务人员综合判断未发现相关问题",
+      "placeholder": false
+    },
+    {
+      "code": "POLYPHARMACY_PRESENT",
+      "name": "存在多重用药",
+      "scaleName": "多重用药评估",
+      "rule": "医务人员综合判断存在多重用药",
+      "placeholder": false
+    },
+    {
+      "code": "INAPPROPRIATE_MEDICATION_PRESENT",
+      "name": "存在不适当用药",
+      "scaleName": "多重用药评估",
+      "rule": "医务人员综合判断存在不适当用药",
+      "placeholder": false
+    },
+    {
+      "code": "POLYPHARMACY_AND_INAPPROPRIATE_USE",
+      "name": "多重用药合并不适当用药",
+      "scaleName": "多重用药评估",
+      "rule": "两类问题同时存在",
+      "placeholder": false
+    },
+    {
+      "code": "MEDICATION_REVIEW_INSUFFICIENT_DATA",
+      "name": "用药信息不足，需进一步核实",
+      "scaleName": "多重用药评估",
+      "rule": "无法获得完整用药清单或无法判断",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_SCREEN_NEGATIVE",
+      "name": "吞咽障碍筛查阴性",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "5项表现均为“否”",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_SCREEN_POSITIVE",
+      "name": "吞咽障碍筛查阳性",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "任意一项表现为“是”",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_DIFFICULTY_OR_PAIN",
+      "name": "吞咽困难或吞咽疼痛",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "第1项回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_COUGH_CHOKE",
+      "name": "进食或饮水时呛咳",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "第2项回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_ORAL_RESIDUE",
+      "name": "餐后口腔食物残留",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "第3项回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_ORAL_LEAKAGE",
+      "name": "进食时食物或液体从嘴角流失",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "第4项回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "DYSPHAGIA_DROOLING",
+      "name": "流涎",
+      "scaleName": "吞咽障碍初筛",
+      "rule": "第5项回答“是”",
+      "placeholder": false
+    },
+    {
+      "code": "WATER_SWALLOW_NORMAL",
+      "name": "吞咽功能正常",
+      "scaleName": "洼田饮水试验",
+      "rule": "1级：一次饮完、无呛咳且用时≤5秒",
+      "placeholder": false
+    },
+    {
+      "code": "WATER_SWALLOW_SUSPECTED_ABNORMAL",
+      "name": "吞咽功能可疑异常",
+      "scaleName": "洼田饮水试验",
+      "rule": "1级但用时＞5秒，或2级：分2次及以上饮完且无呛咳",
+      "placeholder": false
+    },
+    {
+      "code": "WATER_SWALLOW_ABNORMAL",
+      "name": "吞咽功能异常",
+      "scaleName": "洼田饮水试验",
+      "rule": "3～5级",
+      "placeholder": false
+    },
+    {
+      "code": "NRS2002_INITIAL_NEGATIVE",
+      "name": "NRS 2002初筛阴性",
+      "scaleName": "营养风险筛查2002（NRS 2002）",
+      "rule": "初筛4项均为“否”",
+      "placeholder": false
+    },
+    {
+      "code": "NRS2002_INITIAL_POSITIVE",
+      "name": "NRS 2002初筛阳性",
+      "scaleName": "营养风险筛查2002（NRS 2002）",
+      "rule": "初筛4项任意一项为“是”",
+      "placeholder": false
+    },
+    {
+      "code": "NRS2002_NO_NUTRITION_RISK",
+      "name": "未达到营养风险标准",
+      "scaleName": "营养风险筛查2002（NRS 2002）",
+      "rule": "终筛总分0～2分",
+      "placeholder": false
+    },
+    {
+      "code": "NRS2002_NUTRITION_RISK",
+      "name": "存在营养风险",
+      "scaleName": "营养风险筛查2002（NRS 2002）",
+      "rule": "终筛总分3～7分",
+      "placeholder": false
+    },
+    {
+      "code": "MNA_SF_NO_RISK",
+      "name": "未提示营养不良风险",
+      "scaleName": "微型营养评定简表（MNA-SF）",
+      "rule": "总分12～14分",
+      "placeholder": false
+    },
+    {
+      "code": "MNA_SF_MALNUTRITION_RISK",
+      "name": "营养不良风险",
+      "scaleName": "微型营养评定简表（MNA-SF）",
+      "rule": "总分≤11分",
+      "placeholder": false
+    },
+    {
+      "code": "GLIM_NO_MALNUTRITION",
+      "name": "未诊断营养不良",
+      "scaleName": "全球领导人营养不良倡议标准（GLIM）",
+      "rule": "未同时满足至少1项表现型指标和至少1项病因型指标",
+      "placeholder": false
+    },
+    {
+      "code": "GLIM_MODERATE_MALNUTRITION",
+      "name": "中度营养不良",
+      "scaleName": "全球领导人营养不良倡议标准（GLIM）",
+      "rule": "已诊断营养不良，但不符合重度标准",
+      "placeholder": false
+    },
+    {
+      "code": "GLIM_SEVERE_MALNUTRITION",
+      "name": "重度营养不良",
+      "scaleName": "全球领导人营养不良倡议标准（GLIM）",
+      "rule": "已诊断营养不良，且符合任一重度标准：6个月内体重下降＞10%；超过6个月体重下降＞20%；＜70岁BMI＜18.5；≥70岁BMI＜20",
+      "placeholder": false
+    },
+    {
+      "code": "SARCOPENIA_CALF_SCREEN_NEGATIVE",
+      "name": "肌少症筛查阴性",
+      "scaleName": "小腿围测量",
+      "rule": "男性小腿围≥34cm；女性小腿围≥33cm",
+      "placeholder": false
+    },
+    {
+      "code": "SARCOPENIA_CALF_SCREEN_POSITIVE",
+      "name": "肌少症筛查阳性",
+      "scaleName": "小腿围测量",
+      "rule": "男性小腿围＜34cm；女性小腿围＜33cm",
+      "placeholder": false
+    },
+    {
+      "code": "GRIP_STRENGTH_NORMAL",
+      "name": "肌肉力量未下降",
+      "scaleName": "握力测量",
+      "rule": "男性握力≥28kg；女性握力≥18kg",
+      "placeholder": false
+    },
+    {
+      "code": "GRIP_STRENGTH_LOW",
+      "name": "肌肉力量下降",
+      "scaleName": "握力测量",
+      "rule": "男性握力＜28kg；女性握力＜18kg",
+      "placeholder": false
+    },
+    {
+      "code": "GAIT_SPEED_FUNCTION_NORMAL",
+      "name": "躯体功能未下降",
+      "scaleName": "6米步速测试",
+      "rule": "6米步速≥1.0m/s",
+      "placeholder": false
+    },
+    {
+      "code": "GAIT_SPEED_FUNCTION_DECLINE",
+      "name": "躯体功能下降",
+      "scaleName": "6米步速测试",
+      "rule": "6米步速＜1.0m/s",
+      "placeholder": false
+    },
+    {
+      "code": "SARCOPENIA_MUSCLE_MASS_NEGATIVE",
+      "name": "未达到肌少症肌量诊断界值",
+      "scaleName": "DXA或BIA肌肉量测量",
+      "rule": "DXA：男性≥7.0、女性≥5.4kg/m²；或BIA：男性≥7.0、女性≥5.7kg/m²",
+      "placeholder": false
+    },
+    {
+      "code": "SARCOPENIA_DIAGNOSED",
+      "name": "肌少症",
+      "scaleName": "DXA或BIA肌肉量测量",
+      "rule": "DXA：男性＜7.0、女性＜5.4kg/m²；或BIA：男性＜7.0、女性＜5.7kg/m²",
+      "placeholder": false
+    },
+    {
+      "code": "CAM_DELIRIUM_NEGATIVE",
+      "name": "未提示谵妄",
+      "scaleName": "谵妄评估（CAM）",
+      "rule": "不满足“特征1阳性＋特征2阳性＋（特征3阳性或特征4阳性）”",
+      "placeholder": false
+    },
+    {
+      "code": "CAM_DELIRIUM_POSITIVE",
+      "name": "谵妄",
+      "scaleName": "谵妄评估（CAM）",
+      "rule": "特征1阳性且特征2阳性，并且特征3或特征4至少一项阳性",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_BALANCED_YES",
+      "name": "平和质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "平和质转化分≥60分，且其他8种体质转化分均＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_BALANCED_BASICALLY",
+      "name": "平和质：基本是",
+      "scaleName": "中医体质辨识",
+      "rule": "平和质转化分≥60分，其他8种体质转化分均＜40分，但不满足“平和质：是”",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_BALANCED_NO",
+      "name": "平和质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "不满足“平和质：是”或“平和质：基本是”的条件",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_QI_DEFICIENCY_YES",
+      "name": "气虚质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "气虚质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_QI_DEFICIENCY_TENDENCY",
+      "name": "气虚质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "气虚质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_QI_DEFICIENCY_NO",
+      "name": "气虚质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "气虚质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_YANG_DEFICIENCY_YES",
+      "name": "阳虚质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "阳虚质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_YANG_DEFICIENCY_TENDENCY",
+      "name": "阳虚质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "阳虚质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_YANG_DEFICIENCY_NO",
+      "name": "阳虚质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "阳虚质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_YIN_DEFICIENCY_YES",
+      "name": "阴虚质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "阴虚质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_YIN_DEFICIENCY_TENDENCY",
+      "name": "阴虚质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "阴虚质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_YIN_DEFICIENCY_NO",
+      "name": "阴虚质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "阴虚质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_PHLEGM_DAMPNESS_YES",
+      "name": "痰湿质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "痰湿质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_PHLEGM_DAMPNESS_TENDENCY",
+      "name": "痰湿质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "痰湿质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_PHLEGM_DAMPNESS_NO",
+      "name": "痰湿质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "痰湿质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_DAMP_HEAT_YES",
+      "name": "湿热质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "湿热质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_DAMP_HEAT_TENDENCY",
+      "name": "湿热质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "湿热质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_DAMP_HEAT_NO",
+      "name": "湿热质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "湿热质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_BLOOD_STASIS_YES",
+      "name": "血瘀质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "血瘀质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_BLOOD_STASIS_TENDENCY",
+      "name": "血瘀质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "血瘀质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_BLOOD_STASIS_NO",
+      "name": "血瘀质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "血瘀质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_QI_STAGNATION_YES",
+      "name": "气郁质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "气郁质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_QI_STAGNATION_TENDENCY",
+      "name": "气郁质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "气郁质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_QI_STAGNATION_NO",
+      "name": "气郁质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "气郁质转化分＜30分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_SPECIAL_CONSTITUTION_YES",
+      "name": "特禀质：是",
+      "scaleName": "中医体质辨识",
+      "rule": "特禀质转化分≥40分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_SPECIAL_CONSTITUTION_TENDENCY",
+      "name": "特禀质：倾向是",
+      "scaleName": "中医体质辨识",
+      "rule": "特禀质转化分30～39分",
+      "placeholder": false
+    },
+    {
+      "code": "TCM_SPECIAL_CONSTITUTION_NO",
+      "name": "特禀质：否",
+      "scaleName": "中医体质辨识",
+      "rule": "特禀质转化分＜30分",
+      "placeholder": false
+    }
+  ]
+}

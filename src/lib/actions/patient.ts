@@ -27,7 +27,6 @@ import {
   patientIdentitySchema,
   textOrNull,
 } from "@/lib/assessment/patient-intake";
-import { syncMeasurementAnswers } from "@/lib/assessment/measurement-sync";
 import { completedScaleIds } from "@/lib/assessment/supplementary";
 
 export async function registerPatient(formData: FormData): Promise<void> {
@@ -60,7 +59,6 @@ export async function registerPatient(formData: FormData): Promise<void> {
     const created = await tx.assessmentSession.create({
       data: { patientId: patient.id, scaleIds, status: "in_progress" },
     });
-    await syncMeasurementAnswers(tx, created.id, scaleIds, patient);
     return created;
   });
 
@@ -106,8 +104,6 @@ export async function createSupplementarySession(sessionId: string, formData: Fo
     const s = await tx.assessmentSession.create({
       data: { patientId: source.patientId, scaleIds, status: "in_progress" },
     });
-    // 复用既有测量数据换算测量题答案（与建档/医生端创建同一条路径）
-    await syncMeasurementAnswers(tx, s.id, scaleIds, source.patient);
     return s;
   });
 

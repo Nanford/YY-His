@@ -58,12 +58,12 @@ export function scaleScopes(
 }
 
 /**
- * 该量表是否含需临床观察/测量的题（舌象、BMI、腹围、小腿围等）。
- * 含则这些题在患者自助路径豁免计分（deferClinical，Demo 口径 2026-07-20），先出部分计分报告——
- * 补充评估选项上据此如实提示。直接从题库派生（与建档页 needsClinicianAssist 同一口径），不硬编码量表名。
+ * 该量表是否含需医生评估/系统读取的计分条目（V2 条目类型 ≠ 正式问题，如 FRAIL 疾病/体重、MNA-SF 活动能力等）。
+ * 含则这些条目在患者自助路径豁免计分（deferClinical，Demo 口径），先出部分计分报告——
+ * 补充评估选项上据此如实提示。直接从题库投影派生（与建档页同一口径），不硬编码量表名。
  */
 export function scaleNeedsClinician(scaleId: string): boolean {
   const scale = scaleById.get(scaleId);
   if (!scale) return false;
-  return scale.questions.some((question) => question.measurement || question.observerAssisted);
+  return scale.questions.some((question) => question.observerAssisted);
 }

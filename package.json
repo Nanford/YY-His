@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "prisma:generate": "prisma generate",
     "convert-rules": "tsx scripts/convert-rules.ts",
+    "convert-rules-v2": "tsx scripts/convert-rules-v2.ts",
     "pack-share": "node scripts/pack-share.mjs"
   },
   "dependencies": {

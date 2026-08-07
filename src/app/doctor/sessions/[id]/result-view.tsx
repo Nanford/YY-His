@@ -4,7 +4,7 @@
  * POS:    评估结果下钻组件；标签可追溯到标准答案、原始分和有效分
  */
 import { IconChevronDown, IconClipboardData } from "@tabler/icons-react";
-import type { AssessmentTag } from "@/lib/scoring";
+import type { AssessmentTag } from "@/lib/assessment/report-types";
 import { scaleById } from "@/lib/rules";
 
 const LEVEL_CLS: Record<string, string> = {

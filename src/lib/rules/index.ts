@@ -1,15 +1,24 @@
 /**
- * INPUT:  data/scales.json、data/tag-mapping.json、data/interventions.json（结构化医学规则）
- * OUTPUT: 类型化的规则数据与查询辅助（题目索引、映射索引、干预索引）
- * POS:    规则数据的唯一读取入口。评分/推荐/对话引擎一律从这里取规则，
- *         禁止各处自行 import JSON，保证类型定义与数据消费点一致。
+ * INPUT:  src/lib/rules/v2 的 V2 规则数据（scales-v2.json / judgments-v2.json / interventions-v2.json 等）
+ * OUTPUT: 旧形状（Scale/ScaleQuestion/QuestionOption）的规则视图 + V2 干预/分类数据透传
+ * POS:    运行时规则数据的唯一读取入口。M9-B 装机后：对话状态机/医生代填/页面层继续消费旧形状，
+ *         本模块把 V2 采集编排数据（42 量表）投影为"已配判定的可评分量表 + 可问/可填题目"；
+ *         评分与推荐走 src/lib/scoring-v2、src/lib/recommend-v2（V2 原生形状，不经本模块）。
+ *         医学口径来源：V2/01_评估采集规则表.xlsx（条目类型/选项）、data/judgments-v2.json（判定）。
  */
-import scalesJson from "@data/scales.json";
-import mappingJson from "@data/tag-mapping.json";
-import interventionsJson from "@data/interventions.json";
-import interventionScoringJson from "@data/intervention-scoring.json";
+import {
+  judgmentsV2,
+  scalesV2,
+  interventionsV2,
+  interventionV2ByCode,
+  scoringCategoriesV2,
+  type ScaleV2,
+  type ScaleItemV2,
+  type InterventionV2,
+  type ScoringCategoryV2,
+} from "./v2";
 
-// ---------- 类型定义（与 data/*.json 结构一一对应） ----------
+// ---------- 旧形状类型（对话/代填/页面层的消费契约） ----------
 
 export interface QuestionOption {
   label: string;
@@ -20,44 +29,19 @@ export interface ScaleQuestion {
   id: string;
   no: string;
   title: string;
+  /** 标准题面（V2 即 01 表自然语言内容，已是口语化题干） */
   standardText: string;
+  /** 口语版首问文案（V2 与标准题面同源） */
   colloquialText: string;
+  /** 换说法复问文案（V2 暂与题面同源，后续预生成换说法后替换） */
   retryText: string;
   answerType: "boolean" | "choice" | "likert5";
   options?: QuestionOption[];
-  /** 分值由测量数据换算：bmi=身高体重、waist=腹围、calf=小腿围 */
-  measurement?: "bmi" | "waist" | "calf";
-  /** 可由调查员/医生辅助观察填写（如舌象题） */
+  /** 需医生/系统侧处理的计分条目（系统读取/逻辑计算/操作测试/绘图操作/医护观察等，
+   *  对应 V2 条目类型 ≠ 正式问题）：患者端不提问，走医生端代填；缺失时按 deferClinical 口径豁免计分 */
   observerAssisted?: boolean;
-  /** 替代题：仅当被替代题无法作答时使用（MNA-SF F替代） */
-  altOf?: string;
-  /** 中医体质题对应的体质（仅展示用，判定以 judgment 为准） */
-  constitutions?: string[];
-}
-
-export interface SumRangeJudgment {
-  type: "sumRange";
-  ranges: { tag: string; min: number; max: number }[];
-}
-
-export interface AnyYesJudgment {
-  type: "anyYes";
-  positiveTag: string;
-  negativeTag: string;
-}
-
-export interface TcmJudgment {
-  type: "tcmConstitution";
-  biased: { tag: string; questionNos: number[] }[];
-  biasedThresholds: { yesMin: number; tendencyMin: number; tendencyMax: number; noMax: number };
-  pinghe: {
-    tag: string;
-    questionNos: number[];
-    reverseNos: number[];
-    totalMin: number;
-    othersMaxForYes: number;
-    othersMaxForBasicYes: number;
-  };
+  /** V2 条目类型原文（系统读取/逻辑计算/正式问题…），代填界面展示用 */
+  entryType?: string;
 }
 
 export interface Scale {
@@ -65,70 +49,102 @@ export interface Scale {
   name: string;
   /** 量表级作答/判定说明（展示用） */
   answerNote?: string;
-  judgment: SumRangeJudgment | AnyYesJudgment | TcmJudgment;
   likertOptions?: QuestionOption[];
   questions: ScaleQuestion[];
 }
 
-export interface MappingEdge {
-  assessmentTag: string;
-  interventionTag: string;
+// ---------- V2 投影：已配判定（judgments-v2.json）的量表 → 旧形状 ----------
+
+/** 量表计分条目 id 集合（来源：data/judgments-v2.json；纯复用行/记忆指令等不计分条目不在内）。
+ *  M10.3b 起一个量表可多份判定：取各份判定引用条目的并集（perQuestionTags 取其 rules 的 itemId） */
+function scoredItemIdsOf(scaleId: string): ReadonlySet<string> {
+  const entry = judgmentsV2.find((j) => j.scaleId === scaleId);
+  if (!entry) throw new Error(`量表 ${scaleId} 无判定配置（data/judgments-v2.json 未收录）`);
+  const ids = new Set<string>();
+  for (const j of entry.judgments) {
+    if (j.type === "tcmConstitutionV2") {
+      for (const id of [...j.balanced.questionIds, ...j.biased.flatMap((b) => b.questionIds)]) ids.add(id);
+    } else if (j.type === "perQuestionTags") {
+      for (const rule of j.rules) ids.add(rule.itemId);
+    } else if (j.type === "ladderScore") {
+      for (const id of j.stepItemIds) ids.add(id);
+    } else if (j.type === "initialGateSumRange") {
+      for (const id of [...j.initialItemIds, ...j.finalScoredItemIds]) ids.add(id);
+    } else if (j.type === "compositeAllAny") {
+      for (const g of j.groups) {
+        for (const r of g.anyOf) ids.add(r.itemId);
+      }
+      if (j.severeWhen) {
+        for (const r of j.severeWhen.anyOf) ids.add(r.itemId);
+      }
+    } else {
+      // sumRange / anyYes / thresholdByEducation / anyBelowThreshold
+      for (const id of j.scoredItemIds) ids.add(id);
+    }
+  }
+  return ids;
 }
 
-export interface Intervention {
-  tag: string;
-  category: string;
-  plan: string;
+/** 无分选项（score=null，如筛查是/否）派生兼容分值：仅用于旧管道存储/展示，判定以 scoring-v2 的 label 匹配为准 */
+function compatScore(label: string, score: number | null): number {
+  if (score !== null) return score;
+  return label.startsWith("是") ? 1 : 0;
 }
 
-// ---------- V2 积分推荐数据类型（来源：data/intervention-scoring.json） ----------
-
-/** 单个干预项元数据（30 项：运动 M01-M12 / 膳食 D01-D10 / 中医食养 C01-C08） */
-export interface InterventionItem {
-  /** 稳定编码，素材关联的唯一标识（不随文案调整变化） */
-  code: string;
-  /** 三大类展示标签：运动干预 / 膳食干预 / 中医食养干预 */
-  category: string;
-  name: string;
-  /** 展示形态：运动=视频教程（视频缺失回退文字要点）；膳食/中医食养=图文教程 */
-  mediaType: "video" | "image";
-  /** Web 可访问素材路径：/interventions/videos/M06.mp4 或 /interventions/D03.png */
-  mediaSrc: string;
-  /** 素材是否已就绪：图片恒 true；视频取决于是否已放入 public/interventions/videos（缺失则卡片回退文字） */
-  mediaAvailable: boolean;
-  /** 图片原始文件名（供医生端展示核对）；运动项为 null */
-  sourceFile: string | null;
-  /** 运动动作文字要点（来源：12种运动干预.docx）；图片项为 null（正文即图片） */
-  text: string | null;
+/** 展示用短标题：取题面第一个分句（限长），长题面在明细表里仍看 standardText 全文 */
+function shortTitle(text: string): string {
+  const first = text.split(/[，。；？?]/)[0] ?? text;
+  return first.length > 24 ? `${first.slice(0, 24)}…` : first;
 }
 
-/** 三大类定义（固定展示顺序） */
-export interface ScoringCategoryDef {
-  key: string;
-  label: string;
-  codePrefix: string;
-  mediaType: "video" | "image";
+function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
+  const options = (item.options ?? []).map((o) => ({ label: o.label, score: compatScore(o.label, o.score) }));
+  const isBoolean =
+    options.length === 2 && options[0].label.startsWith("是") && options[1].label.startsWith("否");
+  return {
+    id: item.id,
+    no: item.no,
+    title: shortTitle(item.text),
+    standardText: item.text,
+    colloquialText: item.text,
+    retryText: item.text,
+    answerType: isBoolean ? "boolean" : "choice",
+    options,
+    observerAssisted: item.entryType !== "正式问题",
+    entryType: item.entryType,
+  };
 }
 
-// ---------- 数据实例 ----------
+function toScale(scale: ScaleV2): Scale {
+  const scoredIds = scoredItemIdsOf(scale.id);
+  const questions = scale.items
+    .filter((item) => scoredIds.has(item.id) && item.options !== null)
+    .map(toScaleQuestion);
+  const hasClinical = questions.some((q) => q.observerAssisted);
+  return {
+    id: scale.id,
+    name: scale.name,
+    answerNote: hasClinical
+      ? "含需医生评估/系统读取的计分条目，患者端不提问；缺失时按「部分计分」处理。"
+      : undefined,
+    questions,
+  };
+}
 
-export const scales = scalesJson.scales as unknown as Scale[];
-export const mappingEdges = mappingJson.edges as MappingEdge[];
-export const interventions = interventionsJson.interventions as Intervention[];
-/** 三大类展示顺序，来源：需求文档"最终干预方案按照三大类进行展示" */
-export const interventionCategories = interventionsJson.categories as string[];
+/** 可评分量表（已配判定的量表，M10.3b-2 起 42 个），顺序保持 01 表文档顺序 */
+export const scales: Scale[] = scalesV2
+  .filter((s) => judgmentsV2.some((j) => j.scaleId === s.id))
+  .map(toScale);
 
-// V2 积分推荐数据实例
-/** 30 个干预项元数据（按类别 + 编码升序，展示顺序稳定） */
-export const interventionItems = interventionScoringJson.interventions as InterventionItem[];
-/** 三大类定义（固定展示顺序：运动干预 → 膳食干预 → 中医食养干预） */
-export const scoringCategories = interventionScoringJson.categories as ScoringCategoryDef[];
-/** 积分矩阵：matrix[评估标签名称][干预编码] = 匹配分（0-3）。来源：评估-干预标签积分规则表.xlsx */
-export const interventionScoreMatrix = interventionScoringJson.matrix as Record<string, Record<string, number>>;
+// ---------- V2 干预/分类数据透传（页面层用，形状即 rules/v2 的 InterventionV2/ScoringCategoryV2） ----------
+
+export type { InterventionV2, ScoringCategoryV2 };
+/** 60 个干预项元数据（YD/SS/ZY/JZ/QT），按 04 表顺序 */
+export const interventionItems = interventionsV2;
 /** 干预编码 → 干预项元数据 */
-export const interventionItemByCode: ReadonlyMap<string, InterventionItem> = new Map(
-  interventionItems.map((i) => [i.code, i])
-);
+export const interventionItemByCode = interventionV2ByCode;
+/** 5 大类定义（固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他） */
+export const scoringCategories = scoringCategoriesV2;
 
 // ---------- 查询索引（模块加载时构建一次） ----------
 
@@ -138,30 +154,14 @@ export const questionById: ReadonlyMap<string, ScaleQuestion> = new Map(
   scales.flatMap((s) => s.questions.map((q) => [q.id, q] as const))
 );
 
-/** 题目 id → 所属量表（likert5 题取通用选项、按题定位量表时用） */
+/** 题目 id → 所属量表 */
 export const scaleByQuestionId: ReadonlyMap<string, Scale> = new Map(
   scales.flatMap((s) => s.questions.map((q) => [q.id, s] as const))
 );
 
-/** 评估标签 → 干预标签列表（保持映射表原始顺序） */
-export const interventionTagsByAssessmentTag: ReadonlyMap<string, string[]> = (() => {
-  const map = new Map<string, string[]>();
-  for (const edge of mappingEdges) {
-    const list = map.get(edge.assessmentTag) ?? [];
-    list.push(edge.interventionTag);
-    map.set(edge.assessmentTag, list);
-  }
-  return map;
-})();
-
-export const interventionByTag: ReadonlyMap<string, Intervention> = new Map(
-  interventions.map((i) => [i.tag, i])
-);
-
-/** 取题目的可选项：likert5 题使用量表级通用 5 级选项 */
+/** 取题目的可选项（V2 投影后选项均在题目上；likertOptions 分支仅为类型兼容保留） */
 export function optionsOf(scale: Scale, question: ScaleQuestion): QuestionOption[] {
   if (question.answerType === "likert5") {
-    // 来源：量表题目_Demo.txt"一般回答选项：1～5级"
     return scale.likertOptions ?? [];
   }
   return question.options ?? [];

@@ -1,38 +1,30 @@
 /**
- * INPUT:  会话勾选的量表、已保存答案、患者测量数据
+ * INPUT:  会话勾选的量表、已保存答案（选项 label）
  * OUTPUT: 量表代填表单（提交至 saveAnswers / finalizeSession）
- * POS:    M2 无语音采集路径与语音链路的兜底补录界面；题面保留标准题目及数字医生话术预览
+ * POS:    M2 无语音采集路径与语音链路的兜底补录界面；题面保留标准题目及数字医生话术预览。
+ *         M9-B 装机：条目来自 V2 题库投影（rules/index.ts）——「条目类型 ≠ 正式问题」的计分条目
+ *         （系统读取/逻辑计算/操作测试/绘图操作等）患者端不提问，由本表单代填；选项按 label 提交
+ *         （IADL 等存在同分选项，按分值提交无法区分）。
  */
-import Link from "next/link";
-import { IconArrowRight, IconDeviceFloppy, IconMessageCircle, IconRulerMeasure } from "@tabler/icons-react";
+import { IconArrowRight, IconDeviceFloppy, IconMessageCircle } from "@tabler/icons-react";
 import { optionsOf, scales, type Scale, type ScaleQuestion } from "@/lib/rules";
 import { finalizeSession, saveAnswers } from "@/lib/actions/doctor";
-import {
-  resolveMeasurementAnswers,
-  type MeasurementAnswerResolution,
-  type PatientMeasurements,
-} from "@/lib/assessment/measurements";
 
 interface Props {
   sessionId: string;
   patientId: string;
   scaleIds: string[];
-  savedScores: ReadonlyMap<string, number>;
-  patient: PatientMeasurements;
+  savedLabels: ReadonlyMap<string, string>;
 }
 
 function QuestionBlock({
   scale,
   question,
-  savedScore,
-  patientId,
-  measurement,
+  savedLabel,
 }: {
   scale: Scale;
   question: ScaleQuestion;
-  savedScore: number | undefined;
-  patientId: string;
-  measurement?: MeasurementAnswerResolution;
+  savedLabel: string | undefined;
 }) {
   return (
     <div className="border-t border-[#dbe7f6] py-5 first:border-t-0 first:pt-0 last:pb-0">
@@ -47,62 +39,32 @@ function QuestionBlock({
             数字医生话术：{question.colloquialText}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {question.observerAssisted && <span className="ui-badge">可由医生辅助观察填写</span>}
-            {question.altOf && <span className="ui-badge">替代题：仅当无法获得 BMI 时填写（与 F 题二选一，优先 F）</span>}
+            {question.observerAssisted && (
+              <span className="ui-badge">需医生评估{question.entryType ? `（${question.entryType}）` : ""}，患者端不提问</span>
+            )}
           </div>
         </div>
       </div>
 
-      {measurement ? (
-        <div className="mt-3 ml-10">
-          {measurement.status === "confirmed" && (
-            <div className="ui-alert text-sm">
-              <IconRulerMeasure size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <span>
-                <strong>系统按本地测量值换算：</strong>
-                {measurement.optionLabel}（{measurement.score} 分）
-                {measurement.rawText && <span className="ml-2 text-xs">{measurement.rawText}</span>}
-              </span>
-            </div>
-          )}
-          {measurement.status === "superseded" && <div className="ui-alert text-sm">本题本次不参与计分：{measurement.reason}</div>}
-          {measurement.status === "manual" && (
-            <div className="ui-alert ui-alert-warning text-sm">
-              <div>
-                <p>待人工确认：{measurement.reason}</p>
-                <Link href={`/doctor/patients/${patientId}`} className="mt-1 inline-flex items-center gap-1 font-bold text-blue-700 hover:text-blue-800">
-                  前往患者页补录测量数据
-                  <IconArrowRight size={15} aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="mt-4 ml-10 flex flex-wrap gap-2">
-          {optionsOf(scale, question).map((option) => (
-            <label key={option.label} className="ui-choice text-sm">
-              <input
-                type="radio"
-                name={`answer.${question.id}`}
-                value={option.score}
-                defaultChecked={savedScore === option.score}
-              />
-              <span>{option.label}</span>
-              <span className="text-xs text-[#8498b5]">（{option.score} 分）</span>
-            </label>
-          ))}
-        </div>
-      )}
+      <div className="mt-4 ml-10 flex flex-wrap gap-2">
+        {optionsOf(scale, question).map((option) => (
+          <label key={option.label} className="ui-choice text-sm">
+            <input
+              type="radio"
+              name={`answer.${question.id}`}
+              value={option.label}
+              defaultChecked={savedLabel === option.label}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
     </div>
   );
 }
 
-export function CollectForm({ sessionId, patientId, scaleIds, savedScores, patient }: Props) {
+export function CollectForm({ sessionId, scaleIds, savedLabels }: Props) {
   const selectedScales = scales.filter((scale) => scaleIds.includes(scale.id));
-  const measurementByQuestionId = new Map<string, MeasurementAnswerResolution>(
-    resolveMeasurementAnswers(patient, scaleIds).map((answer) => [answer.questionId, answer])
-  );
 
   return (
     <form className="space-y-6">
@@ -121,9 +83,7 @@ export function CollectForm({ sessionId, patientId, scaleIds, savedScores, patie
               key={question.id}
               scale={scale}
               question={question}
-              savedScore={savedScores.get(question.id)}
-              patientId={patientId}
-              measurement={measurementByQuestionId.get(question.id)}
+              savedLabel={savedLabels.get(question.id)}
             />
           ))}</div>
         </section>

@@ -92,6 +92,11 @@ function startsWithAny(text: string, patterns: readonly string[]): boolean {
  * 门槛判定）。替换路径：后续给规则层的门槛题单列"分级词不做单字肯定推断"的保护，或规则层对
  * 门槛题一律返回 unclear 交由追问/医生补录。
  */
+/** 在选项中找"是/否"项：V2 选项 label 带括注（如"是（1分）""否（筛查阴性）"），按括号前主文案匹配 */
+function findBooleanOption(options: QuestionOption[], label: "是" | "否"): QuestionOption | undefined {
+  return options.find((item) => item.label.split(/[（(]/)[0].trim() === label);
+}
+
 function parseBoolean(text: string, options: QuestionOption[]): NormalizationOutcome {
   const initialLabel = startsWithAny(text, INITIAL_POSITIVE_STRONG)
     ? "是"
@@ -101,7 +106,7 @@ function parseBoolean(text: string, options: QuestionOption[]): NormalizationOut
         ? "是"
         : null;
   if (initialLabel) {
-    const option = options.find((item) => item.label === initialLabel);
+    const option = findBooleanOption(options, initialLabel);
     if (!option) return unclear(`题目选项中不存在"${initialLabel}"`);
     return matched(option, `规则匹配：句首应答词识别为"${initialLabel}"`);
   }
@@ -120,7 +125,7 @@ function parseBoolean(text: string, options: QuestionOption[]): NormalizationOut
   if (negativeHit && positiveHit) return unclear("回答同时包含肯定与否定表达");
   const label = negativeHit ? "否" : positiveHit ? "是" : null;
   if (!label) return unclear("未识别出明确的是/否表达");
-  const option = options.find((item) => item.label === label);
+  const option = findBooleanOption(options, label);
   if (!option) return unclear(`题目选项中不存在"${label}"`);
   return matched(option, `规则匹配：识别为"${label}"`);
 }

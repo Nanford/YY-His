@@ -12,46 +12,51 @@ import {
   IconClipboardCheck,
   IconInfoCircle,
   IconShieldCheck,
+  IconBan,
 } from "@tabler/icons-react";
 import { confirmPlan, reopenSession } from "@/lib/actions/doctor";
 import type { PlanDecision as ReviewPlanDecision } from "@/lib/assessment/plan-review";
-import type { RecommendedIntervention } from "@/lib/recommend";
-import { interventionItemByCode, interventionItems, scoringCategories } from "@/lib/rules";
-import { InterventionVideo, InterventionImage } from "@/components/intervention-media";
+import type { ForbiddenItemV2, PlanCandidateItemV2 } from "@/lib/recommend-v2";
+import { interventionItems, scoringCategories } from "@/lib/rules";
+import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 
-/** 三大类固定展示顺序与序号 */
+/** 5 大类固定展示顺序与序号（来源：03 表干预方案分类 + 积分数据 categories 顺序） */
 const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
-const CATEGORY_INDEX: Record<string, string> = { 运动干预: "01", 膳食干预: "02", 中医食养干预: "03" };
+const CATEGORY_INDEX: Record<string, string> = Object.fromEntries(
+  CATEGORY_ORDER.map((label, index) => [label, String(index + 1).padStart(2, "0")])
+);
 
-/** 各类别可选的同类替换项（编码 + 名称），构建一次 */
+/** 各类别可选的同类替换项（编码 + 名称），按编码前缀归到大类展示标签，构建一次 */
 const REPLACE_OPTIONS: Record<string, { code: string; name: string }[]> = Object.fromEntries(
-  CATEGORY_ORDER.map((cat) => [cat, interventionItems.filter((i) => i.category === cat).map((i) => ({ code: i.code, name: i.name }))])
+  scoringCategories.map((def) => [
+    def.label,
+    interventionItems.filter((i) => i.code.startsWith(def.codePrefix)).map((i) => ({ code: i.code, name: i.name })),
+  ])
 );
 
 /** 对外复用纯逻辑层的审核决定类型，避免页面与服务端契约漂移。 */
 export type PlanDecision = ReviewPlanDecision;
 
-/** 单个候选项的媒体教程（视频/图文），医生端图片显示原始文件名 */
-function MediaBlock({ item }: { item: RecommendedIntervention }) {
-  const available = interventionItemByCode.get(item.code)?.mediaAvailable ?? false;
+/** 单个候选项的媒体教程（视频/图片/文本），素材缺失如实标注"素材待补齐" */
+function MediaBlock({ item }: { item: PlanCandidateItemV2 }) {
+  if (item.mediaType === "text") return <InterventionText name={item.name} content={item.content} />;
   return item.mediaType === "video" ? (
-    <InterventionVideo src={item.mediaSrc} available={available} text={item.text} />
+    <InterventionVideo src={item.mediaSrc ?? ""} available={item.mediaAvailable} text={item.content} />
   ) : (
-    <InterventionImage src={item.mediaSrc} available={available} name={item.name} sourceFile={item.sourceFile} showSourceFile />
+    <InterventionImage src={item.mediaSrc ?? ""} available={item.mediaAvailable} name={item.name} sourceFile={null} />
   );
 }
 
-/** 积分来源明细（下钻）：每个贡献 >0 的评估标签及其对本项的匹配分 */
-function ScoreDetail({ item }: { item: RecommendedIntervention }) {
+/** 积分来源明细（下钻）：每个非零贡献的评估标签及其对本项的匹配分（100=强制推荐标红） */
+function ScoreDetail({ item }: { item: PlanCandidateItemV2 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#6b82a4]">
       <span>积分来源：</span>
-      {item.matchDetail.length > 0 ? (
-        item.matchDetail.map((d) => (
-          <span key={`${d.tag}-${d.level}`} className="ui-badge">
-            {d.tag}
-            {d.level !== "是" && `（${d.level}）`}
-            <span className="font-mono">+{d.score}</span>
+      {item.contributions.length > 0 ? (
+        item.contributions.map((d) => (
+          <span key={d.tagCode} className={d.score === 100 ? "ui-badge ui-badge-danger" : "ui-badge"}>
+            {d.tagName}
+            <span className="font-mono">{d.score === 100 ? "强制" : `+${d.score}`}</span>
           </span>
         ))
       ) : (
@@ -62,13 +67,13 @@ function ScoreDetail({ item }: { item: RecommendedIntervention }) {
 }
 
 interface InterventionCardProps {
-  item: RecommendedIntervention;
+  item: PlanCandidateItemV2;
   reviewing: boolean;
   decision?: PlanDecision;
 }
 
 function InterventionCard({ item, reviewing, decision }: InterventionCardProps) {
-  const options = REPLACE_OPTIONS[item.category]?.filter((o) => o.code !== item.code) ?? [];
+  const options = REPLACE_OPTIONS[item.categoryLabel]?.filter((o) => o.code !== item.code) ?? [];
 
   return (
     <article className="rounded-2xl border border-[#dbe7f6] bg-white p-5 shadow-[0_8px_20px_rgba(33,87,160,0.05)]">
@@ -76,7 +81,13 @@ function InterventionCard({ item, reviewing, decision }: InterventionCardProps) 
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs font-bold tracking-wide text-blue-500">{item.code}</span>
           <h4 className="text-base font-extrabold text-[#173766]">{item.name}</h4>
-          <span className="ui-badge">匹配分 {item.score}</span>
+          <span className="ui-badge">匹配分 {item.total}</span>
+          {item.forced && (
+            <span className="ui-badge ui-badge-danger">
+              <IconAlertTriangle size={13} aria-hidden="true" />
+              强制优先推荐
+            </span>
+          )}
           {decision?.action === "replace" && (
             <span className="ui-badge">
               <IconArrowsExchange size={13} aria-hidden="true" />
@@ -145,7 +156,7 @@ function GroupedList({
   reviewing,
   decisions = [],
 }: {
-  items: readonly RecommendedIntervention[];
+  items: readonly PlanCandidateItemV2[];
   reviewing: boolean;
   decisions?: readonly PlanDecision[];
 }) {
@@ -159,7 +170,7 @@ function GroupedList({
   return (
     <div className="space-y-7">
       {CATEGORY_ORDER.map((category) => {
-        const group = items.filter((item) => item.category === category);
+        const group = items.filter((item) => item.categoryLabel === category);
         if (group.length === 0) return null;
         return (
           <section key={category} className="space-y-3">
@@ -197,13 +208,40 @@ function EmptyPlan({ final }: { final: boolean }) {
   );
 }
 
+/** 被 -100 禁止自动推荐的干预项明细（医生可见，安全决策可追溯；患者端不展示） */
+function ForbiddenSection({ forbidden }: { forbidden: readonly ForbiddenItemV2[] }) {
+  if (forbidden.length === 0) return null;
+  return (
+    <section className="mx-6 mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4" aria-label="禁止自动推荐明细">
+      <h3 className="inline-flex items-center gap-2 text-sm font-extrabold text-red-800">
+        <IconBan size={17} aria-hidden="true" />
+        已禁止自动推荐（{forbidden.length} 项）
+      </h3>
+      <ul className="mt-3 space-y-2">
+        {forbidden.map((item) => (
+          <li key={item.code} className="text-xs leading-5 text-red-900">
+            <span className="font-mono font-bold">{item.code}</span> {item.name}：
+            {item.reasons
+              .filter((r) => r.score === -100)
+              .map((r) => r.tagName)
+              .join("、")}
+            触发禁止
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** 候选方案审核：保留 / 删除 / 同类替换，并记录审核备注。 */
 export function PlanReview({
   sessionId,
   candidates,
+  forbidden = [],
 }: {
   sessionId: string;
-  candidates: readonly RecommendedIntervention[];
+  candidates: readonly PlanCandidateItemV2[];
+  forbidden?: readonly ForbiddenItemV2[];
 }) {
   const hasCandidates = candidates.length > 0;
 
@@ -219,7 +257,7 @@ export function PlanReview({
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#667fa5]">
           {hasCandidates
-            ? "逐项核对积分来源与教程内容；可保留、删除或在同类别中替换。每类最多 2 项、总数不超过 6 项。"
+            ? "逐项核对积分来源与教程内容；可保留、删除或在同类别中替换。运动/膳食营养/中医食养/就诊建议/其他五类，每类最多 2 项。"
             : "当前没有候选项目，仍需由医生完成确认并形成审核记录。"}
         </p>
       </div>
@@ -233,6 +271,8 @@ export function PlanReview({
           </button>
         </div>
       </form>
+
+      <ForbiddenSection forbidden={forbidden} />
 
       <form action={reopenSession.bind(null, sessionId)} className="border-t border-[#dbe7f6] bg-[#f8fbff] px-6 py-3">
         <button type="submit" className="ui-button ui-button-quiet min-h-0 px-0 py-1 text-sm">
@@ -250,7 +290,7 @@ export function FinalPlan({
   decisions,
   confirmedAt,
 }: {
-  finalPlan: readonly RecommendedIntervention[];
+  finalPlan: readonly PlanCandidateItemV2[];
   decisions: readonly PlanDecision[];
   confirmedAt: Date | null;
 }) {

@@ -1,7 +1,8 @@
 /**
  * INPUT:  Prisma（患者档案与评估会话）、路由参数 id
  * OUTPUT: 患者详情页：档案信息、测量数据维护、评估会话列表与创建
- * POS:    医生端患者主页。创建评估会话时可勾选量表（需求：会话可只跑部分量表，默认全选）。
+ * POS:    医生端患者主页。发起评估按 V2/Demo_v2更新说明.docx §2 量表工具选择：
+ *         常规综合评估包（默认）/ 系统预设套餐 / 自定义组合 / 随访对比复评（表单见 session-create-form.tsx）。
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,18 +11,20 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconCalendarClock,
-  IconClipboardText,
   IconDeviceFloppy,
-  IconFileAnalytics,
   IconLock,
   IconRulerMeasure,
   IconShieldCheck,
   IconUserCircle,
 } from "@tabler/icons-react";
 import { prisma } from "@/lib/db";
-import { scaleById, scales } from "@/lib/rules";
+import { scaleById } from "@/lib/rules";
 import { createSession, updateMeasurements } from "@/lib/actions/doctor";
+import { SCALE_PACKAGES, SCORABLE_SCALE_IDS } from "@/lib/assessment/scale-packages";
+import { scaleV2ById } from "@/lib/rules/v2";
+import type { MedicationEntry, WeightHistory } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
+import SessionCreateForm, { type ScaleGroup } from "./session-create-form";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +54,61 @@ export default async function PatientDetailPage({
     patient.heightCm && patient.weightKg
       ? (patient.weightKg / (patient.heightCm / 100) ** 2).toFixed(1)
       : null;
+
+  // V2 扩展字段（docx §1，全部选填）：空则不显示。Json 字段读取侧按类型断言还原。
+  const diagnoses = (patient.diagnoses as string[] | null) ?? [];
+  const pastHistory = (patient.pastHistory as string[] | null) ?? [];
+  const recentAcute = (patient.recentAcute as string[] | null) ?? [];
+  const medications = (patient.medications as MedicationEntry[] | null) ?? [];
+  const weightHistory = patient.weightHistory as WeightHistory | null;
+  const weightHistoryEntries: [string, number][] = weightHistory
+    ? (
+        [
+          ["1 月前", weightHistory.m1],
+          ["2 月前", weightHistory.m2],
+          ["3 月前", weightHistory.m3],
+          ["6 月前", weightHistory.m6],
+          ["12 月前", weightHistory.m12],
+        ] as [string, number | null][]
+      ).filter((entry): entry is [string, number] => entry[1] !== null)
+    : [];
+  // 6 米步速 = 6m / 用时（秒），由程序换算，不单独落库
+  const gaitSpeed = patient.gaitSpeed6mSec ? (6 / patient.gaitSpeed6mSec).toFixed(2) : null;
+
+  // 「发起评估」表单数据（docx §2 量表工具选择）：
+  // 自定义组合按 01 表一级分类分组，只列已配判定（judgments-v2）的可评分量表，组内保持 01 表文档顺序
+  const scaleGroups: ScaleGroup[] = [];
+  for (const scaleId of SCORABLE_SCALE_IDS) {
+    const scaleV2 = scaleV2ById.get(scaleId);
+    const scale = scaleById.get(scaleId);
+    if (!scaleV2 || !scale) continue;
+    let group = scaleGroups.find((g) => g.category === scaleV2.category);
+    if (!group) {
+      group = { category: scaleV2.category, scales: [] };
+      scaleGroups.push(group);
+    }
+    group.scales.push({ id: scaleId, name: scale.name, questionCount: scale.questions.length });
+  }
+  // 随访对比复评（docx §2(3)）：最近一次已出报告（collected/confirmed）会话的量表范围
+  const lastReported = patient.sessions.find(
+    (session) => session.status === "collected" || session.status === "confirmed"
+  );
+  const followup = lastReported
+    ? {
+        dateLabel: lastReported.startedAt.toLocaleDateString("en-CA"),
+        scaleCount: (lastReported.scaleIds as string[]).length,
+      }
+    : null;
+  const hasBasicExtras =
+    patient.education || patient.maritalStatus || patient.livingSituation || patient.careSituation;
+  const hasDiseaseExtras =
+    diagnoses.length > 0 || pastHistory.length > 0 || recentAcute.length > 0 || medications.length > 0;
+  const hasMeasureExtras =
+    weightHistoryEntries.length > 0 ||
+    patient.calfLeftCm != null ||
+    patient.calfRightCm != null ||
+    patient.gripStrengthKg != null ||
+    patient.gaitSpeed6mSec != null;
 
   return (
     <div className="app-page space-y-6">
@@ -176,40 +234,125 @@ export default async function PatientDetailPage({
         </form>
       </div>
 
-      {/* 新建评估会话 */}
-      <form action={createSession.bind(null, patient.id)} className="ui-panel overflow-hidden">
-        <div className="ui-panel-heading">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-              <IconFileAnalytics size={21} stroke={1.9} aria-hidden="true" />
-            </span>
+      {/* V2 补充档案（docx §1）：仅在已填写时显示 */}
+      {(hasBasicExtras || hasDiseaseExtras || hasMeasureExtras) && (
+        <section className="ui-panel overflow-hidden">
+          <div className="ui-panel-heading">
             <div>
-              <h2 className="ui-panel-title">发起新评估</h2>
-              <p className="mt-1 text-xs text-[#62779a]">勾选本次需要执行的评估量表</p>
+              <h2 className="ui-panel-title">补充档案（V2）</h2>
+              <p className="mt-1 text-xs text-[#62779a]">基本情况、疾病与用药、测量补充；后续量表将直接调用，不再重复询问</p>
             </div>
+            <span className="ui-badge">结构化存档</span>
           </div>
-          <span className="ui-badge">默认全选</span>
-        </div>
-        <div className="ui-panel-body">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {scales.map((scale) => (
-              <label key={scale.id} className="ui-choice">
-                <input type="checkbox" name={`scale.${scale.id}`} defaultChecked />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-bold">{scale.name}</span>
-                  <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">{scale.questions.length} 题</span>
-                </span>
-              </label>
-            ))}
+          <div className="ui-panel-body space-y-6">
+            {hasBasicExtras && (
+              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                {patient.education && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">文化程度</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.education}</dd>
+                  </div>
+                )}
+                {patient.maritalStatus && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">婚姻状况</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.maritalStatus}</dd>
+                  </div>
+                )}
+                {patient.livingSituation && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">居住情况</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.livingSituation}</dd>
+                  </div>
+                )}
+                {patient.careSituation && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">照护情况</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.careSituation}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+            {hasDiseaseExtras && (
+              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+                {diagnoses.length > 0 && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">现有诊断</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{diagnoses.join("、")}</dd>
+                  </div>
+                )}
+                {pastHistory.length > 0 && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">既往病史</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{pastHistory.join("、")}</dd>
+                  </div>
+                )}
+                {recentAcute.length > 0 && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">近期急性疾病</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{recentAcute.join("、")}</dd>
+                  </div>
+                )}
+                {medications.length > 0 && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">当前用药</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">
+                      {medications
+                        .map(
+                          (med) =>
+                            `${med.name}（${[med.category, med.dose, med.frequency].filter(Boolean).join("，")}）`
+                        )
+                        .join("；")}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
+            {hasMeasureExtras && (
+              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                {weightHistoryEntries.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs font-bold text-[#62779a]">历史体重</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">
+                      {weightHistoryEntries.map(([label, value]) => `${label} ${value}kg`).join("，")}
+                    </dd>
+                  </div>
+                )}
+                {(patient.calfLeftCm != null || patient.calfRightCm != null) && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">小腿围（左 / 右）</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">
+                      {patient.calfLeftCm ?? "—"} cm / {patient.calfRightCm ?? "—"} cm
+                    </dd>
+                  </div>
+                )}
+                {patient.gripStrengthKg != null && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">握力</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.gripStrengthKg} kg</dd>
+                  </div>
+                )}
+                {patient.gaitSpeed6mSec != null && (
+                  <div>
+                    <dt className="text-xs font-bold text-[#62779a]">6 米步行</dt>
+                    <dd className="mt-1.5 font-semibold text-[#173766]">
+                      {patient.gaitSpeed6mSec} 秒（{gaitSpeed} m/s）
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
           </div>
-          <div className="mt-5 flex justify-end">
-            <button className="ui-button ui-button-primary ui-button-lg" type="submit">
-              <IconClipboardText size={19} stroke={2.1} aria-hidden="true" />
-              创建评估会话
-            </button>
-          </div>
-        </div>
-      </form>
+        </section>
+      )}
+
+      {/* 新建评估会话（docx §2 量表工具选择：套餐 / 自定义组合 / 随访复评） */}
+      <SessionCreateForm
+        packages={SCALE_PACKAGES}
+        groups={scaleGroups}
+        followup={followup}
+        action={createSession.bind(null, patient.id)}
+      />
 
       {/* 会话历史 */}
       <section className="ui-table-wrap">

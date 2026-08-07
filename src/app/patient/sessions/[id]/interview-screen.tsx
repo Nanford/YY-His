@@ -40,11 +40,13 @@ import { logTiming } from "./timing";
 type LoadPhase = "loading" | "ready" | "error";
 type Mode = "voice" | "manual";
 
-/** 对话记录条目（意见4 大字体对话记录）：数字医生的问 / 患者的答 */
+/** 对话记录条目（意见4 大字体对话记录）：数字医生的问/旁白说明 + 患者的答 */
 interface TalkEntry {
   id: string;
   role: "doctor" | "patient";
   text: string;
+  /** 旁白气泡的小标识（M9.2：总开场/分类过渡/工具说明显示"说明"徽章） */
+  badge?: string;
 }
 
 interface InterviewScreenProps {
@@ -97,6 +99,10 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   });
   /** TTS 一旦失败即静默降级为纯字幕，不再重试拖慢流程 */
   const ttsBrokenRef = useRef(false);
+  /** 旁白自动推进去重（M9.2）：播完自动调 /advance 与「继续」按钮共用，防重复推进 */
+  const advancingRef = useRef(false);
+  /** applyState（稳定 useCallback）经此 ref 调用推进函数，避免 useCallback 依赖循环 */
+  const advanceRef = useRef<() => void>(() => {});
 
   // 离开页面时停止 TTS 与口型采样，释放 AudioContext，避免后台继续占用音频资源。
   useEffect(() => {
@@ -167,7 +173,16 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
           setTalks((prev) => [...prev, { id: `d-${dkey}`, role: "doctor", text: q.text }]);
         }
       }
-      const fallbackSubtitle = next.prompt?.text ?? "";
+      // 累积旁白气泡（M9.2）：总开场/分类过渡/工具说明，与提问同款气泡 + 「说明」徽章（同条去重）
+      if (next.phase === "narration" && next.narration) {
+        const narration = next.narration;
+        const nkey = `narr-${narration.id}`;
+        if (lastDoctorKeyRef.current !== nkey) {
+          lastDoctorKeyRef.current = nkey;
+          setTalks((prev) => [...prev, { id: `d-${nkey}`, role: "doctor", text: narration.text, badge: "说明" }]);
+        }
+      }
+      const fallbackSubtitle = next.prompt?.text ?? next.narration?.text ?? "";
       if (next.speak.length === 0) {
         setSubtitle(fallbackSubtitle);
         if (next.phase === "in_question") setReadyForVoice(true);
@@ -178,6 +193,8 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
         void playSpeaks(next.speak, next.capabilities.tts).then(() => {
           if (next.phase === "in_question") setReadyForVoice(true);
           if (next.phase === "intro") setReadyForConsent(true);
+          // 旁白不需作答：播报完自动请求下一步（M9.2，参照"题目播报完自动开始听"的机制）
+          if (next.phase === "narration") advanceRef.current();
         });
       } else {
         // 无用户手势时不自动播放（浏览器策略），只展示字幕
@@ -392,6 +409,47 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     }
   };
 
+  // ---------- 旁白（M9.2 总开场/分类过渡/工具说明）：播完自动推进，不需患者作答 ----------
+
+  // 旁白播报完成（自动链）或患者点「继续」（刷新后无手势自动播放被禁的兜底）后推进：
+  // 服务端写 system 轮次标记已播报，返回下一旁白/下一题/收尾状态。advancingRef 防重复推进。
+  const advanceFromNarration = async () => {
+    if (advancingRef.current) return;
+    advancingRef.current = true;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/patient/sessions/${sessionId}/advance`, { method: "POST" });
+      const dto = (await response.json()) as PatientDialogueStateDto & { error?: string };
+      if (!response.ok) {
+        setNotice(dto.error ?? "推进失败，请点「继续」重试");
+        if (response.status === 409) await refreshState();
+        return;
+      }
+      applyState(dto, { autoplay: true });
+    } catch {
+      setNotice("网络异常，请点「继续」重试");
+    } finally {
+      advancingRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  // applyState 是稳定 useCallback，经 ref 拿到最新的推进闭包，避免依赖循环
+  useEffect(() => {
+    advanceRef.current = () => void advanceFromNarration();
+  });
+
+  // 「继续」按钮：重播当前旁白后推进（正常自动链下播报结束会自动推进，此按钮是刷新/兜底入口）
+  const handleNarrationContinue = async () => {
+    if (!state?.narration || submitting) return;
+    await playSpeaks([state.narration.text], state.capabilities.tts);
+    await advanceFromNarration();
+  };
+
+  const replayNarration = () => {
+    if (state?.narration) void playSpeaks([state.narration.text], state.capabilities.tts);
+  };
+
   const replay = () => {
     if (state?.prompt) void playSpeaks([state.prompt.text], state.capabilities.tts);
   };
@@ -448,7 +506,9 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                   {speaking
                     ? state.phase === "intro"
                       ? "正在为您讲解…"
-                      : "正在为您播报问题…"
+                      : state.phase === "narration"
+                        ? "正在为您说明…"
+                        : "正在为您播报问题…"
                     : voiceReady
                       ? "请开口回答就行"
                       : "全程陪伴本次问询"}
@@ -559,6 +619,38 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
                   </button>
                 </div>
+              )}
+
+              {state.phase === "narration" && state.narration && (
+                <>
+                  {/* 旁白说明（M9.2 总开场/分类过渡/工具说明）：与提问同款大字气泡（带「说明」徽章），
+                      不显示作答区；播报完自动推进，「继续」按钮作刷新/降级兜底 */}
+                  <div ref={talkScrollRef} className="max-h-[52vh] flex-1 overflow-y-auto px-6 py-8 md:px-10">
+                    <ConversationLog talks={talks} speaking={speaking} />
+                  </div>
+                  <div className="border-t border-[var(--line)] px-6 py-6 md:px-10">
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={replayNarration}
+                        className="ui-button ui-button-quiet px-0 text-base underline decoration-dotted underline-offset-4"
+                      >
+                        <IconVolume size={20} stroke={1.8} aria-hidden="true" />
+                        <span>再听一遍</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="继续，听数字医生往下讲"
+                        disabled={submitting}
+                        onClick={() => void handleNarrationContinue()}
+                        className="patient-primary-action"
+                      >
+                        <span>继续</span>
+                        <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
 
               {state.phase === "in_question" && state.prompt && (
@@ -830,6 +922,11 @@ function ConversationLog({ talks, speaking }: { talks: TalkEntry[]; speaking: bo
             >
               <p className="mb-1 text-sm font-bold tracking-wide text-[var(--ink-faint)]">
                 {isDoctor ? "数字医生" : "您"}
+                {talk.badge && (
+                  <span className="ml-2 inline-block rounded-full bg-[var(--brand)] px-2 py-0.5 align-middle text-xs font-bold text-white">
+                    {talk.badge}
+                  </span>
+                )}
               </p>
               <p>{talk.text}</p>
               {isCurrent && speaking && (

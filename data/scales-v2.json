@@ -1,0 +1,6219 @@
+{
+  "generatedFrom": "V2/01_评估采集规则表.xlsx",
+  "generatedAt": "2026-08-07T09:56:21.094Z",
+  "categories": [
+    "全程",
+    "躯体功能",
+    "精神心理",
+    "社会与环境",
+    "老年综合征",
+    "中医特色扩展"
+  ],
+  "narrations": [
+    {
+      "id": "narr_3",
+      "row": 3,
+      "entryType": "总开场",
+      "category": "全程",
+      "scaleId": null,
+      "text": "接下来我会从日常生活、身体活动、记忆心情和一些常见健康问题几个方面了解您的情况。有些问题需要您回答，有些需要做一个简单动作。听不清楚可以随时让我再说一遍。"
+    },
+    {
+      "id": "narr_4",
+      "row": 4,
+      "entryType": "分类过渡",
+      "category": "躯体功能",
+      "scaleId": null,
+      "text": "先问问您平时生活自理、身体活动和看听方面的情况。"
+    },
+    {
+      "id": "narr_24",
+      "row": 24,
+      "entryType": "工具说明",
+      "category": "躯体功能",
+      "scaleId": "sppb",
+      "text": "下面做几个简单动作，包括站立、短距离走路和从椅子上站起。请量力而行，不舒服时立即停止。"
+    },
+    {
+      "id": "narr_30",
+      "row": 30,
+      "entryType": "工具说明",
+      "category": "躯体功能",
+      "scaleId": "vision",
+      "text": "下面了解您平时看东西的情况。平时戴眼镜的话，请按戴眼镜时的情况回答。"
+    },
+    {
+      "id": "narr_39",
+      "row": 39,
+      "entryType": "工具说明",
+      "category": "躯体功能",
+      "scaleId": "hearing",
+      "text": "下面了解您平时听声音的情况。平时戴助听器的话，请按使用助听器时的情况回答。"
+    },
+    {
+      "id": "narr_45",
+      "row": 45,
+      "entryType": "工具说明",
+      "category": "躯体功能",
+      "scaleId": "whisper",
+      "text": "下面做一个简单听力测试。我会轻声说几个词，请您重复听到的词。"
+    },
+    {
+      "id": "narr_50",
+      "row": 50,
+      "entryType": "分类过渡",
+      "category": "精神心理",
+      "scaleId": null,
+      "text": "下面了解一下您最近的记忆、心情和心理感受。"
+    },
+    {
+      "id": "narr_51",
+      "row": 51,
+      "entryType": "工具说明",
+      "category": "精神心理",
+      "scaleId": "minicog",
+      "text": "下面有一个记词和画钟的小测试，请按自己的情况完成。"
+    },
+    {
+      "id": "narr_55",
+      "row": 55,
+      "entryType": "工具说明",
+      "category": "精神心理",
+      "scaleId": "mmse",
+      "text": "下面会问时间、地点、记忆和计算方面的问题，也需要完成几个简单指令。"
+    },
+    {
+      "id": "narr_112",
+      "row": 112,
+      "entryType": "分类过渡",
+      "category": "精神心理",
+      "scaleId": null,
+      "text": ""
+    },
+    {
+      "id": "narr_113",
+      "row": 113,
+      "entryType": "工具说明",
+      "category": "精神心理",
+      "scaleId": "lubben",
+      "text": "接下来想了解一下，您平时和家人、亲戚、朋友来往得多不多。这里说的联系，包括见面、打电话、发微信或者视频。您大概告诉我有多少人就可以。"
+    },
+    {
+      "id": "narr_114",
+      "row": 114,
+      "entryType": "分类过渡",
+      "category": "社会与环境",
+      "scaleId": null,
+      "text": "接下来问问您与家人朋友的联系，以及居住环境是否方便、安全。"
+    },
+    {
+      "id": "narr_121",
+      "row": 121,
+      "entryType": "工具说明",
+      "category": "社会与环境",
+      "scaleId": "home_env",
+      "text": "接下来想了解一下您家里平时走路、开灯、洗澡和上下台阶是否方便、安全。"
+    },
+    {
+      "id": "narr_136",
+      "row": 136,
+      "entryType": "分类过渡",
+      "category": "老年综合征",
+      "scaleId": null,
+      "text": "下面了解一些老年人比较常见的健康问题。"
+    },
+    {
+      "id": "narr_178",
+      "row": 178,
+      "entryType": "工具说明",
+      "category": "老年综合征",
+      "scaleId": "pain_behavior",
+      "text": "该量表由医护人员根据表情、动作和发声情况观察记录，不向患者逐题提问。"
+    },
+    {
+      "id": "narr_185",
+      "row": 185,
+      "entryType": "工具说明",
+      "category": "老年综合征",
+      "scaleId": "braden",
+      "text": "该量表由医护人员结合皮肤、活动、营养和翻身情况进行评估。"
+    },
+    {
+      "id": "narr_192",
+      "row": 192,
+      "entryType": "工具说明",
+      "category": "老年综合征",
+      "scaleId": "polypharmacy",
+      "text": "下面核对您正在使用的全部药物，包括西药、中成药和保健品。"
+    },
+    {
+      "id": "narr_200",
+      "row": 200,
+      "entryType": "工具说明",
+      "category": "老年综合征",
+      "scaleId": "water_swallow",
+      "text": "下面按医护人员指令喝少量温水，出现呛咳或不适时立即停止。"
+    },
+    {
+      "id": "narr_221",
+      "row": 221,
+      "entryType": "工具说明",
+      "category": "老年综合征",
+      "scaleId": "calf",
+      "text": "下面需要完成小腿围、握力、步速或肌肉量等身体测量，请按医护人员指导配合。"
+    },
+    {
+      "id": "narr_230",
+      "row": 230,
+      "entryType": "分类过渡",
+      "category": "中医特色扩展",
+      "scaleId": null,
+      "text": "最后问一些您平时的身体感受和体质特点。"
+    }
+  ],
+  "scales": [
+    {
+      "id": "adl",
+      "name": "基本日常生活活动能力评估量表",
+      "category": "躯体功能",
+      "subcategory": "日常生活活动能力",
+      "items": [
+        {
+          "id": "adl_1",
+          "row": 5,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您平时吃饭需要别人喂吗？",
+          "optionsRaw": "A、可独立进食（10分）；B、需部分帮助（5分）；C、需极大帮助或完全依赖他人，或留置胃管（0分）",
+          "options": [
+            {
+              "label": "可独立进食（10分）",
+              "score": 10
+            },
+            {
+              "label": "需部分帮助（5分）",
+              "score": 5
+            },
+            {
+              "label": "需极大帮助或完全依赖他人，或留置胃管（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_2",
+          "row": 6,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "您平时洗澡需要别人帮忙吗？",
+          "optionsRaw": "A、准备好洗澡水后，可独立完成洗澡过程（5分）；B、洗澡过程需要他人帮助（0分）",
+          "options": [
+            {
+              "label": "准备好洗澡水后，可独立完成洗澡过程（5分）",
+              "score": 5
+            },
+            {
+              "label": "洗澡过程需要他人帮助（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_3",
+          "row": 7,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您平时洗脸、刷牙需要别人帮忙吗？",
+          "optionsRaw": "A、可独立完成（5分）；B、需要他人帮助（0分）",
+          "options": [
+            {
+              "label": "可独立完成（5分）",
+              "score": 5
+            },
+            {
+              "label": "需要他人帮助（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_4",
+          "row": 8,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "您平时穿衣服和鞋袜需要别人帮忙吗？",
+          "optionsRaw": "A、可独立完成（10分）；B、需部分帮助（5分）；C、需极大帮助或完全依赖他人（0分）",
+          "options": [
+            {
+              "label": "可独立完成（10分）",
+              "score": 10
+            },
+            {
+              "label": "需部分帮助（5分）",
+              "score": 5
+            },
+            {
+              "label": "需极大帮助或完全依赖他人（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_5",
+          "row": 9,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "您有没有控制不住大便的情况呢？",
+          "optionsRaw": "A、可控制大便（10分）；B、偶尔失控，或需要他人提示（5分）；C、完全失控（0分）",
+          "options": [
+            {
+              "label": "可控制大便（10分）",
+              "score": 10
+            },
+            {
+              "label": "偶尔失控，或需要他人提示（5分）",
+              "score": 5
+            },
+            {
+              "label": "完全失控（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_6",
+          "row": 10,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "您有没有控制不住小便或漏尿的情况呢？",
+          "optionsRaw": "A、可控制小便（10分）；B、偶尔失控，或需要他人提示（5分）；C、完全失控，或留置导尿管（0分）",
+          "options": [
+            {
+              "label": "可控制小便（10分）",
+              "score": 10
+            },
+            {
+              "label": "偶尔失控，或需要他人提示（5分）",
+              "score": 5
+            },
+            {
+              "label": "完全失控，或留置导尿管（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "URINARY_CONTINENCE_USUAL",
+          "reuseRule": "与尿失禁筛查相关但时间范围和分级不同，不直接回填；可用于判断是否触发尿失禁专项评估"
+        },
+        {
+          "id": "adl_7",
+          "row": 11,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "您上厕所的时候需要别人帮忙穿脱衣裤、擦干净吗？",
+          "optionsRaw": "A、可独立完成（10分）；B、需部分帮助（5分）；C、需极大帮助或完全依赖他人（0分）",
+          "options": [
+            {
+              "label": "可独立完成（10分）",
+              "score": 10
+            },
+            {
+              "label": "需部分帮助（5分）",
+              "score": 5
+            },
+            {
+              "label": "需极大帮助或完全依赖他人（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_8",
+          "row": 12,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "您可以自己从床上起来坐到椅子上、以及从椅子上起来回到床上吗？",
+          "optionsRaw": "A、可独立完成（15分）；B、需部分帮助（10分）；C、需极大帮助（5分）；D、完全依赖他人（0分）",
+          "options": [
+            {
+              "label": "可独立完成（15分）",
+              "score": 15
+            },
+            {
+              "label": "需部分帮助（10分）",
+              "score": 10
+            },
+            {
+              "label": "需极大帮助（5分）",
+              "score": 5
+            },
+            {
+              "label": "完全依赖他人（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_9",
+          "row": 13,
+          "no": "9",
+          "entryType": "正式问题",
+          "text": "您在平地上走45米需要别人扶着吗？",
+          "optionsRaw": "A、可独立在平地行走45米（15分）；B、需部分帮助（10分）；C、需极大帮助（5分）；D、完全依赖他人（0分）",
+          "options": [
+            {
+              "label": "可独立在平地行走45米（15分）",
+              "score": 15
+            },
+            {
+              "label": "需部分帮助（10分）",
+              "score": 10
+            },
+            {
+              "label": "需极大帮助（5分）",
+              "score": 5
+            },
+            {
+              "label": "完全依赖他人（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_9",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "adl_10",
+          "row": 14,
+          "no": "10",
+          "entryType": "正式问题",
+          "text": "您连续上下10到15级台阶时，需要别人帮忙吗？",
+          "optionsRaw": "A、可独立上下10～15级台阶（10分）；B、需部分帮助（5分）；C、需极大帮助或完全依赖他人（0分）",
+          "options": [
+            {
+              "label": "可独立上下10～15级台阶（10分）",
+              "score": 10
+            },
+            {
+              "label": "需部分帮助（5分）",
+              "score": 5
+            },
+            {
+              "label": "需极大帮助或完全依赖他人（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "ADL_10",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "iadl",
+      "name": "工具性日常生活活动能力量表",
+      "category": "躯体功能",
+      "subcategory": "日常生活活动能力",
+      "items": [
+        {
+          "id": "iadl_1",
+          "row": 15,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "最近一个月，你能够在没有家人陪伴的情况下，自己一个人去街上买齐家里所需要的东西吗？",
+          "optionsRaw": "A、能独立完成所有购物需求（1分）；B、只能独立购买日常生活用品（0分）；C、每次购物都需要有人陪伴（0分）；D、完全不能上街购物（0分）",
+          "options": [
+            {
+              "label": "能独立完成所有购物需求（1分）",
+              "score": 1
+            },
+            {
+              "label": "只能独立购买日常生活用品（0分）",
+              "score": 0
+            },
+            {
+              "label": "每次购物都需要有人陪伴（0分）",
+              "score": 0
+            },
+            {
+              "label": "完全不能上街购物（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iadl_2",
+          "row": 16,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "最近一个月，您出门时，能够自己坐公交、地铁或者打车吗？",
+          "optionsRaw": "A、能独立乘坐公共交通工具或自己开车（1分）；B、能独立乘出租车并安排路线，但不能乘坐公共交通工具（1分）；C、在他人帮助或陪伴下可乘坐公共交通工具（1分）；D、只能在他人陪伴下乘出租车或私家车（0分）；E、完全不能外出（0分）",
+          "options": [
+            {
+              "label": "能独立乘坐公共交通工具或自己开车（1分）",
+              "score": 1
+            },
+            {
+              "label": "能独立乘出租车并安排路线，但不能乘坐公共交通工具（1分）",
+              "score": 1
+            },
+            {
+              "label": "在他人帮助或陪伴下可乘坐公共交通工具（1分）",
+              "score": 1
+            },
+            {
+              "label": "只能在他人陪伴下乘出租车或私家车（0分）",
+              "score": 0
+            },
+            {
+              "label": "完全不能外出（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iadl_3",
+          "row": 17,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "最近一个月，您能够不用家人帮忙，自己买好食材、做好一顿饭吗？",
+          "optionsRaw": "A、能独立计划、烹调并摆设适当的饭菜（1分）；B、备好食材或佐料后能做饭（0分）；C、只能加热现成饭菜（0分）；D、需要他人把饭菜煮好、摆好（0分）",
+          "options": [
+            {
+              "label": "能独立计划、烹调并摆设适当的饭菜（1分）",
+              "score": 1
+            },
+            {
+              "label": "备好食材或佐料后能做饭（0分）",
+              "score": 0
+            },
+            {
+              "label": "只能加热现成饭菜（0分）",
+              "score": 0
+            },
+            {
+              "label": "需要他人把饭菜煮好、摆好（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iadl_4",
+          "row": 18,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "最近一个月，您可以做一些家务吗，比如洗碗、铺床或者收拾房间？",
+          "optionsRaw": "A、能做较重的家务，或偶尔需要协助（1分）；B、能做洗碗、铺床等简单家务（1分）；C、能做简单家务，但不能保持可接受的整洁程度（1分）；D、所有家务都需要别人协助（1分）；E、完全不能做家务（0分）",
+          "options": [
+            {
+              "label": "能做较重的家务，或偶尔需要协助（1分）",
+              "score": 1
+            },
+            {
+              "label": "能做洗碗、铺床等简单家务（1分）",
+              "score": 1
+            },
+            {
+              "label": "能做简单家务，但不能保持可接受的整洁程度（1分）",
+              "score": 1
+            },
+            {
+              "label": "所有家务都需要别人协助（1分）",
+              "score": 1
+            },
+            {
+              "label": "完全不能做家务（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iadl_5",
+          "row": 19,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "最近一个月，您能够自己洗衣服、晾衣服吗？",
+          "optionsRaw": "A、能独立洗晒所有衣物（1分）；B、只能洗小件衣物，或部分需要协助（1分）；C、所有衣物都由别人洗晒（0分）",
+          "options": [
+            {
+              "label": "能独立洗晒所有衣物（1分）",
+              "score": 1
+            },
+            {
+              "label": "只能洗小件衣物，或部分需要协助（1分）",
+              "score": 1
+            },
+            {
+              "label": "所有衣物都由别人洗晒（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iadl_6",
+          "row": 20,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "最近一个月，您可以自己接电话或者打电话吗？",
+          "optionsRaw": "A、能独立使用电话（1分）；B、只能拨打熟悉的电话号码（1分）；C、只能接听，不能拨打（1分）；D、完全不会使用或不适用（0分）",
+          "options": [
+            {
+              "label": "能独立使用电话（1分）",
+              "score": 1
+            },
+            {
+              "label": "只能拨打熟悉的电话号码（1分）",
+              "score": 1
+            },
+            {
+              "label": "只能接听，不能拨打（1分）",
+              "score": 1
+            },
+            {
+              "label": "完全不会使用或不适用（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iadl_7",
+          "row": 21,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "最近一个月，您能够不用家人提醒或帮忙，自己按时按量吃药吗？",
+          "optionsRaw": "A、能在正确时间服用正确剂量的药物（1分）；B、需要提醒或少量协助（0分）；C、药物按时间和剂量预先摆好后可自行服用（0分）；D、不能自行服药（0分）",
+          "options": [
+            {
+              "label": "能在正确时间服用正确剂量的药物（1分）",
+              "score": 1
+            },
+            {
+              "label": "需要提醒或少量协助（0分）",
+              "score": 0
+            },
+            {
+              "label": "药物按时间和剂量预先摆好后可自行服用（0分）",
+              "score": 0
+            },
+            {
+              "label": "不能自行服药（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MEDICATION_SELF_MANAGEMENT",
+          "reuseRule": "仅评估患者是否能自行按时按量服药，不能用药品数量或药物清单直接替代"
+        },
+        {
+          "id": "iadl_8",
+          "row": 22,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "最近一个月，您可以自己处理好日常花钱和财务吗？",
+          "optionsRaw": "A、可以独立处理财务（1分）；B、可以处理日常购买，但银行业务或大宗买卖需要协助（1分）；C、不能处理财务（0分）",
+          "options": [
+            {
+              "label": "可以独立处理财务（1分）",
+              "score": 1
+            },
+            {
+              "label": "可以处理日常购买，但银行业务或大宗买卖需要协助（1分）",
+              "score": 1
+            },
+            {
+              "label": "不能处理财务（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "IADL_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "motor_screen",
+      "name": "运动功能初筛",
+      "category": "躯体功能",
+      "subcategory": "运动功能",
+      "items": [
+        {
+          "id": "motor_screen_1",
+          "row": 23,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您平时连续走400米或者上10级台阶会觉得有困难吗？",
+          "optionsRaw": "A、是（筛查阳性，进入SPPB评估）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性，进入SPPB评估）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "MOBILITY_DISTANCE_STAIRS",
+          "reuseRule": "首次询问400米步行和10级台阶困难。若回答均无困难，FRAIL的上楼及100米步行可直接回填“否”；若有困难，后续分别追问具体是哪一项"
+        }
+      ]
+    },
+    {
+      "id": "sppb",
+      "name": "简易体能状况量表（SPPB）",
+      "category": "躯体功能",
+      "subcategory": "运动功能",
+      "items": [
+        {
+          "id": "sppb_1A",
+          "row": 25,
+          "no": "1A",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、保持10秒（1分）；B、未保持10秒（0分）；C、不尝试，结束平衡测试（0分）",
+          "options": [
+            {
+              "label": "保持10秒（1分）",
+              "score": 1
+            },
+            {
+              "label": "未保持10秒（0分）",
+              "score": 0
+            },
+            {
+              "label": "不尝试，结束平衡测试（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "SPPB_1A",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "sppb_1B",
+          "row": 26,
+          "no": "1B",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、保持10秒（1分）；B、未保持10秒（0分）；C、不尝试，结束平衡测试（0分）",
+          "options": [
+            {
+              "label": "保持10秒（1分）",
+              "score": 1
+            },
+            {
+              "label": "未保持10秒（0分）",
+              "score": 0
+            },
+            {
+              "label": "不尝试，结束平衡测试（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "SPPB_1B",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "sppb_1C",
+          "row": 27,
+          "no": "1C",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、保持10秒（2分）；B、保持3～9.99秒（1分）；C、保持不足3秒（0分）；D、不尝试（0分）",
+          "options": [
+            {
+              "label": "保持10秒（2分）",
+              "score": 2
+            },
+            {
+              "label": "保持3～9.99秒（1分）",
+              "score": 1
+            },
+            {
+              "label": "保持不足3秒（0分）",
+              "score": 0
+            },
+            {
+              "label": "不尝试（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "SPPB_1C",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "sppb_2",
+          "row": 28,
+          "no": "2",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、＜4.82秒（4分）；B、4.82～6.20秒（3分）；C、6.21～8.70秒（2分）；D、＞8.70秒（1分）；E、不能完成（0分）",
+          "options": [
+            {
+              "label": "＜4.82秒（4分）",
+              "score": 4
+            },
+            {
+              "label": "4.82～6.20秒（3分）",
+              "score": 3
+            },
+            {
+              "label": "6.21～8.70秒（2分）",
+              "score": 2
+            },
+            {
+              "label": "＞8.70秒（1分）",
+              "score": 1
+            },
+            {
+              "label": "不能完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "SPPB_2",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "sppb_3",
+          "row": 29,
+          "no": "3",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、≤11.19秒（4分）；B、11.20～13.69秒（3分）；C、13.70～16.69秒（2分）；D、16.70～60秒（1分）；E、＞60秒或不能完成（0分）",
+          "options": [
+            {
+              "label": "≤11.19秒（4分）",
+              "score": 4
+            },
+            {
+              "label": "11.20～13.69秒（3分）",
+              "score": 3
+            },
+            {
+              "label": "13.70～16.69秒（2分）",
+              "score": 2
+            },
+            {
+              "label": "16.70～60秒（1分）",
+              "score": 1
+            },
+            {
+              "label": "＞60秒或不能完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "SPPB_3",
+          "reuseRule": "已有结果直接复用；否则测量"
+        }
+      ]
+    },
+    {
+      "id": "vision",
+      "name": "视力简易评估表",
+      "category": "躯体功能",
+      "subcategory": "视力",
+      "items": [
+        {
+          "id": "vision_1",
+          "row": 31,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您平时看东西需要戴眼镜吗？需要（1-1）、不需要（1-2）",
+          "optionsRaw": "A、需要（戴上平时使用的眼镜后继续评估）；B、不需要（直接继续评估）",
+          "options": [
+            {
+              "label": "需要（戴上平时使用的眼镜后继续评估）",
+              "score": null
+            },
+            {
+              "label": "不需要（直接继续评估）",
+              "score": null
+            }
+          ],
+          "variableCode": "VISION_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "vision_2",
+          "row": 32,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "1-1、戴上眼镜后，您可以看清楚报纸或者书上的字吗？ 可以（结束）、不可以（2）；1-2、您可以看清楚报纸或者书上的字吗？可以（结束）、不可以（2）",
+          "optionsRaw": "A、可以看清标准字体（4分，结束视力评估）；B、不可以（进入下一题）",
+          "options": [
+            {
+              "label": "可以看清标准字体（4分，结束视力评估）",
+              "score": 4
+            },
+            {
+              "label": "不可以（进入下一题）",
+              "score": null
+            }
+          ],
+          "variableCode": "VISION_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "vision_3",
+          "row": 33,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "2、那报纸上的大标题您可以看清吗？可以（结束）、不可以（3）",
+          "optionsRaw": "A、可以看清报纸大标题（3分，结束视力评估）；B、不可以（进入下一题）",
+          "options": [
+            {
+              "label": "可以看清报纸大标题（3分，结束视力评估）",
+              "score": 3
+            },
+            {
+              "label": "不可以（进入下一题）",
+              "score": null
+            }
+          ],
+          "variableCode": "VISION_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "vision_4",
+          "row": 34,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "3、那站在您面前的人或者放在您面前的桌子、杯子您能认得出来吗？可以（结束）、不可以（4）",
+          "optionsRaw": "A、可以认出面前的人或物品（2分，结束视力评估）；B、不可以（进入下一题）",
+          "options": [
+            {
+              "label": "可以认出面前的人或物品（2分，结束视力评估）",
+              "score": 2
+            },
+            {
+              "label": "不可以（进入下一题）",
+              "score": null
+            }
+          ],
+          "variableCode": "VISION_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "vision_5",
+          "row": 35,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "4、别人拿着东西在您眼前移动，您能看见它在动吗？能分清光亮、颜色和大概的形状吗？可以（结束）、不可以（结束）",
+          "optionsRaw": "A、可以跟随移动物体，并能分辨光亮、颜色和大概形状（1分）；B、完全不能（0分）",
+          "options": [
+            {
+              "label": "可以跟随移动物体，并能分辨光亮、颜色和大概形状（1分）",
+              "score": 1
+            },
+            {
+              "label": "完全不能（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "VISION_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "visual_function",
+      "name": "视觉功能简易评估表",
+      "category": "躯体功能",
+      "subcategory": "视力",
+      "items": [
+        {
+          "id": "visual_function_1",
+          "row": 36,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您平时看书、看电视或者走路的时候，会因为眼睛看不清而觉得比较吃力吗？",
+          "optionsRaw": "A、是（0分）；B、否（1分）",
+          "options": [
+            {
+              "label": "是（0分）",
+              "score": 0
+            },
+            {
+              "label": "否（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "VISUAL_FUNCTION_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "visual_function_2",
+          "row": 37,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "您看东西的时候，会不会觉得眼前像有东西挡着，或者有一块地方看不见？",
+          "optionsRaw": "A、是（0分）；B、否（1分）",
+          "options": [
+            {
+              "label": "是（0分）",
+              "score": 0
+            },
+            {
+              "label": "否（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "VISUAL_FUNCTION_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "visual_function_3",
+          "row": 38,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您看东西的时候，会不会觉得东西变形了，比如直线看起来是弯的？",
+          "optionsRaw": "A、是（0分）；B、否（1分）",
+          "options": [
+            {
+              "label": "是（0分）",
+              "score": 0
+            },
+            {
+              "label": "否（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "VISUAL_FUNCTION_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "hearing",
+      "name": "听力简易评估表",
+      "category": "躯体功能",
+      "subcategory": "听力",
+      "items": [
+        {
+          "id": "hearing_1",
+          "row": 40,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您平时听别人说话需要戴助听器吗？需要（请戴上助听器，1）、不需要（1）",
+          "optionsRaw": "A、需要（戴上平时使用的助听器后继续评估）；B、不需要（直接继续评估）",
+          "options": [
+            {
+              "label": "需要（戴上平时使用的助听器后继续评估）",
+              "score": null
+            },
+            {
+              "label": "不需要（直接继续评估）",
+              "score": null
+            }
+          ],
+          "variableCode": "HEARING_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "hearing_2",
+          "row": 41,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "1、平时跟别人说话，还有电视、电话、门铃这些声音，您都能听清楚吗？可以（结束）、不可以（2）",
+          "optionsRaw": "A、可以听清（4分，结束听力评估）；B、不可以（进入下一题）",
+          "options": [
+            {
+              "label": "可以听清（4分，结束听力评估）",
+              "score": 4
+            },
+            {
+              "label": "不可以（进入下一题）",
+              "score": null
+            }
+          ],
+          "variableCode": "HEARING_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "hearing_3",
+          "row": 42,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "2、那别人说话声音比较小，或者距离您超过2米说话，您能听清楚吗？可以（结束）、不可以（3）",
+          "optionsRaw": "A、可以听清（3分，结束听力评估）；B、不可以（进入下一题）",
+          "options": [
+            {
+              "label": "可以听清（3分，结束听力评估）",
+              "score": 3
+            },
+            {
+              "label": "不可以（进入下一题）",
+              "score": null
+            }
+          ],
+          "variableCode": "HEARING_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "hearing_4",
+          "row": 43,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "3、如果周围比较安静，或者别人说话声音大一些，您能听清楚吗？可以（结束）、不可以（4）",
+          "optionsRaw": "A、可以听清（2分，结束听力评估）；B、不可以（进入下一题）",
+          "options": [
+            {
+              "label": "可以听清（2分，结束听力评估）",
+              "score": 2
+            },
+            {
+              "label": "不可以（进入下一题）",
+              "score": null
+            }
+          ],
+          "variableCode": "HEARING_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "hearing_5",
+          "row": 44,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "4、如果别人靠近您，大声而且慢慢地说，您还能听见一些吗？可以（结束）、不可以（结束）",
+          "optionsRaw": "A、还能听见一些（1分）；B、完全听不见（0分）",
+          "options": [
+            {
+              "label": "还能听见一些（1分）",
+              "score": 1
+            },
+            {
+              "label": "完全听不见（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HEARING_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "whisper",
+      "name": "耳语试验",
+      "category": "躯体功能",
+      "subcategory": "听力",
+      "items": [
+        {
+          "id": "whisper_1",
+          "row": 46,
+          "no": "1",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、评估人员已在受试耳一侧后方一臂距离处就位；B、无法按要求就位（记录原因）",
+          "options": [
+            {
+              "label": "评估人员已在受试耳一侧后方一臂距离处就位",
+              "score": null
+            },
+            {
+              "label": "无法按要求就位（记录原因）",
+              "score": null
+            }
+          ],
+          "variableCode": "WHISPER_1",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "whisper_2",
+          "row": 47,
+          "no": "2",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、对侧耳已按要求关闭；B、未能关闭或操作不规范（记录原因）",
+          "options": [
+            {
+              "label": "对侧耳已按要求关闭",
+              "score": null
+            },
+            {
+              "label": "未能关闭或操作不规范（记录原因）",
+              "score": null
+            }
+          ],
+          "variableCode": "WHISPER_2",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "whisper_3",
+          "row": 48,
+          "no": "3",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "记录该侧耳正确复述词数：4个／3个／2个／1个／0个；正确复述少于3个词，该侧结果为阳性",
+          "options": [
+            {
+              "label": "正确复述4个词",
+              "score": 4
+            },
+            {
+              "label": "正确复述3个词",
+              "score": 3
+            },
+            {
+              "label": "正确复述2个词",
+              "score": 2
+            },
+            {
+              "label": "正确复述1个词",
+              "score": 1
+            },
+            {
+              "label": "正确复述0个词",
+              "score": 0
+            }
+          ],
+          "variableCode": "WHISPER_3",
+          "reuseRule": "已有结果直接复用；否则测量"
+        },
+        {
+          "id": "whisper_4",
+          "row": 49,
+          "no": "4",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "记录另一侧耳正确复述词数：4个／3个／2个／1个／0个；任一侧正确复述少于3个词，耳语试验为阳性",
+          "options": [
+            {
+              "label": "正确复述4个词",
+              "score": 4
+            },
+            {
+              "label": "正确复述3个词",
+              "score": 3
+            },
+            {
+              "label": "正确复述2个词",
+              "score": 2
+            },
+            {
+              "label": "正确复述1个词",
+              "score": 1
+            },
+            {
+              "label": "正确复述0个词",
+              "score": 0
+            }
+          ],
+          "variableCode": "WHISPER_4",
+          "reuseRule": "已有结果直接复用；否则测量"
+        }
+      ]
+    },
+    {
+      "id": "minicog",
+      "name": "简易智力评估量表",
+      "category": "精神心理",
+      "subcategory": "认知功能",
+      "items": [
+        {
+          "id": "minicog_1",
+          "row": 52,
+          "no": "1",
+          "entryType": "记忆指令",
+          "text": "接下来我说三个词，请您听清楚并记住。等我说完以后，请您马上把这三个词重复一遍，过一会儿我还会再问您。准备好了吗？——苹果、钥匙、汽车。",
+          "optionsRaw": "记录首次正确复述的词数：0个／1个／2个／3个（仅用于确认已听清，不计入量表总分）",
+          "options": null,
+          "variableCode": "MINICOG_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "minicog_2",
+          "row": 53,
+          "no": "2",
+          "entryType": "绘图操作",
+          "text": "现在请您在屏幕上画一个钟表，把1到12这些数字标在正确的位置，再画上时针、分针和秒针。请您自己完成并点击提交。",
+          "optionsRaw": "A、画钟正确：数字位置正确，且指针显示规定时间（2分）；B、画钟错误或未完成（0分）",
+          "options": [
+            {
+              "label": "画钟正确：数字位置正确，且指针显示规定时间（2分）",
+              "score": 2
+            },
+            {
+              "label": "画钟错误或未完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MINICOG_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "minicog_3",
+          "row": 54,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您还记得刚刚我让您记住的三个词吗？现在请您把这三个词说出来。",
+          "optionsRaw": "A、回忆0个词（0分）；B、回忆1个词（1分）；C、回忆2个词（2分）；D、回忆3个词（3分）",
+          "options": [
+            {
+              "label": "回忆0个词（0分）",
+              "score": 0
+            },
+            {
+              "label": "回忆1个词（1分）",
+              "score": 1
+            },
+            {
+              "label": "回忆2个词（2分）",
+              "score": 2
+            },
+            {
+              "label": "回忆3个词（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "MINICOG_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "mmse",
+      "name": "简易智力状态检查量表（MMSE）",
+      "category": "精神心理",
+      "subcategory": "认知功能",
+      "items": [
+        {
+          "id": "mmse_1",
+          "row": 56,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您知道今年是哪一年吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_2",
+          "row": 57,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "您知道现在是什么季节吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_3",
+          "row": 58,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您知道现在是几月份吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_4",
+          "row": 59,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "您知道今天是几号吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_5",
+          "row": 60,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "您知道今天是星期几吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_6",
+          "row": 61,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "您知道我们现在在哪个省或者直辖市吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_7",
+          "row": 62,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "您知道我们现在在哪个城市或者区县吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_8",
+          "row": 63,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "您知道我们现在是在什么地方吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_9",
+          "row": 64,
+          "no": "9",
+          "entryType": "正式问题",
+          "text": "您知道这里是什么科室或者病区吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_9",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_10",
+          "row": 65,
+          "no": "10",
+          "entryType": "正式问题",
+          "text": "您知道我们现在在几楼吗？",
+          "optionsRaw": "A、回答正确（1分）；B、回答错误或不知道（0分）",
+          "options": [
+            {
+              "label": "回答正确（1分）",
+              "score": 1
+            },
+            {
+              "label": "回答错误或不知道（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_10",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_11",
+          "row": 66,
+          "no": "11",
+          "entryType": "记忆指令",
+          "text": "接下来我说三个词，请您听清楚。等我说完以后，请您马上复述一遍。准备好了吗？第一个词是：皮球",
+          "optionsRaw": "A、正确复述“皮球”（1分）；B、错误或未复述（0分）",
+          "options": [
+            {
+              "label": "正确复述“皮球”（1分）",
+              "score": 1
+            },
+            {
+              "label": "错误或未复述（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_11",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_12",
+          "row": 67,
+          "no": "12",
+          "entryType": "记忆指令",
+          "text": "第二个词是：国旗",
+          "optionsRaw": "A、正确复述“国旗”（1分）；B、错误或未复述（0分）",
+          "options": [
+            {
+              "label": "正确复述“国旗”（1分）",
+              "score": 1
+            },
+            {
+              "label": "错误或未复述（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_12",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_13",
+          "row": 68,
+          "no": "13",
+          "entryType": "记忆指令",
+          "text": "第三个词是：树木",
+          "optionsRaw": "A、正确复述“树木”（1分）；B、错误或未复述（0分）",
+          "options": [
+            {
+              "label": "正确复述“树木”（1分）",
+              "score": 1
+            },
+            {
+              "label": "错误或未复述（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_13",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_14",
+          "row": 69,
+          "no": "14",
+          "entryType": "正式问题",
+          "text": "现在考考您的计算能力，您可以告诉我，用100减去7等于多少吗？",
+          "optionsRaw": "A、回答93（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答93（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_14",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_15",
+          "row": 70,
+          "no": "15",
+          "entryType": "正式问题",
+          "text": "再减去7等于多少？",
+          "optionsRaw": "A、回答86（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答86（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_15",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_16",
+          "row": 71,
+          "no": "16",
+          "entryType": "正式问题",
+          "text": "再减7呢？",
+          "optionsRaw": "A、回答79（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答79（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_16",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_17",
+          "row": 72,
+          "no": "17",
+          "entryType": "正式问题",
+          "text": "再减7等于多少？",
+          "optionsRaw": "A、回答72（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答72（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_17",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_18",
+          "row": 73,
+          "no": "18",
+          "entryType": "正式问题",
+          "text": "最后一次，再减去7等于多少？",
+          "optionsRaw": "A、回答65（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答65（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_18",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_19",
+          "row": 74,
+          "no": "19",
+          "entryType": "正式问题",
+          "text": "刚才我让您记住了三个词，您现在还能把它们说出来吗？请说出第1个词",
+          "optionsRaw": "A、说出“皮球”（1分）；B、未说出（0分）",
+          "options": [
+            {
+              "label": "说出“皮球”（1分）",
+              "score": 1
+            },
+            {
+              "label": "未说出（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_19",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_20",
+          "row": 75,
+          "no": "20",
+          "entryType": "正式问题",
+          "text": "请说出第2个词",
+          "optionsRaw": "A、说出“国旗”（1分）；B、未说出（0分）",
+          "options": [
+            {
+              "label": "说出“国旗”（1分）",
+              "score": 1
+            },
+            {
+              "label": "未说出（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_20",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_21",
+          "row": 76,
+          "no": "21",
+          "entryType": "正式问题",
+          "text": "请说出第3个词",
+          "optionsRaw": "A、说出“树木”（1分）；B、未说出（0分）",
+          "options": [
+            {
+              "label": "说出“树木”（1分）",
+              "score": 1
+            },
+            {
+              "label": "未说出（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_21",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_22",
+          "row": 77,
+          "no": "22",
+          "entryType": "图片识别",
+          "text": "请您看看屏幕上的这个东西，您知道它叫什么吗？",
+          "optionsRaw": "A、回答“手表”（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答“手表”（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_22",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_23",
+          "row": 78,
+          "no": "23",
+          "entryType": "图片识别",
+          "text": "再看看这个，您知道它叫什么吗？",
+          "optionsRaw": "A、回答“铅笔”（1分）；B、其他答案或不能回答（0分）",
+          "options": [
+            {
+              "label": "回答“铅笔”（1分）",
+              "score": 1
+            },
+            {
+              "label": "其他答案或不能回答（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_23",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_24",
+          "row": 79,
+          "no": "24",
+          "entryType": "正式问题",
+          "text": "接下来我说一句话，请您听清楚，再完整地重复一遍：瑞雪兆丰年。",
+          "optionsRaw": "A、完整准确复述“瑞雪兆丰年”（1分）；B、漏词、错词、换词或不能复述（0分）",
+          "options": [
+            {
+              "label": "完整准确复述“瑞雪兆丰年”（1分）",
+              "score": 1
+            },
+            {
+              "label": "漏词、错词、换词或不能复述（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_24",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_25",
+          "row": 80,
+          "no": "25",
+          "entryType": "操作指令",
+          "text": "接下来请听清我的指令，并照着做：首先用右手拿起桌面上的白纸",
+          "optionsRaw": "A、正确完成该步骤（1分）；B、错误或未完成（0分）",
+          "options": [
+            {
+              "label": "正确完成该步骤（1分）",
+              "score": 1
+            },
+            {
+              "label": "错误或未完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_25",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_26",
+          "row": 81,
+          "no": "26",
+          "entryType": "操作指令",
+          "text": "然后将纸对折",
+          "optionsRaw": "A、正确完成该步骤（1分）；B、错误或未完成（0分）",
+          "options": [
+            {
+              "label": "正确完成该步骤（1分）",
+              "score": 1
+            },
+            {
+              "label": "错误或未完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_26",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_27",
+          "row": 82,
+          "no": "27",
+          "entryType": "操作指令",
+          "text": "接着把纸放在打印机上",
+          "optionsRaw": "A、正确完成该步骤（1分）；B、错误或未完成（0分）",
+          "options": [
+            {
+              "label": "正确完成该步骤（1分）",
+              "score": 1
+            },
+            {
+              "label": "错误或未完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_27",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_28",
+          "row": 83,
+          "no": "28",
+          "entryType": "操作指令",
+          "text": "请您读出屏幕上的这句话，然后照着做一遍。",
+          "optionsRaw": "A、读懂并执行书面指令“闭上眼睛”（1分）；B、未正确执行（0分）",
+          "options": [
+            {
+              "label": "读懂并执行书面指令“闭上眼睛”（1分）",
+              "score": 1
+            },
+            {
+              "label": "未正确执行（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_28",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_29",
+          "row": 84,
+          "no": "29",
+          "entryType": "操作指令",
+          "text": "请您写出一个内容完整的句子。",
+          "optionsRaw": "A、写出有主语、谓语且能表达完整意思的句子（1分）；B、不符合要求或未完成（0分）",
+          "options": [
+            {
+              "label": "写出有主语、谓语且能表达完整意思的句子（1分）",
+              "score": 1
+            },
+            {
+              "label": "不符合要求或未完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_29",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mmse_30",
+          "row": 85,
+          "no": "30",
+          "entryType": "操作指令",
+          "text": "请您照着屏幕上的这个图，在旁边画一个一样的图形。",
+          "optionsRaw": "A、正确复制两个相交的五边形（1分）；B、复制错误或未完成（0分）",
+          "options": [
+            {
+              "label": "正确复制两个相交的五边形（1分）",
+              "score": 1
+            },
+            {
+              "label": "复制错误或未完成（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MMSE_30",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "depression_2q",
+      "name": "抑郁两问筛查",
+      "category": "精神心理",
+      "subcategory": "抑郁",
+      "items": [
+        {
+          "id": "depression_2q_1",
+          "row": 86,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "在过去两周里，您是否常常觉得做事提不起兴趣或没有劲？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "DEP2Q_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "depression_2q_2",
+          "row": 87,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "在过去两周里，您有没有常常感到心情低落、沮丧或没有希望？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "DEP2Q_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "gds15",
+      "name": "简版老年抑郁量表（GDS-15）",
+      "category": "精神心理",
+      "subcategory": "抑郁",
+      "items": [
+        {
+          "id": "gds15_1",
+          "row": 88,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您对现在的生活基本满意吗？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（0分）；B、不是（1分）",
+          "options": [
+            {
+              "label": "是的（0分）",
+              "score": 0
+            },
+            {
+              "label": "不是（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "GDS15_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_2",
+          "row": 89,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "您是不是放弃了很多以前喜欢做的事情和兴趣爱好？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_3",
+          "row": 90,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您是不是常常觉得生活很空虚？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_4",
+          "row": 91,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "您是不是经常觉得无聊，做什么都没有意思？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_5",
+          "row": 92,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "您大部分时间都觉得有精神、有力气吗？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（0分）；B、不是（1分）",
+          "options": [
+            {
+              "label": "是的（0分）",
+              "score": 0
+            },
+            {
+              "label": "不是（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "GDS15_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_6",
+          "row": 93,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "您是不是经常担心会有不好的事情发生在自己身上？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_7",
+          "row": 94,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "您是不是大部分时间都感到幸福？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（0分）；B、不是（1分）",
+          "options": [
+            {
+              "label": "是的（0分）",
+              "score": 0
+            },
+            {
+              "label": "不是（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "GDS15_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_8",
+          "row": 95,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "您是不是经常觉得自己没有办法解决遇到的事情，也没有人可以帮助您？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_9",
+          "row": 96,
+          "no": "9",
+          "entryType": "正式问题",
+          "text": "和外出活动去做一些新鲜事相比，您是不是更愿意待在家里？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_9",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_10",
+          "row": 97,
+          "no": "10",
+          "entryType": "正式问题",
+          "text": "您是不是觉得自己的记性比以前差了多？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_10",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_11",
+          "row": 98,
+          "no": "11",
+          "entryType": "正式问题",
+          "text": "您觉得现在活着是一件开心的事情吗？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（0分）；B、不是（1分）",
+          "options": [
+            {
+              "label": "是的（0分）",
+              "score": 0
+            },
+            {
+              "label": "不是（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "GDS15_11",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_12",
+          "row": 99,
+          "no": "12",
+          "entryType": "正式问题",
+          "text": "您是不是觉得自己现在这样生活没有什么意义？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_12",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_13",
+          "row": 100,
+          "no": "13",
+          "entryType": "正式问题",
+          "text": "您是不是觉得自己对生活还有热情，整个人很有活力？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（0分）；B、不是（1分）",
+          "options": [
+            {
+              "label": "是的（0分）",
+              "score": 0
+            },
+            {
+              "label": "不是（1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "GDS15_13",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_14",
+          "row": 101,
+          "no": "14",
+          "entryType": "正式问题",
+          "text": "您是不是觉得自己现在的处境没有希望，今后也不会变好？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_14",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gds15_15",
+          "row": 102,
+          "no": "15",
+          "entryType": "正式问题",
+          "text": "您是不是觉得大多数人都比自己生活得好？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是的（1分）；B、不是（0分）",
+          "options": [
+            {
+              "label": "是的（1分）",
+              "score": 1
+            },
+            {
+              "label": "不是（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "GDS15_15",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "anxiety_2q",
+      "name": "焦虑两问筛查",
+      "category": "精神心理",
+      "subcategory": "焦虑",
+      "items": [
+        {
+          "id": "anxiety_2q_1",
+          "row": 103,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "最近两周，您有没有觉得紧张、担心，或者心里不踏实？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "ANXIETY_TENSION_2W",
+          "reuseRule": "先采集过去两周是否存在紧张或不安；若后续选择GAD-7且回答“否”，GAD-7第1题直接回填0分"
+        },
+        {
+          "id": "anxiety_2q_2",
+          "row": 104,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "最近两周，您有没有一担心起来，就很难让自己停下来？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "ANXIETY_UNCONTROLLABLE_WORRY_2W",
+          "reuseRule": "先采集过去两周是否难以停止担心；若后续选择GAD-7且回答“否”，GAD-7第2题直接回填0分"
+        }
+      ]
+    },
+    {
+      "id": "gad7",
+      "name": "广泛性焦虑障碍量表（GAD-7）",
+      "category": "精神心理",
+      "subcategory": "焦虑",
+      "items": [
+        {
+          "id": "gad7_1",
+          "row": 105,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会觉得紧张、焦虑，或者心里发急？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "ANXIETY_TENSION_2W",
+          "reuseRule": "条件复用：焦虑两问第1题为“否”时直接回填“无（0分）”；为“是”时只追问出现频率"
+        },
+        {
+          "id": "gad7_2",
+          "row": 106,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会一担心起来，就很难让自己停下来？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "ANXIETY_UNCONTROLLABLE_WORRY_2W",
+          "reuseRule": "条件复用：焦虑两问第2题为“否”时直接回填“无（0分）”；为“是”时只追问出现频率"
+        },
+        {
+          "id": "gad7_3",
+          "row": 107,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会这件事也担心、那件事也担心，操心得太多？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "GAD7_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gad7_4",
+          "row": 108,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会觉得自己很难放松下来，心里总是绷着？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "GAD7_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gad7_5",
+          "row": 109,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会因为心里不安，坐也坐不住？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "GAD7_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gad7_6",
+          "row": 110,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会比平时更容易心烦、急躁，或者被小事惹恼？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "GAD7_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "gad7_7",
+          "row": 111,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "最近两周，您会不会觉得好像要发生什么不好的事情，因此感到害怕？请在屏幕上选择这种情况出现的频率。",
+          "optionsRaw": "A、无（0分）；B、7天以内（1分）；C、一半以上日子（2分）；D、几乎每天（3分）",
+          "options": [
+            {
+              "label": "无（0分）",
+              "score": 0
+            },
+            {
+              "label": "7天以内（1分）",
+              "score": 1
+            },
+            {
+              "label": "一半以上日子（2分）",
+              "score": 2
+            },
+            {
+              "label": "几乎每天（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "GAD7_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "lubben",
+      "name": "Lubben社会网络量表",
+      "category": "社会与环境",
+      "subcategory": "社会支持",
+      "items": [
+        {
+          "id": "lubben_1",
+          "row": 115,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "在一个月里，您会和多少位家人或者亲戚见面、打电话或者微信联系？",
+          "optionsRaw": "A、没有（0分）；B、1个（1分）；C、2个（2分）；D、3～4个（3分）；E、5～8个（4分）；F、9个及以上（5分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "1个（1分）",
+              "score": 1
+            },
+            {
+              "label": "2个（2分）",
+              "score": 2
+            },
+            {
+              "label": "3～4个（3分）",
+              "score": 3
+            },
+            {
+              "label": "5～8个（4分）",
+              "score": 4
+            },
+            {
+              "label": "9个及以上（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "LUBBEN_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "lubben_2",
+          "row": 116,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "在您的家人或亲戚中，有多少人是您有心事或者私事时，可以放心跟他/她说一说的？",
+          "optionsRaw": "A、没有（0分）；B、1个（1分）；C、2个（2分）；D、3～4个（3分）；E、5～8个（4分）；F、9个及以上（5分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "1个（1分）",
+              "score": 1
+            },
+            {
+              "label": "2个（2分）",
+              "score": 2
+            },
+            {
+              "label": "3～4个（3分）",
+              "score": 3
+            },
+            {
+              "label": "5～8个（4分）",
+              "score": 4
+            },
+            {
+              "label": "9个及以上（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "LUBBEN_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "lubben_3",
+          "row": 117,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "当您真的需要别人帮忙时，有多少位家人或亲戚能够帮到您？",
+          "optionsRaw": "A、没有（0分）；B、1个（1分）；C、2个（2分）；D、3～4个（3分）；E、5～8个（4分）；F、9个及以上（5分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "1个（1分）",
+              "score": 1
+            },
+            {
+              "label": "2个（2分）",
+              "score": 2
+            },
+            {
+              "label": "3～4个（3分）",
+              "score": 3
+            },
+            {
+              "label": "5～8个（4分）",
+              "score": 4
+            },
+            {
+              "label": "9个及以上（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "LUBBEN_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "lubben_4",
+          "row": 118,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "在一个月里，您会和多少位朋友见面、打电话或者微信联系？",
+          "optionsRaw": "A、没有（0分）；B、1个（1分）；C、2个（2分）；D、3～4个（3分）；E、5～8个（4分）；F、9个及以上（5分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "1个（1分）",
+              "score": 1
+            },
+            {
+              "label": "2个（2分）",
+              "score": 2
+            },
+            {
+              "label": "3～4个（3分）",
+              "score": 3
+            },
+            {
+              "label": "5～8个（4分）",
+              "score": 4
+            },
+            {
+              "label": "9个及以上（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "LUBBEN_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "lubben_5",
+          "row": 119,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "在您的朋友中，有多少人是您有心事或者私事时，可以放心跟他/她说一说的？",
+          "optionsRaw": "A、没有（0分）；B、1个（1分）；C、2个（2分）；D、3～4个（3分）；E、5～8个（4分）；F、9个及以上（5分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "1个（1分）",
+              "score": 1
+            },
+            {
+              "label": "2个（2分）",
+              "score": 2
+            },
+            {
+              "label": "3～4个（3分）",
+              "score": 3
+            },
+            {
+              "label": "5～8个（4分）",
+              "score": 4
+            },
+            {
+              "label": "9个及以上（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "LUBBEN_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "lubben_6",
+          "row": 120,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "当您真的需要别人帮忙时，有多少位朋友能够帮到您？",
+          "optionsRaw": "A、没有（0分）；B、1个（1分）；C、2个（2分）；D、3～4个（3分）；E、5～8个（4分）；F、9个及以上（5分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "1个（1分）",
+              "score": 1
+            },
+            {
+              "label": "2个（2分）",
+              "score": 2
+            },
+            {
+              "label": "3～4个（3分）",
+              "score": 3
+            },
+            {
+              "label": "5～8个（4分）",
+              "score": 4
+            },
+            {
+              "label": "9个及以上（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "LUBBEN_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "home_env",
+      "name": "居家环境筛查表",
+      "category": "社会与环境",
+      "subcategory": "居家环境",
+      "items": [
+        {
+          "id": "home_env_1",
+          "row": 122,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您家里的过道、房门口这些经常走动的地方，平时都比较通畅，没有杂物挡路吗？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_2",
+          "row": 123,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "家里的地板是不是都平整、牢固吗？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_3",
+          "row": 124,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "家里的地板走起来不容易打滑，是吗？请回答“是的”或者“不是”",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_4",
+          "row": 125,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "家里容易打滑的地板上有没有铺上固定好的防滑垫？请回答“有”或者“没有”",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_5",
+          "row": 126,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "家里的灯打开之后，可以让您看清路和周围的东西吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_6",
+          "row": 127,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "您躺在床上时，开灯和关灯方便吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_7",
+          "row": 128,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "晚上出门或者经过楼道时，灯光是否足够亮堂？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_8",
+          "row": 129,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "家里的浴室有没有安装可以扶住的扶手？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_9",
+          "row": 130,
+          "no": "9",
+          "entryType": "正式问题",
+          "text": "家里浴室的地面上有没有铺固定好的防滑垫？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_9",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_10",
+          "row": 131,
+          "no": "10",
+          "entryType": "正式问题",
+          "text": "您家里的厕所和浴室是在一起，或者二者是否离得比较近？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_10",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_11",
+          "row": 132,
+          "no": "11",
+          "entryType": "正式问题",
+          "text": "您家里如果有楼梯，楼梯旁边有牢固、方便扶住的扶手吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）；C、不适用（住宅无相应楼梯或台阶，程序单独记录，不按“否”处理）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            },
+            {
+              "label": "不适用（住宅无相应楼梯或台阶，程序单独记录，不按“否”处理）",
+              "score": null
+            }
+          ],
+          "variableCode": "HOME_11",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_12",
+          "row": 133,
+          "no": "12",
+          "entryType": "正式问题",
+          "text": "您家门外如果有楼梯或者台阶，旁边有牢固、方便扶住的扶手吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）；C、不适用（住宅无相应楼梯或台阶，程序单独记录，不按“否”处理）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            },
+            {
+              "label": "不适用（住宅无相应楼梯或台阶，程序单独记录，不按“否”处理）",
+              "score": null
+            }
+          ],
+          "variableCode": "HOME_12",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_13",
+          "row": 134,
+          "no": "13",
+          "entryType": "正式问题",
+          "text": "上下楼时，您能看清每一级台阶的边缘吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）；C、不适用（住宅无相应楼梯或台阶，程序单独记录，不按“否”处理）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            },
+            {
+              "label": "不适用（住宅无相应楼梯或台阶，程序单独记录，不按“否”处理）",
+              "score": null
+            }
+          ],
+          "variableCode": "HOME_13",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "home_env_14",
+          "row": 135,
+          "no": "14",
+          "entryType": "正式问题",
+          "text": "您家周围平时走的路平整、好走吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "HOME_14",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "fall_3q",
+      "name": "跌倒风险三问筛查",
+      "category": "老年综合征",
+      "subcategory": "跌倒",
+      "items": [
+        {
+          "id": "fall_3q_1",
+          "row": 137,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "请回想一下，在过去的一年里，您有没有跌倒过？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "FALL_HISTORY_TIMELINE",
+          "reuseRule": "首次采集过去1年跌倒史；如回答“否”，Morse过去3个月跌倒史直接回填“无”；如回答“是”，需继续确认是否发生在近3个月"
+        },
+        {
+          "id": "fall_3q_2",
+          "row": 138,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "您在走路或者站立的时候，会经常觉得不稳当吗？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "FALL3Q_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "fall_3q_3",
+          "row": 139,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您会不会因为害怕摔倒而减少日常活动？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "FALL3Q_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "morse",
+      "name": "Morse老年人跌倒风险评估表",
+      "category": "老年综合征",
+      "subcategory": "跌倒",
+      "items": [
+        {
+          "id": "morse_1",
+          "row": 140,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "在过去3个月里，您有没有跌倒过吗？",
+          "optionsRaw": "A、无跌倒史（0分）；B、有跌倒史（25分）",
+          "options": [
+            {
+              "label": "无跌倒史（0分）",
+              "score": 0
+            },
+            {
+              "label": "有跌倒史（25分）",
+              "score": 25
+            }
+          ],
+          "variableCode": "FALL_HISTORY_TIMELINE",
+          "reuseRule": "条件复用：过去1年无跌倒时直接回填“无”；过去1年有跌倒时，仅补问近3个月是否跌倒"
+        },
+        {
+          "id": "morse_2",
+          "row": 141,
+          "no": "2",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、无或仅1个医疗诊断（0分）；B、超过1个医疗诊断（15分）",
+          "options": [
+            {
+              "label": "无或仅1个医疗诊断（0分）",
+              "score": 0
+            },
+            {
+              "label": "超过1个医疗诊断（15分）",
+              "score": 15
+            }
+          ],
+          "variableCode": "DIAGNOSIS_LIST_CURRENT",
+          "reuseRule": "从病历中的当前诊断清单读取；按各量表自己的规则分别计算疾病数或疾病严重程度"
+        },
+        {
+          "id": "morse_3",
+          "row": 142,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "您走路的时候是否需要扶拐杖、助行器或者他人帮助？",
+          "optionsRaw": "A、不需要辅助用具、卧床休息或由他人协助（0分）；B、使用拐杖、手杖或助行器（15分）；C、使用轮椅或平车（30分）",
+          "options": [
+            {
+              "label": "不需要辅助用具、卧床休息或由他人协助（0分）",
+              "score": 0
+            },
+            {
+              "label": "使用拐杖、手杖或助行器（15分）",
+              "score": 15
+            },
+            {
+              "label": "使用轮椅或平车（30分）",
+              "score": 30
+            }
+          ],
+          "variableCode": "MORSE_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "morse_4",
+          "row": 143,
+          "no": "4",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、否（0分）；B、是（20分）",
+          "options": [
+            {
+              "label": "否（0分）",
+              "score": 0
+            },
+            {
+              "label": "是（20分）",
+              "score": 20
+            }
+          ],
+          "variableCode": "IV_THERAPY_CURRENT",
+          "reuseRule": "从护理记录或当前治疗医嘱读取是否有静脉输液/静脉通路，不向患者重复询问"
+        },
+        {
+          "id": "morse_5",
+          "row": 144,
+          "no": "5",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、步态正常或卧床不能移动（0分）；B、双下肢虚弱乏力（10分）；C、残疾或存在功能障碍（20分）",
+          "options": [
+            {
+              "label": "步态正常或卧床不能移动（0分）",
+              "score": 0
+            },
+            {
+              "label": "双下肢虚弱乏力（10分）",
+              "score": 10
+            },
+            {
+              "label": "残疾或存在功能障碍（20分）",
+              "score": 20
+            }
+          ],
+          "variableCode": "GAIT_CLINICAL_STATUS",
+          "reuseRule": "优先复用医护观察、SPPB步行测试或6米步速结果；信息不足时由医护确认步态等级"
+        },
+        {
+          "id": "morse_6",
+          "row": 145,
+          "no": "6",
+          "entryType": "逻辑计算",
+          "text": "根据其他题目回答情况进行逻辑判断",
+          "optionsRaw": "A、具有自主行为能力（0分）；B、无控制能力（15分）",
+          "options": [
+            {
+              "label": "具有自主行为能力（0分）",
+              "score": 0
+            },
+            {
+              "label": "无控制能力（15分）",
+              "score": 15
+            }
+          ],
+          "variableCode": "SAFETY_AWARENESS",
+          "reuseRule": "根据认知评估、行为表现和对自身能力的判断自动生成；证据不足时由医护确认"
+        }
+      ]
+    },
+    {
+      "id": "frail",
+      "name": "FRAIL量表",
+      "category": "老年综合征",
+      "subcategory": "衰弱",
+      "items": [
+        {
+          "id": "frail_1",
+          "row": 146,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "过去4周，您是不是大部分时间都觉得累、没有精神？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "FRAIL_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "frail_2",
+          "row": 147,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "不用拐杖，也不用别人扶，中途不休息，您上一层楼会觉得困难吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MOBILITY_DISTANCE_STAIRS",
+          "reuseRule": "条件复用：运动功能初筛为阴性时直接回填“否”；初筛阳性或未采集时单独询问上楼困难"
+        },
+        {
+          "id": "frail_3",
+          "row": 148,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "不用拐杖，也不用别人扶，中途不休息，您连续走100米会觉得困难吗？",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "MOBILITY_DISTANCE_STAIRS",
+          "reuseRule": "条件复用：运动功能初筛为阴性时直接回填“否”；初筛阳性或未采集时单独询问100米步行困难"
+        },
+        {
+          "id": "frail_4",
+          "row": 149,
+          "no": "4",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "DIAGNOSIS_LIST_CURRENT",
+          "reuseRule": "从病历中的当前诊断清单读取；按各量表自己的规则分别计算疾病数或疾病严重程度"
+        },
+        {
+          "id": "frail_5",
+          "row": 150,
+          "no": "5",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是（1分）；B、否（0分）",
+          "options": [
+            {
+              "label": "是（1分）",
+              "score": 1
+            },
+            {
+              "label": "否（0分）",
+              "score": 0
+            }
+          ],
+          "variableCode": "WEIGHT_HISTORY_1_2_3_6M",
+          "reuseRule": "从同一组原始体重史换算：当前体重及1、2、3、6个月前体重；已有数据直接复用，缺失时只补问一次原始体重"
+        }
+      ]
+    },
+    {
+      "id": "ui_2q",
+      "name": "尿失禁两问筛查",
+      "category": "老年综合征",
+      "subcategory": "尿失禁",
+      "items": [
+        {
+          "id": "ui_2q_1",
+          "row": 151,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "最近一个月，您有没有出现过漏尿的情况？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "URINARY_LEAKAGE_4W",
+          "reuseRule": "首次采集最近1个月是否漏尿；若回答“否”，ICIQ第1、2题可直接回填0分，并跳过漏尿情形追问"
+        },
+        {
+          "id": "ui_2q_2",
+          "row": 152,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "最近一个月，您有没有出现过憋不住尿的情况？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "UI2Q_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "iciq",
+      "name": "国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）",
+      "category": "老年综合征",
+      "subcategory": "尿失禁",
+      "items": [
+        {
+          "id": "iciq_1",
+          "row": 153,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "最近4周，您大约多久会漏一次尿？",
+          "optionsRaw": "A、从不（0分）；B、大约每周1次或更少（1分）；C、每周2～3次（2分）；D、大约每天1次（3分）；E、每天超过1次（4分）；F、一直漏尿（5分）",
+          "options": [
+            {
+              "label": "从不（0分）",
+              "score": 0
+            },
+            {
+              "label": "大约每周1次或更少（1分）",
+              "score": 1
+            },
+            {
+              "label": "每周2～3次（2分）",
+              "score": 2
+            },
+            {
+              "label": "大约每天1次（3分）",
+              "score": 3
+            },
+            {
+              "label": "每天超过1次（4分）",
+              "score": 4
+            },
+            {
+              "label": "一直漏尿（5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "URINARY_LEAKAGE_4W",
+          "reuseRule": "条件复用：尿失禁筛查无漏尿时直接回填“从不（0分）”；有漏尿时追问具体频率"
+        },
+        {
+          "id": "iciq_2",
+          "row": 154,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "每次漏尿时，通常只是几滴，还是会把衣裤湿一小片，或者湿很多？",
+          "optionsRaw": "A、没有（0分）；B、少量（2分）；C、中等量（4分）；D、大量（6分）",
+          "options": [
+            {
+              "label": "没有（0分）",
+              "score": 0
+            },
+            {
+              "label": "少量（2分）",
+              "score": 2
+            },
+            {
+              "label": "中等量（4分）",
+              "score": 4
+            },
+            {
+              "label": "大量（6分）",
+              "score": 6
+            }
+          ],
+          "variableCode": "URINARY_LEAKAGE_4W",
+          "reuseRule": "条件复用：尿失禁筛查无漏尿时直接回填“没有（0分）”；有漏尿时追问漏尿量"
+        },
+        {
+          "id": "iciq_3",
+          "row": 155,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "漏尿对您的日常生活影响有多大？请在屏幕上从0到10选一个数字，0表示完全不影响，10表示影响非常严重。",
+          "optionsRaw": "从0～10中选择一个整数：0分表示无任何影响，10分表示影响极重",
+          "options": null,
+          "variableCode": "ICIQ_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "iciq_4",
+          "row": 156,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "您通常在什么情况下会漏尿？请在屏幕上把符合的情况都选出来。",
+          "optionsRaw": "可多选：A、从不漏尿；B、未到达厕所前漏尿；C、咳嗽或打喷嚏时漏尿；D、睡着时漏尿；E、活动或运动时漏尿；F、小便结束并穿好衣服时漏尿；G、没有明显原因的漏尿；H、一直漏尿（本题不计入总分）",
+          "options": [
+            {
+              "label": "从不漏尿",
+              "score": null
+            },
+            {
+              "label": "未到达厕所前漏尿",
+              "score": null
+            },
+            {
+              "label": "咳嗽或打喷嚏时漏尿",
+              "score": null
+            },
+            {
+              "label": "睡着时漏尿",
+              "score": null
+            },
+            {
+              "label": "活动或运动时漏尿",
+              "score": null
+            },
+            {
+              "label": "小便结束并穿好衣服时漏尿",
+              "score": null
+            },
+            {
+              "label": "没有明显原因的漏尿",
+              "score": null
+            },
+            {
+              "label": "一直漏尿（本题不计入总分）",
+              "score": null
+            }
+          ],
+          "variableCode": "URINARY_LEAKAGE_CIRCUMSTANCES_4W",
+          "reuseRule": "尿失禁筛查无漏尿时直接选择“从不漏尿”；有漏尿时继续多选漏尿情形"
+        }
+      ]
+    },
+    {
+      "id": "constipation_1q",
+      "name": "便秘一问筛查",
+      "category": "老年综合征",
+      "subcategory": "便秘",
+      "items": [
+        {
+          "id": "constipation_1q_1",
+          "row": 157,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您平时大便正常吗？会不会常常便秘？",
+          "optionsRaw": "A、有便秘困扰（筛查阳性）；B、没有便秘困扰（筛查阴性）",
+          "options": [
+            {
+              "label": "有便秘困扰（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "没有便秘困扰（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_SCREEN_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "constipation_symptom",
+      "name": "便秘症状评估表",
+      "category": "老年综合征",
+      "subcategory": "便秘",
+      "items": [
+        {
+          "id": "constipation_symptom_1",
+          "row": 158,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您从什么时候开始出现便秘？大概有多久了？多少年，或者多少个月？",
+          "optionsRaw": "记录症状开始至今的持续时间：____年____月",
+          "options": null,
+          "variableCode": "CONST_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_2",
+          "row": 159,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "从开始到现在，便秘是一直都有，还是断断续续？真正有症状的时间加起来大约多久？",
+          "optionsRaw": "记录实际有症状的累计时间：____年____月",
+          "options": null,
+          "variableCode": "CONST_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_3",
+          "row": 160,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "有便秘症状的时候，您一周通常能排几次大便？",
+          "optionsRaw": "记录每周排便次数：0次／1次／2次／3次／4次／5次／6次／7次及以上；每周少于3次为该症状阳性",
+          "options": null,
+          "variableCode": "CONST_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_4",
+          "row": 161,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "排完大便以后，您会不会还觉得没有排干净？",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_5",
+          "row": 162,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "排便的时候，您会不会觉得肛门里面堵着，大便出不来？",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_6",
+          "row": 163,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "您每次排大便是不是要花很长时间？",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_7",
+          "row": 164,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "排便时，您有没有需要用手帮助，才能把大便排出来？",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_8",
+          "row": 165,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "便秘的时候，您会不会肚子痛或肚子不舒服，排完大便后会好一些？",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "constipation_symptom_9",
+          "row": 166,
+          "no": "9",
+          "entryType": "正式问题",
+          "text": "有便秘症状时，您的大便通常最像屏幕上的哪一种？展示图片（figure 1.png）。",
+          "optionsRaw": "A、数个干球状便，如坚果，很难排出；B、腊肠样，很硬；C、腊肠样，表面有裂缝；D、腊肠样或蛇状，光滑而柔软；E、柔软团块，切缘清楚（容易排出）；F、松散的碎片，边缘破糟，或糊状便；G、水样便",
+          "options": [
+            {
+              "label": "数个干球状便，如坚果，很难排出",
+              "score": null
+            },
+            {
+              "label": "腊肠样，很硬",
+              "score": null
+            },
+            {
+              "label": "腊肠样，表面有裂缝",
+              "score": null
+            },
+            {
+              "label": "腊肠样或蛇状，光滑而柔软",
+              "score": null
+            },
+            {
+              "label": "柔软团块，切缘清楚（容易排出）",
+              "score": null
+            },
+            {
+              "label": "松散的碎片，边缘破糟，或糊状便",
+              "score": null
+            },
+            {
+              "label": "水样便",
+              "score": null
+            }
+          ],
+          "variableCode": "CONST_9",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "sleep_1q",
+      "name": "睡眠障碍一问筛查",
+      "category": "老年综合征",
+      "subcategory": "睡眠障碍",
+      "items": [
+        {
+          "id": "sleep_1q_1",
+          "row": 167,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "最近一个月，您有没有因为失眠而感到困扰？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "SLEEP_SCREEN_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "ais",
+      "name": "阿森斯失眠量表（AIS）",
+      "category": "老年综合征",
+      "subcategory": "睡眠障碍",
+      "items": [
+        {
+          "id": "ais_1",
+          "row": 168,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "过去一个月，关灯准备睡觉以后，您入睡得怎么样？",
+          "optionsRaw": "A、没问题（0分）；B、轻微延迟（1分）；C、显著延迟（2分）；D、延迟严重或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "没问题（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微延迟（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著延迟（2分）",
+              "score": 2
+            },
+            {
+              "label": "延迟严重或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_2",
+          "row": 169,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "过去一个月，您夜里醒来的情况怎么样？",
+          "optionsRaw": "A、没问题（0分）；B、轻微延迟（1分）；C、显著延迟（2分）；D、延迟严重或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "没问题（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微延迟（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著延迟（2分）",
+              "score": 2
+            },
+            {
+              "label": "延迟严重或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_3",
+          "row": 170,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "过去一个月，您会不会比自己希望的时间早醒，而且醒后难再睡？",
+          "optionsRaw": "A、没问题（0分）；B、轻微提早（1分）；C、显著提早（2分）；D、严重提早或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "没问题（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微提早（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著提早（2分）",
+              "score": 2
+            },
+            {
+              "label": "严重提早或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_4",
+          "row": 171,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "过去一个月，您觉得自己每天总共睡的时间够吗？",
+          "optionsRaw": "A、没问题（0分）；B、轻微不足（1分）；C、显著不足（2分）；D、严重不足或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "没问题（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微不足（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著不足（2分）",
+              "score": 2
+            },
+            {
+              "label": "严重不足或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_5",
+          "row": 172,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "不管睡了多久，您对自己整体的睡眠质量满意吗？",
+          "optionsRaw": "A、满意（0分）；B、轻微不满（1分）；C、显著不满（2分）；D、严重不满或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "满意（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微不满（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著不满（2分）",
+              "score": 2
+            },
+            {
+              "label": "严重不满或没有睡觉（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_6",
+          "row": 173,
+          "no": "6",
+          "entryType": "正式问题",
+          "text": "过去一个月，您白天的心情怎么样？",
+          "optionsRaw": "A、正常（0分）；B、轻微低落（1分）；C、显著低落（2分）；D、严重低落（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "正常（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微低落（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著低落（2分）",
+              "score": 2
+            },
+            {
+              "label": "严重低落（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_6",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_7",
+          "row": 174,
+          "no": "7",
+          "entryType": "正式问题",
+          "text": "过去一个月，您的体力、记忆力、注意力或者白天做事的能力，有没有受到影响？",
+          "optionsRaw": "A、足够（0分）；B、轻微影响（1分）；C、显著影响（2分）；D、严重影响（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "足够（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微影响（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著影响（2分）",
+              "score": 2
+            },
+            {
+              "label": "严重影响（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_7",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "ais_8",
+          "row": 175,
+          "no": "8",
+          "entryType": "正式问题",
+          "text": "过去一个月，您白天会不会容易犯困或打瞌睡？",
+          "optionsRaw": "A、无思睡（0分）；B、轻微思睡（1分）；C、显著思睡（2分）；D、严重思睡（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+          "options": [
+            {
+              "label": "无思睡（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻微思睡（1分）",
+              "score": 1
+            },
+            {
+              "label": "显著思睡（2分）",
+              "score": 2
+            },
+            {
+              "label": "严重思睡（3分）。仅按过去1个月内每周至少发生3次的情况选择",
+              "score": 3
+            }
+          ],
+          "variableCode": "AIS_8",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "pain_1q",
+      "name": "慢性疼痛一问筛查",
+      "category": "老年综合征",
+      "subcategory": "慢性疼痛",
+      "items": [
+        {
+          "id": "pain_1q_1",
+          "row": 176,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您身上有没有哪里是反反复复疼了超过3个月的？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "PAIN_SCREEN_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "pain_nrs",
+      "name": "慢性疼痛数字评定量表（NRS）",
+      "category": "老年综合征",
+      "subcategory": "慢性疼痛",
+      "items": [
+        {
+          "id": "pain_nrs_1",
+          "row": 177,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "如果0分表示完全不痛，10分表示极度疼痛、生不如死，您会给您现在最主要的疼痛打几分？",
+          "optionsRaw": "A、0分：无疼痛；B、1分：翻身、咳嗽或深呼吸时感疼痛；C、2分：翻身或咳嗽时疼痛，静息时无痛；D、3分：咳嗽或深呼吸时疼痛，静息时无痛；E、4分：静息时有间歇性疼痛，开始影响生活质量；F、5分：静息时持续疼痛；G、6分：静息时疼痛较重；H、7分：疼痛较重、翻转不安、无法入睡；I、8分：持续疼痛难忍、全身大汗；J、9分：剧烈疼痛、无法忍受；K、10分：极度疼痛、生不如死",
+          "options": [
+            {
+              "label": "0分：无疼痛",
+              "score": 0
+            },
+            {
+              "label": "1分：翻身、咳嗽或深呼吸时感疼痛",
+              "score": 1
+            },
+            {
+              "label": "2分：翻身或咳嗽时疼痛，静息时无痛",
+              "score": 2
+            },
+            {
+              "label": "3分：咳嗽或深呼吸时疼痛，静息时无痛",
+              "score": 3
+            },
+            {
+              "label": "4分：静息时有间歇性疼痛，开始影响生活质量",
+              "score": 4
+            },
+            {
+              "label": "5分：静息时持续疼痛",
+              "score": 5
+            },
+            {
+              "label": "6分：静息时疼痛较重",
+              "score": 6
+            },
+            {
+              "label": "7分：疼痛较重、翻转不安、无法入睡",
+              "score": 7
+            },
+            {
+              "label": "8分：持续疼痛难忍、全身大汗",
+              "score": 8
+            },
+            {
+              "label": "9分：剧烈疼痛、无法忍受",
+              "score": 9
+            },
+            {
+              "label": "10分：极度疼痛、生不如死",
+              "score": 10
+            }
+          ],
+          "variableCode": "PAIN_NRS_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "pain_behavior",
+      "name": "慢性疼痛行为评估量表",
+      "category": "老年综合征",
+      "subcategory": "慢性疼痛",
+      "items": [
+        {
+          "id": "pain_behavior_1",
+          "row": 179,
+          "no": "1",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、表情放松（1分）；B、部分紧绷，如皱眉（2分）；C、完全紧绷，如眼睛紧闭（3分）；D、面部扭曲（4分）",
+          "options": [
+            {
+              "label": "表情放松（1分）",
+              "score": 1
+            },
+            {
+              "label": "部分紧绷，如皱眉（2分）",
+              "score": 2
+            },
+            {
+              "label": "完全紧绷，如眼睛紧闭（3分）",
+              "score": 3
+            },
+            {
+              "label": "面部扭曲（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "PAIN_BEHAV_1",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "pain_behavior_2",
+          "row": 180,
+          "no": "2",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、没有活动（1分）；B、部分弯曲（2分）；C、完全弯曲且手指弯曲（3分）；D、持续回缩（4分）",
+          "options": [
+            {
+              "label": "没有活动（1分）",
+              "score": 1
+            },
+            {
+              "label": "部分弯曲（2分）",
+              "score": 2
+            },
+            {
+              "label": "完全弯曲且手指弯曲（3分）",
+              "score": 3
+            },
+            {
+              "label": "持续回缩（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "PAIN_BEHAV_2",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "pain_behavior_3",
+          "row": 181,
+          "no": "3",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、完全能耐受机械通气（1分）；B、有呛咳，但大部分时间能耐受（2分）；C、对抗呼吸机（3分）；D、不能控制通气（4分）",
+          "options": [
+            {
+              "label": "完全能耐受机械通气（1分）",
+              "score": 1
+            },
+            {
+              "label": "有呛咳，但大部分时间能耐受（2分）",
+              "score": 2
+            },
+            {
+              "label": "对抗呼吸机（3分）",
+              "score": 3
+            },
+            {
+              "label": "不能控制通气（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "PAIN_BEHAV_3",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "pain_behavior_4",
+          "row": 182,
+          "no": "4",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、无疼痛相关发声（1分）；B、呻吟≤3次/分钟且每次≤3秒（2分）；C、呻吟＞3次/分钟且每次＞3秒（3分）；D、咆哮、说“哦”“哎哟”等，或屏住呼吸（4分）",
+          "options": [
+            {
+              "label": "无疼痛相关发声（1分）",
+              "score": 1
+            },
+            {
+              "label": "呻吟≤3次/分钟且每次≤3秒（2分）",
+              "score": 2
+            },
+            {
+              "label": "呻吟＞3次/分钟且每次＞3秒（3分）",
+              "score": 3
+            },
+            {
+              "label": "咆哮、说“哦”“哎哟”等，或屏住呼吸（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "PAIN_BEHAV_4",
+          "reuseRule": "医护记录，不问患者"
+        }
+      ]
+    },
+    {
+      "id": "pressure_screen",
+      "name": "压力性损伤初步筛查",
+      "category": "老年综合征",
+      "subcategory": "压力性损伤",
+      "items": [
+        {
+          "id": "pressure_screen_1",
+          "row": 183,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您现在是不是大部分时间都躺在床上，自己很少翻身或下床？",
+          "optionsRaw": "A、是（筛查阳性）；B、否（筛查阴性）",
+          "options": [
+            {
+              "label": "是（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "否（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "BEDREST_AND_REPOSITIONING",
+          "reuseRule": "首次采集卧床及自主翻身情况；可供Braden活动、移动能力和照护需求判断使用"
+        },
+        {
+          "id": "pressure_screen_2",
+          "row": 184,
+          "no": "2",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、发现皮肤异常（筛查阳性）；B、未发现皮肤异常（筛查阴性）",
+          "options": [
+            {
+              "label": "发现皮肤异常（筛查阳性）",
+              "score": null
+            },
+            {
+              "label": "未发现皮肤异常（筛查阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "PI_SCREEN_2",
+          "reuseRule": "医护记录，不问患者"
+        }
+      ]
+    },
+    {
+      "id": "braden",
+      "name": "压力性损伤风险评估量表",
+      "category": "老年综合征",
+      "subcategory": "压力性损伤",
+      "items": [
+        {
+          "id": "braden_1",
+          "row": 186,
+          "no": "1",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、完全受限（1分）；B、非常受限（2分）；C、轻度受限（3分）；D、未受损害（4分）",
+          "options": [
+            {
+              "label": "完全受限（1分）",
+              "score": 1
+            },
+            {
+              "label": "非常受限（2分）",
+              "score": 2
+            },
+            {
+              "label": "轻度受限（3分）",
+              "score": 3
+            },
+            {
+              "label": "未受损害（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "BRADEN_1",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "braden_2",
+          "row": 187,
+          "no": "2",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、持久潮湿（1分）；B、非常潮湿（2分）；C、偶尔潮湿（3分）；D、很少潮湿（4分）",
+          "options": [
+            {
+              "label": "持久潮湿（1分）",
+              "score": 1
+            },
+            {
+              "label": "非常潮湿（2分）",
+              "score": 2
+            },
+            {
+              "label": "偶尔潮湿（3分）",
+              "score": 3
+            },
+            {
+              "label": "很少潮湿（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "BRADEN_2",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "braden_3",
+          "row": 188,
+          "no": "3",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、卧床不起（1分）；B、局限于椅（2分）；C、偶尔步行（3分）；D、经常步行（4分）",
+          "options": [
+            {
+              "label": "卧床不起（1分）",
+              "score": 1
+            },
+            {
+              "label": "局限于椅（2分）",
+              "score": 2
+            },
+            {
+              "label": "偶尔步行（3分）",
+              "score": 3
+            },
+            {
+              "label": "经常步行（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "ACTIVITY_LEVEL",
+          "reuseRule": "优先复用卧床、轮椅、步行频率和ADL信息；由医护确认最终活动等级"
+        },
+        {
+          "id": "braden_4",
+          "row": 189,
+          "no": "4",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、完全不能（1分）；B、严重受限（2分）；C、轻度受限（3分）；D、不受限（4分）",
+          "options": [
+            {
+              "label": "完全不能（1分）",
+              "score": 1
+            },
+            {
+              "label": "严重受限（2分）",
+              "score": 2
+            },
+            {
+              "label": "轻度受限（3分）",
+              "score": 3
+            },
+            {
+              "label": "不受限（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "MOBILITY_LEVEL",
+          "reuseRule": "复用床椅转移、翻身能力及活动信息；由医护确认最终移动能力等级"
+        },
+        {
+          "id": "braden_5",
+          "row": 190,
+          "no": "5",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、非常差（1分）；B、可能不足（2分）；C、适当（3分）；D、良好（4分）",
+          "options": [
+            {
+              "label": "非常差（1分）",
+              "score": 1
+            },
+            {
+              "label": "可能不足（2分）",
+              "score": 2
+            },
+            {
+              "label": "适当（3分）",
+              "score": 3
+            },
+            {
+              "label": "良好（4分）",
+              "score": 4
+            }
+          ],
+          "variableCode": "NUTRITION_INTAKE_STATUS",
+          "reuseRule": "优先复用NRS 2002、MNA-SF、GLIM及进食量信息；由医护确认Braden营养等级"
+        },
+        {
+          "id": "braden_6",
+          "row": 191,
+          "no": "6",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、有问题（1分）；B、有潜在问题（2分）；C、无明显问题（3分）",
+          "options": [
+            {
+              "label": "有问题（1分）",
+              "score": 1
+            },
+            {
+              "label": "有潜在问题（2分）",
+              "score": 2
+            },
+            {
+              "label": "无明显问题（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "BRADEN_6",
+          "reuseRule": "医护记录，不问患者"
+        }
+      ]
+    },
+    {
+      "id": "polypharmacy",
+      "name": "多重用药评估",
+      "category": "老年综合征",
+      "subcategory": "多重用药",
+      "items": [
+        {
+          "id": "polypharmacy_1",
+          "row": 193,
+          "no": "1",
+          "entryType": "医护核对",
+          "text": "暂不处理",
+          "optionsRaw": "开放式结构化记录：药品名称、类别（西药／中药／保健品）、每次剂量、每日频次、用法、使用原因；本项不设固定分值",
+          "options": null,
+          "variableCode": "MEDICATION_LIST_CURRENT",
+          "reuseRule": "同次评估只核对一次完整用药清单，包括西药、中成药和保健品；后续所有用药相关判断复用该清单"
+        },
+        {
+          "id": "polypharmacy_2",
+          "row": 194,
+          "no": "2",
+          "entryType": "医护核对",
+          "text": "暂不处理",
+          "optionsRaw": "医务人员综合判断：A、未发现多重用药或不适当用药；B、存在多重用药；C、存在不适当用药；D、两者均存在；E、信息不足，需进一步核实（标准未规定固定药品数量阈值）",
+          "options": [
+            {
+              "label": "未发现多重用药或不适当用药",
+              "score": null
+            },
+            {
+              "label": "存在多重用药",
+              "score": null
+            },
+            {
+              "label": "存在不适当用药",
+              "score": null
+            },
+            {
+              "label": "两者均存在",
+              "score": null
+            },
+            {
+              "label": "信息不足，需进一步核实（标准未规定固定药品数量阈值）",
+              "score": null
+            }
+          ],
+          "variableCode": "MEDICATION_REVIEW_RESULT",
+          "reuseRule": "基于完整用药清单由医务人员综合判断，不重复询问患者"
+        }
+      ]
+    },
+    {
+      "id": "dysphagia_screen",
+      "name": "吞咽障碍初筛",
+      "category": "老年综合征",
+      "subcategory": "吞咽障碍",
+      "items": [
+        {
+          "id": "dysphagia_screen_1",
+          "row": 195,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "您吃东西或喝水时，会不会觉得咽不下去，或者吞咽的时候疼痛？",
+          "optionsRaw": "A、是（该症状存在）；B、否（该症状不存在）",
+          "options": [
+            {
+              "label": "是（该症状存在）",
+              "score": null
+            },
+            {
+              "label": "否（该症状不存在）",
+              "score": null
+            }
+          ],
+          "variableCode": "DYSPHAGIA_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "dysphagia_screen_2",
+          "row": 196,
+          "no": "2",
+          "entryType": "正式问题",
+          "text": "您吃东西或喝水时，会不会容易咳嗽或者呛到？",
+          "optionsRaw": "A、是（该症状存在）；B、否（该症状不存在）",
+          "options": [
+            {
+              "label": "是（该症状存在）",
+              "score": null
+            },
+            {
+              "label": "否（该症状不存在）",
+              "score": null
+            }
+          ],
+          "variableCode": "DYSPHAGIA_COUGH_CHOKE",
+          "reuseRule": "首次采集进食或饮水呛咳；可作为是否进入洼田饮水试验的触发信息，但不能替代实际试验结果"
+        },
+        {
+          "id": "dysphagia_screen_3",
+          "row": 197,
+          "no": "3",
+          "entryType": "正式问题",
+          "text": "吃完饭以后，您的嘴里会不会还含着食物，或者留有没咽下去的食物？",
+          "optionsRaw": "A、是（该症状存在）；B、否（该症状不存在）",
+          "options": [
+            {
+              "label": "是（该症状存在）",
+              "score": null
+            },
+            {
+              "label": "否（该症状不存在）",
+              "score": null
+            }
+          ],
+          "variableCode": "DYSPHAGIA_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "dysphagia_screen_4",
+          "row": 198,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "您喝水或吃东西时，会不会有水或食物从嘴角漏出来？",
+          "optionsRaw": "A、是（该症状存在）；B、否（该症状不存在）",
+          "options": [
+            {
+              "label": "是（该症状存在）",
+              "score": null
+            },
+            {
+              "label": "否（该症状不存在）",
+              "score": null
+            }
+          ],
+          "variableCode": "DYSPHAGIA_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "dysphagia_screen_5",
+          "row": 199,
+          "no": "5",
+          "entryType": "正式问题",
+          "text": "您平时会不会控制不住地流口水？",
+          "optionsRaw": "A、是（该症状存在）；B、否（该症状不存在）",
+          "options": [
+            {
+              "label": "是（该症状存在）",
+              "score": null
+            },
+            {
+              "label": "否（该症状不存在）",
+              "score": null
+            }
+          ],
+          "variableCode": "DYSPHAGIA_5",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    },
+    {
+      "id": "water_swallow",
+      "name": "洼田饮水试验",
+      "category": "老年综合征",
+      "subcategory": "吞咽障碍",
+      "items": [
+        {
+          "id": "water_swallow_1",
+          "row": 201,
+          "no": "1",
+          "entryType": "操作测试",
+          "text": "暂不处理",
+          "optionsRaw": "A、1级：一次喝完、无呛咳且≤5秒（正常）；B、1级：一次喝完、无呛咳但＞5秒（可疑异常）；C、2级：两次或以上喝完、无呛咳（可疑异常）；D、3级：一次喝完但有呛咳（异常）；E、4级：两次或以上喝完且有呛咳（异常）；F、5级：饮水中频繁呛咳，很难全部喝完（异常）",
+          "options": [
+            {
+              "label": "1级：一次喝完、无呛咳且≤5秒（正常）",
+              "score": null
+            },
+            {
+              "label": "1级：一次喝完、无呛咳但＞5秒（可疑异常）",
+              "score": null
+            },
+            {
+              "label": "2级：两次或以上喝完、无呛咳（可疑异常）",
+              "score": null
+            },
+            {
+              "label": "3级：一次喝完但有呛咳（异常）",
+              "score": null
+            },
+            {
+              "label": "4级：两次或以上喝完且有呛咳（异常）",
+              "score": null
+            },
+            {
+              "label": "5级：饮水中频繁呛咳，很难全部喝完（异常）",
+              "score": null
+            }
+          ],
+          "variableCode": "WATER_SWALLOW_TEST_RESULT",
+          "reuseRule": "必须记录实际饮水试验结果；不能仅凭吞咽筛查答案直接回填"
+        }
+      ]
+    },
+    {
+      "id": "nrs2002",
+      "name": "营养风险筛查2002（NRS 2002）",
+      "category": "老年综合征",
+      "subcategory": "营养不良",
+      "items": [
+        {
+          "id": "nrs2002_初筛1",
+          "row": 202,
+          "no": "初筛1",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "BMI_CURRENT",
+          "reuseRule": "根据同次评估的身高和当前体重自动计算BMI；已有BMI直接复用，不向患者询问BMI"
+        },
+        {
+          "id": "nrs2002_初筛2",
+          "row": 203,
+          "no": "初筛2",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "WEIGHT_HISTORY_1_2_3_6M",
+          "reuseRule": "从同一组原始体重史换算：当前体重及1、2、3、6个月前体重；已有数据直接复用，缺失时只补问一次原始体重"
+        },
+        {
+          "id": "nrs2002_初筛3",
+          "row": 204,
+          "no": "初筛3",
+          "entryType": "正式问题",
+          "text": "最近一周，您吃的东西有没有比平时少了？",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "FOOD_INTAKE_CHANGE_1W",
+          "reuseRule": "首次采集最近1周进食量变化；仅能复用于相同1周时间范围的问题"
+        },
+        {
+          "id": "nrs2002_初筛4",
+          "row": 205,
+          "no": "初筛4",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是；B、否",
+          "options": [
+            {
+              "label": "是",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "NRS2002_初筛4",
+          "reuseRule": "系统/病历读取；缺失时补录"
+        },
+        {
+          "id": "nrs2002_终筛1",
+          "row": 206,
+          "no": "终筛1",
+          "entryType": "逻辑计算",
+          "text": "根据其他题目回答情况进行逻辑判断",
+          "optionsRaw": "A、正常营养状态（0分）；B、轻度受损：3个月体重下降＞5%，或进食量为平时50%～75%（1分）；C、中度受损：2个月体重下降＞5%，或进食量为平时25%～50%，或BMI为18.5～20.5 kg/m²（2分）；D、重度受损：1个月体重下降＞5%或3个月下降＞15%，或进食量＜平时25%，或BMI＜18.5 kg/m²（3分）",
+          "options": [
+            {
+              "label": "正常营养状态（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻度受损：3个月体重下降＞5%，或进食量为平时50%～75%（1分）",
+              "score": 1
+            },
+            {
+              "label": "中度受损：2个月体重下降＞5%，或进食量为平时25%～50%，或BMI为18.5～20.5 kg/m²（2分）",
+              "score": 2
+            },
+            {
+              "label": "重度受损：1个月体重下降＞5%或3个月下降＞15%，或进食量＜平时25%，或BMI＜18.5 kg/m²（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "BMI_CURRENT",
+          "reuseRule": "根据同次评估的身高和当前体重自动计算BMI；已有BMI直接复用，不向患者询问BMI"
+        },
+        {
+          "id": "nrs2002_终筛2",
+          "row": 207,
+          "no": "终筛2",
+          "entryType": "逻辑计算",
+          "text": "根据其他题目回答情况进行逻辑判断",
+          "optionsRaw": "A、正常能量需求（0分）；B、轻度：髋骨骨折，或肝硬化、慢阻肺、长期血液透析、糖尿病、肿瘤等慢性疾病（1分）；C、中度：腹部大手术、脑卒中、重症肺炎、血液系统恶性肿瘤（2分）；D、重度：颅脑损伤、骨髓移植，或重症监护且APACHE＞10分（3分）",
+          "options": [
+            {
+              "label": "正常能量需求（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻度：髋骨骨折，或肝硬化、慢阻肺、长期血液透析、糖尿病、肿瘤等慢性疾病（1分）",
+              "score": 1
+            },
+            {
+              "label": "中度：腹部大手术、脑卒中、重症肺炎、血液系统恶性肿瘤（2分）",
+              "score": 2
+            },
+            {
+              "label": "重度：颅脑损伤、骨髓移植，或重症监护且APACHE＞10分（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "DIAGNOSIS_LIST_CURRENT",
+          "reuseRule": "从病历中的当前诊断清单读取；按各量表自己的规则分别计算疾病数或疾病严重程度"
+        },
+        {
+          "id": "nrs2002_终筛3",
+          "row": 208,
+          "no": "终筛3",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、年龄＜70岁（0分）；B、年龄≥70岁（加1分）",
+          "options": [
+            {
+              "label": "年龄＜70岁（0分）",
+              "score": 0
+            },
+            {
+              "label": "年龄≥70岁（加1分）",
+              "score": 1
+            }
+          ],
+          "variableCode": "AGE_YEARS",
+          "reuseRule": "从基本信息直接读取年龄并自动加分，不重复询问"
+        }
+      ]
+    },
+    {
+      "id": "mnasf",
+      "name": "微型营养评定简表（MNA-SF）",
+      "category": "老年综合征",
+      "subcategory": "营养不良",
+      "items": [
+        {
+          "id": "mnasf_1",
+          "row": 209,
+          "no": "1",
+          "entryType": "正式问题",
+          "text": "在过去的3个月里，您有没有因为胃口不好、消化不良、咀嚼困难或吞咽困难导致饭量减少？",
+          "optionsRaw": "A、食量严重减少（0分）；B、食量中度减少（1分）；C、食量没有改变（2分）",
+          "options": [
+            {
+              "label": "食量严重减少（0分）",
+              "score": 0
+            },
+            {
+              "label": "食量中度减少（1分）",
+              "score": 1
+            },
+            {
+              "label": "食量没有改变（2分）",
+              "score": 2
+            }
+          ],
+          "variableCode": "FOOD_INTAKE_CHANGE_3M",
+          "reuseRule": "时间范围为3个月，不能直接复用NRS 2002最近1周答案；如前面已采集更完整进食史，可按时间范围换算"
+        },
+        {
+          "id": "mnasf_2",
+          "row": 210,
+          "no": "2",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、体重下降＞3 kg（0分）；B、不知道（1分）；C、体重下降1～3 kg（2分）；D、体重没有下降（3分）",
+          "options": [
+            {
+              "label": "体重下降＞3 kg（0分）",
+              "score": 0
+            },
+            {
+              "label": "不知道（1分）",
+              "score": 1
+            },
+            {
+              "label": "体重下降1～3 kg（2分）",
+              "score": 2
+            },
+            {
+              "label": "体重没有下降（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "WEIGHT_HISTORY_1_2_3_6M",
+          "reuseRule": "从同一组原始体重史换算：当前体重及1、2、3、6个月前体重；已有数据直接复用，缺失时只补问一次原始体重"
+        },
+        {
+          "id": "mnasf_3",
+          "row": 211,
+          "no": "3",
+          "entryType": "逻辑计算",
+          "text": "根据其他题目回答情况进行逻辑判断",
+          "optionsRaw": "A、长期卧床或坐轮椅（0分）；B、可以下床或离开轮椅，但不能外出（1分）；C、可以外出（2分）",
+          "options": [
+            {
+              "label": "长期卧床或坐轮椅（0分）",
+              "score": 0
+            },
+            {
+              "label": "可以下床或离开轮椅，但不能外出（1分）",
+              "score": 1
+            },
+            {
+              "label": "可以外出（2分）",
+              "score": 2
+            }
+          ],
+          "variableCode": "MOBILITY_LEVEL",
+          "reuseRule": "根据ADL、IADL、卧床/轮椅情况和外出能力自动归类；出现矛盾时仅核实一次"
+        },
+        {
+          "id": "mnasf_4",
+          "row": 212,
+          "no": "4",
+          "entryType": "正式问题",
+          "text": "过去3个月，您有没有经历过很大的心理打击，或者得过急病、重病？",
+          "optionsRaw": "A、是（0分）；B、否（2分）",
+          "options": [
+            {
+              "label": "是（0分）",
+              "score": 0
+            },
+            {
+              "label": "否（2分）",
+              "score": 2
+            }
+          ],
+          "variableCode": "MNA_SF_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "mnasf_5",
+          "row": 213,
+          "no": "5",
+          "entryType": "逻辑计算",
+          "text": "根据其他题目回答情况进行逻辑判断",
+          "optionsRaw": "A、严重痴呆或抑郁（0分）；B、轻度痴呆（1分）；C、无精神心理问题（2分）",
+          "options": [
+            {
+              "label": "严重痴呆或抑郁（0分）",
+              "score": 0
+            },
+            {
+              "label": "轻度痴呆（1分）",
+              "score": 1
+            },
+            {
+              "label": "无精神心理问题（2分）",
+              "score": 2
+            }
+          ],
+          "variableCode": "COGNITION_DEPRESSION_STATUS",
+          "reuseRule": "复用MMSE、简易智力评估、抑郁筛查或GDS结果进行换算；没有相关量表时由医护判断"
+        },
+        {
+          "id": "mnasf_6",
+          "row": 214,
+          "no": "6",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "优先按BMI：A、BMI＜19（0分）；B、19≤BMI＜21（1分）；C、21≤BMI＜23（2分）；D、BMI≥23（3分）。无法获得BMI时按小腿围：E、＜31 cm（0分）；F、≥31 cm（3分）",
+          "options": [
+            {
+              "label": "BMI＜19（0分）",
+              "score": 0
+            },
+            {
+              "label": "19≤BMI＜21（1分）",
+              "score": 1
+            },
+            {
+              "label": "21≤BMI＜23（2分）",
+              "score": 2
+            },
+            {
+              "label": "BMI≥23（3分）",
+              "score": 3
+            },
+            {
+              "label": "＜31 cm（0分）",
+              "score": 0
+            },
+            {
+              "label": "≥31 cm（3分）",
+              "score": 3
+            }
+          ],
+          "variableCode": "BMI_OR_CALF_CIRCUMFERENCE",
+          "reuseRule": "优先复用BMI；无法获得BMI时读取小腿围。若小腿围尚未测量，先标记待回填，测量完成后自动补入"
+        }
+      ]
+    },
+    {
+      "id": "glim",
+      "name": "全球领导人营养不良倡议标准（GLIM）",
+      "category": "老年综合征",
+      "subcategory": "营养不良",
+      "items": [
+        {
+          "id": "glim_1",
+          "row": 215,
+          "no": "1",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是：过去6个月内体重下降＞5%；B、否",
+          "options": [
+            {
+              "label": "是：过去6个月内体重下降＞5%",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "WEIGHT_HISTORY_1_2_3_6M",
+          "reuseRule": "从同一组原始体重史换算：当前体重及1、2、3、6个月前体重；已有数据直接复用，缺失时只补问一次原始体重"
+        },
+        {
+          "id": "glim_2",
+          "row": 216,
+          "no": "2",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、是：超过6个月的体重下降＞10%；B、否",
+          "options": [
+            {
+              "label": "是：超过6个月的体重下降＞10%",
+              "score": null
+            },
+            {
+              "label": "否",
+              "score": null
+            }
+          ],
+          "variableCode": "WEIGHT_HISTORY_1_2_3_6M",
+          "reuseRule": "从同一组原始体重史换算：当前体重及1、2、3、6个月前体重；已有数据直接复用，缺失时只补问一次原始体重"
+        },
+        {
+          "id": "glim_3",
+          "row": 217,
+          "no": "3",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²；B、不符合",
+          "options": [
+            {
+              "label": "符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²",
+              "score": null
+            },
+            {
+              "label": "不符合",
+              "score": null
+            }
+          ],
+          "variableCode": "BMI_CURRENT_AND_AGE",
+          "reuseRule": "复用当前BMI和年龄，按GLIM年龄分层界值自动判断"
+        },
+        {
+          "id": "glim_4",
+          "row": 218,
+          "no": "4",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、存在肌肉减少：DXA骨骼肌指数男＜7.0、女＜5.4 kg/m²，或BIA男＜7.0、女＜5.7 kg/m²，或去脂体质指数男＜17.0、女＜15.0 kg/m²；B、不存在",
+          "options": [
+            {
+              "label": "存在肌肉减少：DXA骨骼肌指数男＜7.0、女＜5.4 kg/m²，或BIA男＜7.0、女＜5.7 kg/m²，或去脂体质指数男＜17.0、女＜15.0 kg/m²",
+              "score": null
+            },
+            {
+              "label": "不存在",
+              "score": null
+            }
+          ],
+          "variableCode": "MUSCLE_MASS_INDEX",
+          "reuseRule": "直接复用DXA/BIA肌肉量测量结果；没有测量结果时不得用主观答案替代"
+        },
+        {
+          "id": "glim_5",
+          "row": 219,
+          "no": "5",
+          "entryType": "医护评估",
+          "text": "暂不处理",
+          "optionsRaw": "可多选：A、能量摄入≤50%且持续＞1周；B、饮食摄入持续减少＞2周；C、存在导致消化或吸收障碍的慢性消化道症状；D、以上均无",
+          "options": [
+            {
+              "label": "能量摄入≤50%且持续＞1周",
+              "score": null
+            },
+            {
+              "label": "饮食摄入持续减少＞2周",
+              "score": null
+            },
+            {
+              "label": "存在导致消化或吸收障碍的慢性消化道症状",
+              "score": null
+            },
+            {
+              "label": "以上均无",
+              "score": null
+            }
+          ],
+          "variableCode": "FOOD_INTAKE_AND_GI_HISTORY",
+          "reuseRule": "复用前面进食量变化和吞咽/消化道信息；仍缺持续时间或比例时由医护补录"
+        },
+        {
+          "id": "glim_6",
+          "row": 220,
+          "no": "6",
+          "entryType": "系统读取",
+          "text": "系统信息读取",
+          "optionsRaw": "A、存在急性疾病或损伤；B、存在慢性疾病相关炎症；C、两者均存在；D、均无",
+          "options": [
+            {
+              "label": "存在急性疾病或损伤",
+              "score": null
+            },
+            {
+              "label": "存在慢性疾病相关炎症",
+              "score": null
+            },
+            {
+              "label": "两者均存在",
+              "score": null
+            },
+            {
+              "label": "均无",
+              "score": null
+            }
+          ],
+          "variableCode": "GLIM_6",
+          "reuseRule": "系统/病历读取；缺失时补录"
+        }
+      ]
+    },
+    {
+      "id": "calf",
+      "name": "小腿围测量",
+      "category": "老年综合征",
+      "subcategory": "肌少症",
+      "items": [
+        {
+          "id": "calf_1",
+          "row": 222,
+          "no": "1",
+          "entryType": "设备/人工测量",
+          "text": "暂不处理",
+          "optionsRaw": "记录左侧小腿围____cm、右侧小腿围____cm，以较细侧____cm为准；男性＜34 cm或女性＜33 cm＝筛查阳性",
+          "options": [
+            {
+              "label": "筛查阳性（低于性别阈值）",
+              "score": null
+            },
+            {
+              "label": "筛查阴性（达到性别阈值）",
+              "score": null
+            }
+          ],
+          "variableCode": "CALF_CIRCUMFERENCE_BILATERAL",
+          "reuseRule": "同次评估只测量一次左右小腿围并保存较细侧；所有量表直接读取该数值"
+        }
+      ]
+    },
+    {
+      "id": "grip",
+      "name": "握力测量",
+      "category": "老年综合征",
+      "subcategory": "肌少症",
+      "items": [
+        {
+          "id": "grip_1",
+          "row": 223,
+          "no": "1",
+          "entryType": "设备/人工测量",
+          "text": "暂不处理",
+          "optionsRaw": "记录握力____kg；男性＜28 kg或女性＜18 kg＝肌肉力量下降",
+          "options": [
+            {
+              "label": "握力下降（低于性别阈值）",
+              "score": null
+            },
+            {
+              "label": "握力正常（达到性别阈值）",
+              "score": null
+            }
+          ],
+          "variableCode": "GRIP_1",
+          "reuseRule": "已有结果直接复用；否则测量"
+        }
+      ]
+    },
+    {
+      "id": "gait_speed",
+      "name": "6米步速测试",
+      "category": "老年综合征",
+      "subcategory": "肌少症",
+      "items": [
+        {
+          "id": "gait_speed_1",
+          "row": 224,
+          "no": "1",
+          "entryType": "设备/人工测量",
+          "text": "暂不处理",
+          "optionsRaw": "记录6米步行用时____秒，并计算步速____m/s；步速＜1.0 m/s＝躯体功能下降",
+          "options": [
+            {
+              "label": "步速下降（＜1.0 m/s）",
+              "score": null
+            },
+            {
+              "label": "步速正常（≥1.0 m/s）",
+              "score": null
+            }
+          ],
+          "variableCode": "GAIT6M_1",
+          "reuseRule": "已有结果直接复用；否则测量"
+        }
+      ]
+    },
+    {
+      "id": "dxa_bia",
+      "name": "DXA或BIA肌肉量测量",
+      "category": "老年综合征",
+      "subcategory": "肌少症",
+      "items": [
+        {
+          "id": "dxa_bia_1",
+          "row": 225,
+          "no": "1",
+          "entryType": "设备/人工测量",
+          "text": "暂不处理",
+          "optionsRaw": "记录测量方法及骨骼肌指数：DXA男＜7.0、女＜5.4 kg/m²，或BIA男＜7.0、女＜5.7 kg/m²＝符合肌少症诊断界值",
+          "options": [
+            {
+              "label": "符合肌少症肌肉量界值",
+              "score": null
+            },
+            {
+              "label": "未达肌少症肌肉量界值",
+              "score": null
+            }
+          ],
+          "variableCode": "MUSCLE_MASS_INDEX",
+          "reuseRule": "同次评估只读取或测量一次肌肉量；GLIM和肌少症判定按各自界值调用同一原始数值"
+        }
+      ]
+    },
+    {
+      "id": "cam",
+      "name": "谵妄评估（CAM）",
+      "category": "老年综合征",
+      "subcategory": "谵妄",
+      "items": [
+        {
+          "id": "cam_1",
+          "row": 226,
+          "no": "1",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "问题1：是／否；问题2：是／否。任一问题回答“是”，条目1判定为阳性",
+          "options": [
+            {
+              "label": "是（条目1阳性）",
+              "score": null
+            },
+            {
+              "label": "否（条目1阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "CAM_1",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "cam_2",
+          "row": 227,
+          "no": "2",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、是（条目2阳性）；B、否（条目2阴性）",
+          "options": [
+            {
+              "label": "是（条目2阳性）",
+              "score": null
+            },
+            {
+              "label": "否（条目2阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "CAM_2",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "cam_3",
+          "row": 228,
+          "no": "3",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、是（条目3阳性）；B、否（条目3阴性）",
+          "options": [
+            {
+              "label": "是（条目3阳性）",
+              "score": null
+            },
+            {
+              "label": "否（条目3阴性）",
+              "score": null
+            }
+          ],
+          "variableCode": "CAM_3",
+          "reuseRule": "医护记录，不问患者"
+        },
+        {
+          "id": "cam_4",
+          "row": 229,
+          "no": "4",
+          "entryType": "医护观察",
+          "text": "暂不处理",
+          "optionsRaw": "A、正常清醒（条目4阴性）；B、过度警觉（阳性）；C、嗜睡、易叫醒（阳性）；D、昏睡、不易叫醒（阳性）",
+          "options": [
+            {
+              "label": "正常清醒（条目4阴性）",
+              "score": null
+            },
+            {
+              "label": "过度警觉（阳性）",
+              "score": null
+            },
+            {
+              "label": "嗜睡、易叫醒（阳性）",
+              "score": null
+            },
+            {
+              "label": "昏睡、不易叫醒（阳性）",
+              "score": null
+            }
+          ],
+          "variableCode": "CAM_4",
+          "reuseRule": "医护记录，不问患者"
+        }
+      ]
+    },
+    {
+      "id": "tcm_constitution",
+      "name": "中医体质辨识",
+      "category": "中医特色扩展",
+      "subcategory": "中医体质",
+      "items": [
+        {
+          "id": "tcm_constitution_A.1-1",
+          "row": 231,
+          "no": "A.1-1",
+          "entryType": "正式问题",
+          "text": "您平时精神头足、做事有劲吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_1_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.1-2",
+          "row": 232,
+          "no": "A.1-2",
+          "entryType": "正式问题",
+          "text": "您平时容易觉得累吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_FATIGUE_FREQUENCY",
+          "reuseRule": "首次采集疲劳频率；A.2-1直接复用，不重复提问"
+        },
+        {
+          "id": "tcm_constitution_A.1-3",
+          "row": 233,
+          "no": "A.1-3",
+          "entryType": "正式问题",
+          "text": "您会不会常觉得闷闷不乐、心情低沉？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_LOW_MOOD_FREQUENCY",
+          "reuseRule": "首次采集心情低沉频率；A.8-1直接复用，不重复提问"
+        },
+        {
+          "id": "tcm_constitution_A.1-4",
+          "row": 234,
+          "no": "A.1-4",
+          "entryType": "正式问题",
+          "text": "您是不是比一般人更怕冷，比如冬天怕冷，夏天也受不了空调或电扇？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_COLD_INTOLERANCE_FREQUENCY",
+          "reuseRule": "首次采集怕冷频率；A.3-3直接复用，不重复提问"
+        },
+        {
+          "id": "tcm_constitution_A.2-1",
+          "row": 235,
+          "no": "A.2-1",
+          "entryType": "正式问题",
+          "text": "复用A.1-2的回答",
+          "optionsRaw": "复用A.1-2的答案，不重复提问：没有（1分）／很少（2分）／有时（3分）／经常（4分）／总是（5分）",
+          "options": null,
+          "variableCode": "TCM_FATIGUE_FREQUENCY",
+          "reuseRule": "直接复用A.1-2答案，不重复提问"
+        },
+        {
+          "id": "tcm_constitution_A.2-2",
+          "row": 236,
+          "no": "A.2-2",
+          "entryType": "正式问题",
+          "text": "您平时容易气短，觉得气不够用、接不上来吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_2_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.2-3",
+          "row": 237,
+          "no": "A.2-3",
+          "entryType": "正式问题",
+          "text": "您平时容易心慌，觉得心跳得快、乱或者不舒服吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_2_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.3-1",
+          "row": 238,
+          "no": "A.3-1",
+          "entryType": "正式问题",
+          "text": "您的胃部、后背、腰或者膝盖容易发冷吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_3_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.3-2",
+          "row": 239,
+          "no": "A.3-2",
+          "entryType": "正式问题",
+          "text": "同样的天气，您是不是常常比别人穿得多？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_3_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.3-3",
+          "row": 240,
+          "no": "A.3-3",
+          "entryType": "正式问题",
+          "text": "复用A.1-4的回答",
+          "optionsRaw": "复用A.1-4的答案，不重复提问：没有（1分）／很少（2分）／有时（3分）／经常（4分）／总是（5分）",
+          "options": null,
+          "variableCode": "TCM_COLD_INTOLERANCE_FREQUENCY",
+          "reuseRule": "直接复用A.1-4答案，不重复提问"
+        },
+        {
+          "id": "tcm_constitution_A.4-1",
+          "row": 241,
+          "no": "A.4-1",
+          "entryType": "正式问题",
+          "text": "您会不会常觉得身体或者脸上发热？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_4_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.4-2",
+          "row": 242,
+          "no": "A.4-2",
+          "entryType": "正式问题",
+          "text": "您的皮肤或者嘴唇容易发干吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_4_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.4-3",
+          "row": 243,
+          "no": "A.4-3",
+          "entryType": "正式问题",
+          "text": "您的两边脸颊会不会容易发红？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_4_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.5-1",
+          "row": 244,
+          "no": "A.5-1",
+          "entryType": "正式问题",
+          "text": "您会不会常觉得身体沉重、不轻快？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_5_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.5-2",
+          "row": 245,
+          "no": "A.5-2",
+          "entryType": "正式问题",
+          "text": "您的肚子是不是比较肥大，而且摸起来松软？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_5_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.5-3",
+          "row": 246,
+          "no": "A.5-3",
+          "entryType": "正式问题",
+          "text": "您嘴里会不会常有黏黏的、不清爽的感觉？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_5_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.6-1",
+          "row": 247,
+          "no": "A.6-1",
+          "entryType": "正式问题",
+          "text": "您的脸或者鼻子容易出油、发亮吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_6_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.6-2",
+          "row": 248,
+          "no": "A.6-2",
+          "entryType": "正式问题",
+          "text": "您小便时会不会觉得尿道发热，而且尿色比较深？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_6_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.6-3",
+          "row": 249,
+          "no": "A.6-3",
+          "entryType": "正式问题",
+          "text": "您的白带会不会发黄？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）；F、不适用（非女性）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            },
+            {
+              "label": "不适用（非女性）",
+              "score": null
+            }
+          ],
+          "variableCode": "TCM_A_6_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.6-4",
+          "row": 250,
+          "no": "A.6-4",
+          "entryType": "正式问题",
+          "text": "您的阴囊部位会不会容易潮湿？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）；F、不适用（非男性）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            },
+            {
+              "label": "不适用（非男性）",
+              "score": null
+            }
+          ],
+          "variableCode": "TCM_A_6_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.7-1",
+          "row": 251,
+          "no": "A.7-1",
+          "entryType": "正式问题",
+          "text": "您身体会不会有疼痛的地方？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_7_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.7-2",
+          "row": 252,
+          "no": "A.7-2",
+          "entryType": "正式问题",
+          "text": "您的脸色会不会偏暗，或者容易长褐色斑？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_7_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.7-3",
+          "row": 253,
+          "no": "A.7-3",
+          "entryType": "正式问题",
+          "text": "您的嘴唇颜色会不会偏暗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_7_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.8-1",
+          "row": 254,
+          "no": "A.8-1",
+          "entryType": "正式问题",
+          "text": "复用A.1-3的回答",
+          "optionsRaw": "复用A.1-3的答案，不重复提问：没有（1分）／很少（2分）／有时（3分）／经常（4分）／总是（5分）",
+          "options": null,
+          "variableCode": "TCM_LOW_MOOD_FREQUENCY",
+          "reuseRule": "直接复用A.1-3答案，不重复提问"
+        },
+        {
+          "id": "tcm_constitution_A.8-2",
+          "row": 255,
+          "no": "A.8-2",
+          "entryType": "正式问题",
+          "text": "您是不是容易紧张、焦虑或者心里不安？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_8_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.8-3",
+          "row": 256,
+          "no": "A.8-3",
+          "entryType": "正式问题",
+          "text": "您是不是容易想得多，遇到事情也容易伤心？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_8_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.9-1",
+          "row": 257,
+          "no": "A.9-1",
+          "entryType": "正式问题",
+          "text": "没有感冒的时候，您也会不会打喷嚏？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_9_1",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.9-2",
+          "row": 258,
+          "no": "A.9-2",
+          "entryType": "正式问题",
+          "text": "您是不是容易对药物、食物、气味、花粉或者天气变化过敏？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_9_2",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.9-3",
+          "row": 259,
+          "no": "A.9-3",
+          "entryType": "正式问题",
+          "text": "您的皮肤容易起一块块发痒的风团吗？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_9_3",
+          "reuseRule": "首次采集；同变量直接复用"
+        },
+        {
+          "id": "tcm_constitution_A.9-4",
+          "row": 260,
+          "no": "A.9-4",
+          "entryType": "正式问题",
+          "text": "您的皮肤是不是轻轻一抓就发红，并留下抓痕？",
+          "optionsRaw": "A、没有（根本不，1分）；B、很少（有一点，2分）；C、有时（有些，3分）；D、经常（相当，4分）；E、总是（非常，5分）",
+          "options": [
+            {
+              "label": "没有（根本不，1分）",
+              "score": 1
+            },
+            {
+              "label": "很少（有一点，2分）",
+              "score": 2
+            },
+            {
+              "label": "有时（有些，3分）",
+              "score": 3
+            },
+            {
+              "label": "经常（相当，4分）",
+              "score": 4
+            },
+            {
+              "label": "总是（非常，5分）",
+              "score": 5
+            }
+          ],
+          "variableCode": "TCM_A_9_4",
+          "reuseRule": "首次采集；同变量直接复用"
+        }
+      ]
+    }
+  ]
+}

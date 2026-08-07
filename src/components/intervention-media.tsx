@@ -1,12 +1,13 @@
 /**
  * INPUT:  单个干预项的素材信息（类型/路径/是否就绪/文字要点/名称/原始文件名）
- * OUTPUT: 运动视频卡（缺失或播放失败回退文字要点）、膳食/中医食养图片卡（支持放大查看，缺失标记"素材待补齐"）
+ * OUTPUT: 运动视频卡（缺失或播放失败回退文字要点）、膳食/中医食养图片卡（支持放大查看，缺失标记"素材待补齐"）、
+ *         文本卡（V2 新增：JZ 就诊建议 / QT 文本类干预，名称 + content 全文）
  * POS:    干预展示的客户端媒体组件，医生端与患者端复用。视频/图片的播放失败与素材缺失回退逻辑
  *         收敛在此（来源：需求更新说明 V2.0 §5.1 视频回退文字、§5.2 图片放大与"素材待补齐"）。
  */
 "use client";
 import { useState } from "react";
-import { IconVideoOff, IconZoomIn, IconX, IconPhotoOff } from "@tabler/icons-react";
+import { IconVideoOff, IconZoomIn, IconX, IconPhotoOff, IconFileDescription } from "@tabler/icons-react";
 
 /** 运动视频卡：视频就绪则播放，未就绪/播放失败回退文字动作要点（文字要点始终展示，作为正文与兜底） */
 export function InterventionVideo({
@@ -126,6 +127,23 @@ export function InterventionImage({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * 文本卡（V2 新增，M8）：JZ 就诊建议 / QT 文本类干预的展示组件。
+ * 展示名称 + content 全文（正文即方案内容，不得裁切缩写），适老化大字体，
+ * 视觉令牌与 InterventionVideo/InterventionImage 一致。纯展示、无交互状态。
+ */
+export function InterventionText({ name, content }: { name: string; content: string }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 rounded-xl border border-dashed border-[var(--line-strong,#bcd4f5)] bg-[var(--brand-soft,#f1f6ff)] px-4 py-3 text-sm font-semibold text-[var(--ink-muted,#5b7196)]">
+        <IconFileDescription size={18} aria-hidden="true" />
+        <span>{name} · 文字说明</span>
+      </div>
+      <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink-muted,#4b668e)]">{content}</p>
     </div>
   );
 }

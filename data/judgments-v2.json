@@ -1,0 +1,800 @@
+{
+  "source": "V2/02_结果标签判定表.xlsx 判定规则（手工整理，配对照测试 tests/scoring-v2-*.test.ts）",
+  "note": "医学规则变更的唯一路径：改 V2/02 源文件 → 同步手工更新本文件 → 重跑 npm run convert-rules-v2（校验段）与 npm test。禁止绕过 02 表直接改本文件的医学内容。条目 id / 选项分值以 data/scales-v2.json（01 表）为准。M10.3b 起每量表 judgments 为 1～N 份数组：引擎依次执行并合并（tags 拼接去重、missing/deferred 共集、details 按 itemId 去重、totalScore 取首个有总分的判定）。",
+  "scales": [
+    {
+      "scaleId": "adl",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["adl_1", "adl_2", "adl_3", "adl_4", "adl_5", "adl_6", "adl_7", "adl_8", "adl_9", "adl_10"],
+          "ranges": [
+            { "tagCode": "ADL_DEPENDENCE_SEVERE", "min": 0, "max": 40 },
+            { "tagCode": "ADL_DEPENDENCE_MODERATE", "min": 41, "max": 60 },
+            { "tagCode": "ADL_DEPENDENCE_MILD", "min": 61, "max": 99 },
+            { "tagCode": "ADL_DEPENDENCE_NONE", "min": 100, "max": 100 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "iadl",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["iadl_1", "iadl_2", "iadl_3", "iadl_4", "iadl_5", "iadl_6", "iadl_7", "iadl_8"],
+          "ranges": [
+            { "tagCode": "IADL_DEPENDENCE_SEVERE", "min": 0, "max": 2 },
+            { "tagCode": "IADL_DEPENDENCE_MODERATE", "min": 3, "max": 5 },
+            { "tagCode": "IADL_DEPENDENCE_MILD", "min": 6, "max": 7 },
+            { "tagCode": "IADL_NORMAL", "min": 8, "max": 8 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "minicog",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["minicog_2", "minicog_3"],
+          "ranges": [
+            { "tagCode": "COGNITIVE_BRIEF_SCREEN_POSITIVE", "min": 0, "max": 2 },
+            { "tagCode": "COGNITIVE_BRIEF_SCREEN_NEGATIVE", "min": 3, "max": 5 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "mmse",
+      "judgments": [
+        {
+          "type": "thresholdByEducation",
+          "scoredItemIds": [
+            "mmse_1", "mmse_2", "mmse_3", "mmse_4", "mmse_5", "mmse_6", "mmse_7", "mmse_8", "mmse_9", "mmse_10",
+            "mmse_11", "mmse_12", "mmse_13", "mmse_14", "mmse_15", "mmse_16", "mmse_17", "mmse_18", "mmse_19", "mmse_20",
+            "mmse_21", "mmse_22", "mmse_23", "mmse_24", "mmse_25", "mmse_26", "mmse_27", "mmse_28", "mmse_29", "mmse_30"
+          ],
+          "educationThresholds": { "illiterate": 17, "primary": 20, "secondary": 22, "college": 23 },
+          "normalTagCode": "MMSE_WITHIN_NORMAL_RANGE",
+          "declineTagCode": "MMSE_COGNITIVE_DECLINE"
+        }
+      ]
+    },
+    {
+      "scaleId": "depression_2q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["depression_2q_1", "depression_2q_2"],
+          "yesLabels": ["是（筛查阳性）"],
+          "positiveTagCode": "DEPRESSION_2Q_POSITIVE",
+          "negativeTagCode": "DEPRESSION_2Q_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "gds15",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": [
+            "gds15_1", "gds15_2", "gds15_3", "gds15_4", "gds15_5", "gds15_6", "gds15_7", "gds15_8",
+            "gds15_9", "gds15_10", "gds15_11", "gds15_12", "gds15_13", "gds15_14", "gds15_15"
+          ],
+          "ranges": [
+            { "tagCode": "GDS15_NORMAL", "min": 0, "max": 8 },
+            { "tagCode": "GDS15_MODERATE_DEPRESSION", "min": 9, "max": 11 },
+            { "tagCode": "GDS15_SEVERE_DEPRESSION", "min": 12, "max": 15 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "anxiety_2q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["anxiety_2q_1", "anxiety_2q_2"],
+          "yesLabels": ["是（筛查阳性）"],
+          "positiveTagCode": "ANXIETY_2Q_POSITIVE",
+          "negativeTagCode": "ANXIETY_2Q_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "gad7",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["gad7_1", "gad7_2", "gad7_3", "gad7_4", "gad7_5", "gad7_6", "gad7_7"],
+          "ranges": [
+            { "tagCode": "GAD7_NORMAL", "min": 0, "max": 9 },
+            { "tagCode": "GAD7_MODERATE_ANXIETY", "min": 10, "max": 14 },
+            { "tagCode": "GAD7_SEVERE_ANXIETY", "min": 15, "max": 21 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "lubben",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "comment": "来源：02 表 Lubben「总分≥24 良好 / 12～23 一般 / ＜12 较差」；6 题各 0～5 分，满分 30",
+          "scoredItemIds": ["lubben_1", "lubben_2", "lubben_3", "lubben_4", "lubben_5", "lubben_6"],
+          "ranges": [
+            { "tagCode": "LUBBEN_SUPPORT_POOR", "min": 0, "max": 11 },
+            { "tagCode": "LUBBEN_SUPPORT_FAIR", "min": 12, "max": 23 },
+            { "tagCode": "LUBBEN_SUPPORT_GOOD", "min": 24, "max": 30 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "fall_3q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["fall_3q_1", "fall_3q_2", "fall_3q_3"],
+          "yesLabels": ["是（筛查阳性）"],
+          "positiveTagCode": "FALL_SCREEN_POSITIVE",
+          "negativeTagCode": "FALL_SCREEN_NEGATIVE"
+        },
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表「第N题回答『是』」三条单题标签；与 anyYes 阴阳性判定合并输出",
+          "rules": [
+            { "itemId": "fall_3q_1", "whenLabel": "是（筛查阳性）", "tagCode": "FALL_HISTORY_1Y" },
+            { "itemId": "fall_3q_2", "whenLabel": "是（筛查阳性）", "tagCode": "FALL_UNSTEADY_STANDING_WALKING" },
+            { "itemId": "fall_3q_3", "whenLabel": "是（筛查阳性）", "tagCode": "FALL_FEAR_ACTIVITY_RESTRICTION" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "morse",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "comment": "来源：02 表 Morse「0～24 低 / 建议程序判定 25～44 中（标准原文写为 25～45）/ ≥45 高」，按建议程序判定取 25～44；6 题满分 125。morse_2/morse_4/morse_5 系统读取、morse_6 逻辑计算，缺失按 deferClinical 豁免、strict 阻断代填",
+          "scoredItemIds": ["morse_1", "morse_2", "morse_3", "morse_4", "morse_5", "morse_6"],
+          "ranges": [
+            { "tagCode": "MORSE_FALL_RISK_LOW", "min": 0, "max": 24 },
+            { "tagCode": "MORSE_FALL_RISK_MODERATE", "min": 25, "max": 44 },
+            { "tagCode": "MORSE_FALL_RISK_HIGH", "min": 45, "max": 125 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "frail",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["frail_1", "frail_2", "frail_3", "frail_4", "frail_5"],
+          "ranges": [
+            { "tagCode": "FRAIL_NONE", "min": 0, "max": 0 },
+            { "tagCode": "FRAIL_PREFRAIL", "min": 1, "max": 2 },
+            { "tagCode": "FRAIL_FRAIL", "min": 3, "max": 5 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "ui_2q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["ui_2q_1", "ui_2q_2"],
+          "yesLabels": ["是（筛查阳性）"],
+          "positiveTagCode": "URINARY_INCONTINENCE_SCREEN_POSITIVE",
+          "negativeTagCode": "URINARY_INCONTINENCE_SCREEN_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "iciq",
+      "judgments": [
+        {
+          "type": "perQuestionTags",
+          "comment": "M10.3b 降级口径（iciq_3 影响分 0～10 为数字题 options=null、iciq_4 情形为多选，均待 M9.6 新题型）：①Q1 频率/Q2 漏量任一档 >0 分 → 总分必 >0 → ICIQ_INCONTINENCE_PRESENT（02 表「总分＞0分，或漏尿情形选择任一漏尿情形」的确定性子集）；②Q4 各漏尿情形 → 对应 ICIQ_LEAK_* / ICIQ_CONTINUOUS_LEAKAGE + ICIQ_INCONTINENCE_PRESENT（Q4 当前单选作答，多选情形待 M9.6 补全）；③ICIQ_NO_INCONTINENCE 需「总分＝0 且 Q4=从不漏尿」（依赖 Q3），本批不自动产出；④ICIQ_UI_SF_SCORE 为 {score} 占位标签，不自动产出",
+          "rules": [
+            { "itemId": "iciq_1", "whenLabel": "大约每周1次或更少（1分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_1", "whenLabel": "每周2～3次（2分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_1", "whenLabel": "大约每天1次（3分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_1", "whenLabel": "每天超过1次（4分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_1", "whenLabel": "一直漏尿（5分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_2", "whenLabel": "少量（2分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_2", "whenLabel": "中等量（4分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_2", "whenLabel": "大量（6分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "未到达厕所前漏尿", "tagCode": "ICIQ_LEAK_BEFORE_TOILET" },
+            { "itemId": "iciq_4", "whenLabel": "未到达厕所前漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "咳嗽或打喷嚏时漏尿", "tagCode": "ICIQ_LEAK_COUGH_SNEEZE" },
+            { "itemId": "iciq_4", "whenLabel": "咳嗽或打喷嚏时漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "睡着时漏尿", "tagCode": "ICIQ_LEAK_ASLEEP" },
+            { "itemId": "iciq_4", "whenLabel": "睡着时漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "活动或运动时漏尿", "tagCode": "ICIQ_LEAK_ACTIVITY" },
+            { "itemId": "iciq_4", "whenLabel": "活动或运动时漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "小便结束并穿好衣服时漏尿", "tagCode": "ICIQ_LEAK_POST_VOID" },
+            { "itemId": "iciq_4", "whenLabel": "小便结束并穿好衣服时漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "没有明显原因的漏尿", "tagCode": "ICIQ_LEAK_NO_OBVIOUS_REASON" },
+            { "itemId": "iciq_4", "whenLabel": "没有明显原因的漏尿", "tagCode": "ICIQ_INCONTINENCE_PRESENT" },
+            { "itemId": "iciq_4", "whenLabel": "一直漏尿（本题不计入总分）", "tagCode": "ICIQ_CONTINUOUS_LEAKAGE" },
+            { "itemId": "iciq_4", "whenLabel": "一直漏尿（本题不计入总分）", "tagCode": "ICIQ_INCONTINENCE_PRESENT" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "constipation_1q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["constipation_1q_1"],
+          "yesLabels": ["有便秘困扰（筛查阳性）"],
+          "positiveTagCode": "CONSTIPATION_SCREEN_POSITIVE",
+          "negativeTagCode": "CONSTIPATION_SCREEN_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "constipation_symptom",
+      "judgments": [
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表单题症状标签 + Bristol 7 型。取舍：Q1/Q2 起病时长为年月记录题（options=null）不纳入判定；Q3 每周排便次数（options=null，0次／1次／…／7次及以上）的 CONSTIPATION_LOW_FREQUENCY（每周＜3次）待 M9.6 数字题型/数值阈值判定落地后补；CONSTIPATION_NOT_DIAGNOSED/DIAGNOSED/CLINICAL_TYPE 为医生临床判定标签，不自动产出",
+          "rules": [
+            { "itemId": "constipation_symptom_4", "whenLabel": "是", "tagCode": "CONSTIPATION_INCOMPLETE_EVACUATION" },
+            { "itemId": "constipation_symptom_5", "whenLabel": "是", "tagCode": "CONSTIPATION_ANORECTAL_BLOCKAGE" },
+            { "itemId": "constipation_symptom_6", "whenLabel": "是", "tagCode": "CONSTIPATION_PROLONGED_DEFECATION" },
+            { "itemId": "constipation_symptom_7", "whenLabel": "是", "tagCode": "CONSTIPATION_MANUAL_MANEUVER" },
+            { "itemId": "constipation_symptom_8", "whenLabel": "是", "tagCode": "CONSTIPATION_ABDOMINAL_DISCOMFORT_RELIEVED" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "数个干球状便，如坚果，很难排出", "tagCode": "STOOL_FORM_TYPE_1" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "腊肠样，很硬", "tagCode": "STOOL_FORM_TYPE_2" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "腊肠样，表面有裂缝", "tagCode": "STOOL_FORM_TYPE_3" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "腊肠样或蛇状，光滑而柔软", "tagCode": "STOOL_FORM_TYPE_4" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "柔软团块，切缘清楚（容易排出）", "tagCode": "STOOL_FORM_TYPE_5" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "松散的碎片，边缘破糟，或糊状便", "tagCode": "STOOL_FORM_TYPE_6" },
+            { "itemId": "constipation_symptom_9", "whenLabel": "水样便", "tagCode": "STOOL_FORM_TYPE_7" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "sleep_1q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["sleep_1q_1"],
+          "yesLabels": ["是（筛查阳性）"],
+          "positiveTagCode": "SLEEP_DISORDER_SCREEN_POSITIVE",
+          "negativeTagCode": "SLEEP_DISORDER_SCREEN_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "ais",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["ais_1", "ais_2", "ais_3", "ais_4", "ais_5", "ais_6", "ais_7", "ais_8"],
+          "ranges": [
+            { "tagCode": "AIS_NO_SLEEP_DISORDER", "min": 0, "max": 3 },
+            { "tagCode": "AIS_POSSIBLE_SLEEP_DISORDER", "min": 4, "max": 5 },
+            { "tagCode": "AIS_SLEEP_DISORDER_PRESENT", "min": 6, "max": 24 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "pain_1q",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["pain_1q_1"],
+          "yesLabels": ["是（筛查阳性）"],
+          "positiveTagCode": "CHRONIC_PAIN_SCREEN_POSITIVE",
+          "negativeTagCode": "CHRONIC_PAIN_SCREEN_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "pain_nrs",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "comment": "来源：02 表 NRS「0 无 / 1～3 轻 / 4～6 中 / 7～10 重」；单题 11 档，选项分值取自 label 前导「N分：」（convert-rules-v2 parseOptions 前导分值解析）",
+          "scoredItemIds": ["pain_nrs_1"],
+          "ranges": [
+            { "tagCode": "PAIN_NRS_NONE", "min": 0, "max": 0 },
+            { "tagCode": "PAIN_NRS_MILD", "min": 1, "max": 3 },
+            { "tagCode": "PAIN_NRS_MODERATE", "min": 4, "max": 6 },
+            { "tagCode": "PAIN_NRS_SEVERE", "min": 7, "max": 10 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "pressure_screen",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "comment": "来源：02 表「未长期卧床，且查看/触摸皮肤未发现异常 → 阴性；长期卧床，或发现异常 → 阳性」；两题阳性选项文案不同，yesLabels 取并集。pressure_screen_2 为医护观察题，缺失按 deferClinical 豁免、strict 阻断代填",
+          "scoredItemIds": ["pressure_screen_1", "pressure_screen_2"],
+          "yesLabels": ["是（筛查阳性）", "发现皮肤异常（筛查阳性）"],
+          "positiveTagCode": "PRESSURE_INJURY_SCREEN_POSITIVE",
+          "negativeTagCode": "PRESSURE_INJURY_SCREEN_NEGATIVE"
+        },
+        {
+          "type": "perQuestionTags",
+          "rules": [
+            { "itemId": "pressure_screen_1", "whenLabel": "是（筛查阳性）", "tagCode": "PRESSURE_INJURY_LONG_TERM_BEDREST" },
+            { "itemId": "pressure_screen_2", "whenLabel": "发现皮肤异常（筛查阳性）", "tagCode": "PRESSURE_INJURY_SKIN_ABNORMALITY" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "dysphagia_screen",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "scoredItemIds": ["dysphagia_screen_1", "dysphagia_screen_2", "dysphagia_screen_3", "dysphagia_screen_4", "dysphagia_screen_5"],
+          "yesLabels": ["是（该症状存在）"],
+          "positiveTagCode": "DYSPHAGIA_SCREEN_POSITIVE",
+          "negativeTagCode": "DYSPHAGIA_SCREEN_NEGATIVE"
+        },
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表「第N项回答『是』」五条单题标签；与 anyYes 阴阳性判定合并输出",
+          "rules": [
+            { "itemId": "dysphagia_screen_1", "whenLabel": "是（该症状存在）", "tagCode": "DYSPHAGIA_DIFFICULTY_OR_PAIN" },
+            { "itemId": "dysphagia_screen_2", "whenLabel": "是（该症状存在）", "tagCode": "DYSPHAGIA_COUGH_CHOKE" },
+            { "itemId": "dysphagia_screen_3", "whenLabel": "是（该症状存在）", "tagCode": "DYSPHAGIA_ORAL_RESIDUE" },
+            { "itemId": "dysphagia_screen_4", "whenLabel": "是（该症状存在）", "tagCode": "DYSPHAGIA_ORAL_LEAKAGE" },
+            { "itemId": "dysphagia_screen_5", "whenLabel": "是（该症状存在）", "tagCode": "DYSPHAGIA_DROOLING" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "water_swallow",
+      "judgments": [
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表洼田饮水「1级且≤5秒 正常 / 1级＞5秒或2级 可疑异常 / 3～5级 异常」；选项分值无法连续单调表达（options score=null），按选项 label 逐档映射。本条目为操作测试（医护执行），缺失按 deferClinical 豁免、strict 阻断代填",
+          "rules": [
+            { "itemId": "water_swallow_1", "whenLabel": "1级：一次喝完、无呛咳且≤5秒（正常）", "tagCode": "WATER_SWALLOW_NORMAL" },
+            { "itemId": "water_swallow_1", "whenLabel": "1级：一次喝完、无呛咳但＞5秒（可疑异常）", "tagCode": "WATER_SWALLOW_SUSPECTED_ABNORMAL" },
+            { "itemId": "water_swallow_1", "whenLabel": "2级：两次或以上喝完、无呛咳（可疑异常）", "tagCode": "WATER_SWALLOW_SUSPECTED_ABNORMAL" },
+            { "itemId": "water_swallow_1", "whenLabel": "3级：一次喝完但有呛咳（异常）", "tagCode": "WATER_SWALLOW_ABNORMAL" },
+            { "itemId": "water_swallow_1", "whenLabel": "4级：两次或以上喝完且有呛咳（异常）", "tagCode": "WATER_SWALLOW_ABNORMAL" },
+            { "itemId": "water_swallow_1", "whenLabel": "5级：饮水中频繁呛咳，很难全部喝完（异常）", "tagCode": "WATER_SWALLOW_ABNORMAL" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "mnasf",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "scoredItemIds": ["mnasf_1", "mnasf_2", "mnasf_3", "mnasf_4", "mnasf_5", "mnasf_6"],
+          "ranges": [
+            { "tagCode": "MNA_SF_MALNUTRITION_RISK", "min": 0, "max": 11 },
+            { "tagCode": "MNA_SF_NO_RISK", "min": 12, "max": 14 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "tcm_constitution",
+      "judgments": [
+        {
+          "type": "tcmConstitutionV2",
+          "thresholds": {
+            "biasedYesMin": 40,
+            "biasedTendencyMin": 30,
+            "balancedMin": 60,
+            "othersMaxForYes": 30,
+            "othersMaxForBasically": 40
+          },
+          "balanced": {
+            "questionIds": ["tcm_constitution_A.1-1", "tcm_constitution_A.1-2", "tcm_constitution_A.1-3", "tcm_constitution_A.1-4"],
+            "tagCodes": {
+              "yes": "TCM_BALANCED_YES",
+              "basically": "TCM_BALANCED_BASICALLY",
+              "no": "TCM_BALANCED_NO"
+            }
+          },
+          "biased": [
+            {
+              "key": "qi_deficiency",
+              "questionIds": ["tcm_constitution_A.1-2", "tcm_constitution_A.2-2", "tcm_constitution_A.2-3"],
+              "tagCodes": {
+                "yes": "TCM_QI_DEFICIENCY_YES",
+                "tendency": "TCM_QI_DEFICIENCY_TENDENCY",
+                "no": "TCM_QI_DEFICIENCY_NO"
+              }
+            },
+            {
+              "key": "yang_deficiency",
+              "questionIds": ["tcm_constitution_A.3-1", "tcm_constitution_A.3-2", "tcm_constitution_A.1-4"],
+              "tagCodes": {
+                "yes": "TCM_YANG_DEFICIENCY_YES",
+                "tendency": "TCM_YANG_DEFICIENCY_TENDENCY",
+                "no": "TCM_YANG_DEFICIENCY_NO"
+              }
+            },
+            {
+              "key": "yin_deficiency",
+              "questionIds": ["tcm_constitution_A.4-1", "tcm_constitution_A.4-2", "tcm_constitution_A.4-3"],
+              "tagCodes": {
+                "yes": "TCM_YIN_DEFICIENCY_YES",
+                "tendency": "TCM_YIN_DEFICIENCY_TENDENCY",
+                "no": "TCM_YIN_DEFICIENCY_NO"
+              }
+            },
+            {
+              "key": "phlegm_dampness",
+              "questionIds": ["tcm_constitution_A.5-1", "tcm_constitution_A.5-2", "tcm_constitution_A.5-3"],
+              "tagCodes": {
+                "yes": "TCM_PHLEGM_DAMPNESS_YES",
+                "tendency": "TCM_PHLEGM_DAMPNESS_TENDENCY",
+                "no": "TCM_PHLEGM_DAMPNESS_NO"
+              }
+            },
+            {
+              "key": "damp_heat",
+              "questionIds": ["tcm_constitution_A.6-1", "tcm_constitution_A.6-2", "tcm_constitution_A.6-3", "tcm_constitution_A.6-4"],
+              "tagCodes": {
+                "yes": "TCM_DAMP_HEAT_YES",
+                "tendency": "TCM_DAMP_HEAT_TENDENCY",
+                "no": "TCM_DAMP_HEAT_NO"
+              }
+            },
+            {
+              "key": "blood_stasis",
+              "questionIds": ["tcm_constitution_A.7-1", "tcm_constitution_A.7-2", "tcm_constitution_A.7-3"],
+              "tagCodes": {
+                "yes": "TCM_BLOOD_STASIS_YES",
+                "tendency": "TCM_BLOOD_STASIS_TENDENCY",
+                "no": "TCM_BLOOD_STASIS_NO"
+              }
+            },
+            {
+              "key": "qi_stagnation",
+              "questionIds": ["tcm_constitution_A.1-3", "tcm_constitution_A.8-2", "tcm_constitution_A.8-3"],
+              "tagCodes": {
+                "yes": "TCM_QI_STAGNATION_YES",
+                "tendency": "TCM_QI_STAGNATION_TENDENCY",
+                "no": "TCM_QI_STAGNATION_NO"
+              }
+            },
+            {
+              "key": "special_constitution",
+              "questionIds": ["tcm_constitution_A.9-1", "tcm_constitution_A.9-2", "tcm_constitution_A.9-3", "tcm_constitution_A.9-4"],
+              "tagCodes": {
+                "yes": "TCM_SPECIAL_CONSTITUTION_YES",
+                "tendency": "TCM_SPECIAL_CONSTITUTION_TENDENCY",
+                "no": "TCM_SPECIAL_CONSTITUTION_NO"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "motor_screen",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "comment": "来源：02 表运动功能初筛「步行400米或登10阶楼梯任一有困难」",
+          "scoredItemIds": ["motor_screen_1"],
+          "yesLabels": ["是（筛查阳性，进入SPPB评估）"],
+          "positiveTagCode": "MOTOR_SCREEN_POSITIVE",
+          "negativeTagCode": "MOTOR_SCREEN_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "sppb",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "comment": "来源：02 表 SPPB 总分 10～12 / 7～9 / 0～6；满分 1+1+2+4+4=12",
+          "scoredItemIds": ["sppb_1A", "sppb_1B", "sppb_1C", "sppb_2", "sppb_3"],
+          "ranges": [
+            { "tagCode": "SPPB_POOR", "min": 0, "max": 6 },
+            { "tagCode": "SPPB_MODERATE", "min": 7, "max": 9 },
+            { "tagCode": "SPPB_GOOD", "min": 10, "max": 12 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "vision",
+      "judgments": [
+        {
+          "type": "ladderScore",
+          "comment": "来源：02 表视力简易评估「评估得分＝4/3/1～2/0」；vision_1 戴镜确认不计分",
+          "stepItemIds": ["vision_2", "vision_3", "vision_4", "vision_5"],
+          "ranges": [
+            { "tagCode": "VISION_TOTAL_BLINDNESS", "min": 0, "max": 0 },
+            { "tagCode": "VISION_BLIND", "min": 1, "max": 2 },
+            { "tagCode": "VISION_LOW", "min": 3, "max": 3 },
+            { "tagCode": "VISION_NORMAL", "min": 4, "max": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "visual_function",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "comment": "来源：02 表视觉功能总分＝3 / ＝2 / ≤1；是=0 分、否=1 分",
+          "scoredItemIds": ["visual_function_1", "visual_function_2", "visual_function_3"],
+          "ranges": [
+            { "tagCode": "VISUAL_FUNCTION_POOR", "min": 0, "max": 1 },
+            { "tagCode": "VISUAL_FUNCTION_IMPAIRED", "min": 2, "max": 2 },
+            { "tagCode": "VISUAL_FUNCTION_GOOD", "min": 3, "max": 3 }
+          ]
+        },
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表第1/2/3题回答「是」单题标签",
+          "rules": [
+            { "itemId": "visual_function_1", "whenLabel": "是（0分）", "tagCode": "VISUAL_DIFFICULTY_DAILY_ACTIVITY" },
+            { "itemId": "visual_function_2", "whenLabel": "是（0分）", "tagCode": "VISUAL_FIELD_DEFECT_SYMPTOM" },
+            { "itemId": "visual_function_3", "whenLabel": "是（0分）", "tagCode": "VISUAL_DISTORTION_SYMPTOM" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "hearing",
+      "judgments": [
+        {
+          "type": "ladderScore",
+          "comment": "来源：02 表听力简易评估；hearing_1 助听器确认不计分",
+          "stepItemIds": ["hearing_2", "hearing_3", "hearing_4", "hearing_5"],
+          "ranges": [
+            { "tagCode": "HEARING_TOTAL_LOSS", "min": 0, "max": 0 },
+            { "tagCode": "HEARING_IMPAIRMENT", "min": 1, "max": 2 },
+            { "tagCode": "HEARING_DECLINE", "min": 3, "max": 3 },
+            { "tagCode": "HEARING_NORMAL", "min": 4, "max": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "whisper",
+      "judgments": [
+        {
+          "type": "anyBelowThreshold",
+          "comment": "来源：02 表耳语试验「任一侧正确复述少于3个词」；whisper_1/2 为操作就位不计分",
+          "scoredItemIds": ["whisper_3", "whisper_4"],
+          "threshold": 3,
+          "positiveTagCode": "WHISPER_TEST_POSITIVE",
+          "negativeTagCode": "WHISPER_TEST_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "home_env",
+      "judgments": [
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表居家环境单题标签（答「否」）；HOME_ENVIRONMENT_SCORE 为占位总分标签不自动产出；楼梯题 N/A 不匹配「否」故不产出",
+          "rules": [
+            { "itemId": "home_env_1", "whenLabel": "否（0分）", "tagCode": "HOME_PATHWAY_OBSTRUCTED" },
+            { "itemId": "home_env_2", "whenLabel": "否（0分）", "tagCode": "HOME_FLOOR_UNSAFE" },
+            { "itemId": "home_env_3", "whenLabel": "否（0分）", "tagCode": "HOME_FLOOR_SLIPPERY" },
+            { "itemId": "home_env_4", "whenLabel": "否（0分）", "tagCode": "HOME_ANTI_SLIP_MAT_MISSING" },
+            { "itemId": "home_env_5", "whenLabel": "否（0分）", "tagCode": "HOME_INDOOR_LIGHTING_INADEQUATE" },
+            { "itemId": "home_env_6", "whenLabel": "否（0分）", "tagCode": "HOME_BEDSIDE_LIGHT_SWITCH_INCONVENIENT" },
+            { "itemId": "home_env_7", "whenLabel": "否（0分）", "tagCode": "HOME_NIGHT_LIGHTING_INADEQUATE" },
+            { "itemId": "home_env_8", "whenLabel": "否（0分）", "tagCode": "HOME_BATH_GRAB_BAR_MISSING" },
+            { "itemId": "home_env_9", "whenLabel": "否（0分）", "tagCode": "HOME_BATH_ANTI_SLIP_INADEQUATE" },
+            { "itemId": "home_env_10", "whenLabel": "否（0分）", "tagCode": "HOME_TOILET_BATHROOM_ACCESS_INCONVENIENT" },
+            { "itemId": "home_env_11", "whenLabel": "否（0分）", "tagCode": "HOME_INDOOR_STAIR_HANDRAIL_MISSING" },
+            { "itemId": "home_env_12", "whenLabel": "否（0分）", "tagCode": "HOME_OUTDOOR_STAIR_HANDRAIL_MISSING" },
+            { "itemId": "home_env_13", "whenLabel": "否（0分）", "tagCode": "HOME_STAIR_EDGE_UNCLEAR" },
+            { "itemId": "home_env_14", "whenLabel": "否（0分）", "tagCode": "HOME_SURROUNDING_ROAD_UNSAFE" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "pain_behavior",
+      "judgments": [
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表各维度评分＞1 分出标签；BEHAVIORAL_PAIN_SCORE 占位不自动产出；插管/非插管维度互斥由代填时另一维 defer 或缺答处理",
+          "rules": [
+            { "itemId": "pain_behavior_1", "whenLabel": "部分紧绷，如皱眉（2分）", "tagCode": "PAIN_BEHAVIOR_FACE" },
+            { "itemId": "pain_behavior_1", "whenLabel": "完全紧绷，如眼睛紧闭（3分）", "tagCode": "PAIN_BEHAVIOR_FACE" },
+            { "itemId": "pain_behavior_1", "whenLabel": "面部扭曲（4分）", "tagCode": "PAIN_BEHAVIOR_FACE" },
+            { "itemId": "pain_behavior_2", "whenLabel": "部分弯曲（2分）", "tagCode": "PAIN_BEHAVIOR_UPPER_LIMB" },
+            { "itemId": "pain_behavior_2", "whenLabel": "完全弯曲且手指弯曲（3分）", "tagCode": "PAIN_BEHAVIOR_UPPER_LIMB" },
+            { "itemId": "pain_behavior_2", "whenLabel": "持续回缩（4分）", "tagCode": "PAIN_BEHAVIOR_UPPER_LIMB" },
+            { "itemId": "pain_behavior_3", "whenLabel": "有呛咳，但大部分时间能耐受（2分）", "tagCode": "PAIN_BEHAVIOR_VENTILATION" },
+            { "itemId": "pain_behavior_3", "whenLabel": "对抗呼吸机（3分）", "tagCode": "PAIN_BEHAVIOR_VENTILATION" },
+            { "itemId": "pain_behavior_3", "whenLabel": "不能控制通气（4分）", "tagCode": "PAIN_BEHAVIOR_VENTILATION" },
+            { "itemId": "pain_behavior_4", "whenLabel": "呻吟≤3次/分钟且每次≤3秒（2分）", "tagCode": "PAIN_BEHAVIOR_VOCALIZATION" },
+            { "itemId": "pain_behavior_4", "whenLabel": "呻吟＞3次/分钟且每次＞3秒（3分）", "tagCode": "PAIN_BEHAVIOR_VOCALIZATION" },
+            { "itemId": "pain_behavior_4", "whenLabel": "咆哮、说“哦”“哎哟”等，或屏住呼吸（4分）", "tagCode": "PAIN_BEHAVIOR_VOCALIZATION" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "braden",
+      "judgments": [
+        {
+          "type": "sumRange",
+          "comment": "来源：02 表 Braden 总分分档；满分 4+4+4+4+4+3=23；最低理论 6，区间从 0 起覆盖豁免计分中间值",
+          "scoredItemIds": ["braden_1", "braden_2", "braden_3", "braden_4", "braden_5", "braden_6"],
+          "ranges": [
+            { "tagCode": "BRADEN_RISK_VERY_HIGH", "min": 0, "max": 9 },
+            { "tagCode": "BRADEN_RISK_HIGH", "min": 10, "max": 12 },
+            { "tagCode": "BRADEN_RISK_MODERATE", "min": 13, "max": 14 },
+            { "tagCode": "BRADEN_RISK_LOW", "min": 15, "max": 18 },
+            { "tagCode": "BRADEN_BELOW_LOW_RISK_THRESHOLD", "min": 19, "max": 23 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "polypharmacy",
+      "judgments": [
+        {
+          "type": "perQuestionTags",
+          "comment": "来源：02 表医务人员综合判断；MEDICATION_COUNT 占位不自动产出；polypharmacy_1 开放清单不计分",
+          "rules": [
+            { "itemId": "polypharmacy_2", "whenLabel": "未发现多重用药或不适当用药", "tagCode": "MEDICATION_REVIEW_NO_ISSUE" },
+            { "itemId": "polypharmacy_2", "whenLabel": "存在多重用药", "tagCode": "POLYPHARMACY_PRESENT" },
+            { "itemId": "polypharmacy_2", "whenLabel": "存在不适当用药", "tagCode": "INAPPROPRIATE_MEDICATION_PRESENT" },
+            { "itemId": "polypharmacy_2", "whenLabel": "两者均存在", "tagCode": "POLYPHARMACY_AND_INAPPROPRIATE_USE" },
+            { "itemId": "polypharmacy_2", "whenLabel": "信息不足，需进一步核实（标准未规定固定药品数量阈值）", "tagCode": "MEDICATION_REVIEW_INSUFFICIENT_DATA" }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "nrs2002",
+      "judgments": [
+        {
+          "type": "initialGateSumRange",
+          "comment": "来源：02 表 NRS2002 初筛全否→阴性；任一是→阳性并做终筛 0～2/3～7",
+          "initialItemIds": ["nrs2002_初筛1", "nrs2002_初筛2", "nrs2002_初筛3", "nrs2002_初筛4"],
+          "yesLabels": ["是"],
+          "initialPositiveTagCode": "NRS2002_INITIAL_POSITIVE",
+          "initialNegativeTagCode": "NRS2002_INITIAL_NEGATIVE",
+          "finalScoredItemIds": ["nrs2002_终筛1", "nrs2002_终筛2", "nrs2002_终筛3"],
+          "finalRanges": [
+            { "tagCode": "NRS2002_NO_NUTRITION_RISK", "min": 0, "max": 2 },
+            { "tagCode": "NRS2002_NUTRITION_RISK", "min": 3, "max": 7 }
+          ]
+        }
+      ]
+    },
+    {
+      "scaleId": "glim",
+      "judgments": [
+        {
+          "type": "compositeAllAny",
+          "comment": "来源：02 表 GLIM：≥1 表现型 ∧ ≥1 病因型 → 营养不良；重度代理：表现型 glim_2 或 glim_3 命中（选项粒度无法区分 6 月>10%/长期>20% 的全文重度标准，见清单取舍）",
+          "groups": [
+            {
+              "anyOf": [
+                { "itemId": "glim_1", "labels": ["是：过去6个月内体重下降＞5%"] },
+                { "itemId": "glim_2", "labels": ["是：超过6个月的体重下降＞10%"] },
+                { "itemId": "glim_3", "labels": ["符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²"] },
+                { "itemId": "glim_4", "labels": ["存在肌肉减少：DXA骨骼肌指数男＜7.0、女＜5.4 kg/m²，或BIA男＜7.0、女＜5.7 kg/m²，或去脂体质指数男＜17.0、女＜15.0 kg/m²"] }
+              ]
+            },
+            {
+              "anyOf": [
+                { "itemId": "glim_5", "labels": ["能量摄入≤50%且持续＞1周", "饮食摄入持续减少＞2周", "存在导致消化或吸收障碍的慢性消化道症状"] },
+                { "itemId": "glim_6", "labels": ["存在急性疾病或损伤", "存在慢性疾病相关炎症", "两者均存在"] }
+              ]
+            }
+          ],
+          "positiveTagCode": "GLIM_MODERATE_MALNUTRITION",
+          "negativeTagCode": "GLIM_NO_MALNUTRITION",
+          "severeWhen": {
+            "anyOf": [
+              { "itemId": "glim_2", "labels": ["是：超过6个月的体重下降＞10%"] },
+              { "itemId": "glim_3", "labels": ["符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²"] }
+            ]
+          },
+          "severeTagCode": "GLIM_SEVERE_MALNUTRITION"
+        }
+      ]
+    },
+    {
+      "scaleId": "calf",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "comment": "来源：02 表小腿围性别分层；选项由 convert 合成，阈值判定在系统读取/医护代填时完成",
+          "scoredItemIds": ["calf_1"],
+          "yesLabels": ["筛查阳性（低于性别阈值）"],
+          "positiveTagCode": "SARCOPENIA_CALF_SCREEN_POSITIVE",
+          "negativeTagCode": "SARCOPENIA_CALF_SCREEN_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "grip",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "comment": "来源：02 表握力性别分层",
+          "scoredItemIds": ["grip_1"],
+          "yesLabels": ["握力下降（低于性别阈值）"],
+          "positiveTagCode": "GRIP_STRENGTH_LOW",
+          "negativeTagCode": "GRIP_STRENGTH_NORMAL"
+        }
+      ]
+    },
+    {
+      "scaleId": "gait_speed",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "comment": "来源：02 表 6 米步速＜1.0 m/s",
+          "scoredItemIds": ["gait_speed_1"],
+          "yesLabels": ["步速下降（＜1.0 m/s）"],
+          "positiveTagCode": "GAIT_SPEED_FUNCTION_DECLINE",
+          "negativeTagCode": "GAIT_SPEED_FUNCTION_NORMAL"
+        }
+      ]
+    },
+    {
+      "scaleId": "dxa_bia",
+      "judgments": [
+        {
+          "type": "anyYes",
+          "comment": "来源：02 表 DXA/BIA 肌肉量界值；阳性即 SARCOPENIA_DIAGNOSED",
+          "scoredItemIds": ["dxa_bia_1"],
+          "yesLabels": ["符合肌少症肌肉量界值"],
+          "positiveTagCode": "SARCOPENIA_DIAGNOSED",
+          "negativeTagCode": "SARCOPENIA_MUSCLE_MASS_NEGATIVE"
+        }
+      ]
+    },
+    {
+      "scaleId": "cam",
+      "judgments": [
+        {
+          "type": "compositeAllAny",
+          "comment": "来源：02 表 CAM：特征1阳性 ∧ 特征2阳性 ∧（特征3阳性 ∨ 特征4阳性）",
+          "groups": [
+            {
+              "anyOf": [
+                { "itemId": "cam_1", "labels": ["是（条目1阳性）"] }
+              ]
+            },
+            {
+              "anyOf": [
+                { "itemId": "cam_2", "labels": ["是（条目2阳性）"] }
+              ]
+            },
+            {
+              "anyOf": [
+                { "itemId": "cam_3", "labels": ["是（条目3阳性）"] },
+                { "itemId": "cam_4", "labels": ["过度警觉（阳性）", "嗜睡、易叫醒（阳性）", "昏睡、不易叫醒（阳性）"] }
+              ]
+            }
+          ],
+          "positiveTagCode": "CAM_DELIRIUM_POSITIVE",
+          "negativeTagCode": "CAM_DELIRIUM_NEGATIVE"
+        }
+      ]
+    }
+  ]
+}

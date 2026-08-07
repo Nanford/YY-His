@@ -11,13 +11,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
-import { buildIntervention, type RecommendedIntervention } from "@/lib/recommend";
-import type { AssessmentTag } from "@/lib/scoring/types";
+import { parseSessionScaleSelection } from "@/lib/assessment/scale-packages";
+import { buildInterventionV2, type PlanCandidateItemV2, type PlanCandidatesV2 } from "@/lib/recommend-v2";
+import type { AssessmentTag } from "@/lib/assessment/report-types";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { applyPlanReview, type PlanReviewInput } from "@/lib/assessment/plan-review";
 import { acquireFinalizingLock, scoreAndSnapshot } from "@/lib/assessment/finalize";
-import { syncMeasurementAnswers } from "@/lib/assessment/measurement-sync";
 import {
+  buildV2ProfileExtensions,
   generatePatientCode,
   parseMeasurements,
   patientIdentitySchema as patientSchema,
@@ -44,6 +45,9 @@ export async function createPatient(formData: FormData): Promise<void> {
   }
   const measurements = parseMeasurements(formData);
   if (!measurements) redirect("/doctor/patients/new?error=measurements");
+  // V2 基础信息扩展（docx §1，全部选填）：任一项非法则整体拒绝，避免部分入库部分丢失
+  const v2 = buildV2ProfileExtensions(formData);
+  if (!v2) redirect("/doctor/patients/new?error=profile");
 
   const patient = await prisma.patient.create({
     data: {
@@ -55,6 +59,20 @@ export async function createPatient(formData: FormData): Promise<void> {
       admissionNo: textOrNull(formData, "admissionNo"),
       outpatientNo: textOrNull(formData, "outpatientNo"),
       ...measurements,
+      education: v2.education,
+      maritalStatus: v2.maritalStatus,
+      livingSituation: v2.livingSituation,
+      careSituation: v2.careSituation,
+      calfLeftCm: v2.calfLeftCm,
+      calfRightCm: v2.calfRightCm,
+      gripStrengthKg: v2.gripStrengthKg,
+      gaitSpeed6mSec: v2.gaitSpeed6mSec,
+      // Json 字段缺省时键缺省（Prisma Json? 不接受顶层 null）；接口类型无索引签名，按 InputJsonValue 断言
+      ...(v2.diagnoses ? { diagnoses: v2.diagnoses } : {}),
+      ...(v2.pastHistory ? { pastHistory: v2.pastHistory } : {}),
+      ...(v2.recentAcute ? { recentAcute: v2.recentAcute } : {}),
+      ...(v2.medications ? { medications: v2.medications as unknown as Prisma.InputJsonValue } : {}),
+      ...(v2.weightHistory ? { weightHistory: v2.weightHistory as unknown as Prisma.InputJsonValue } : {}),
     },
   });
   revalidatePath("/doctor");
@@ -66,39 +84,32 @@ export async function updateMeasurements(patientId: string, formData: FormData):
   const measurements = parseMeasurements(formData);
   if (!measurements) redirect(`/doctor/patients/${patientId}?error=measurements`);
 
-  await prisma.$transaction(async (tx) => {
-    const patient = await tx.patient.update({ where: { id: patientId }, data: measurements });
-    const sessions = await tx.assessmentSession.findMany({
-      where: { patientId, status: "in_progress" },
-      select: { id: true, scaleIds: true },
-    });
-    for (const session of sessions) {
-      await syncMeasurementAnswers(tx, session.id, session.scaleIds as string[], patient);
-    }
-  });
+  await prisma.patient.update({ where: { id: patientId }, data: measurements });
   revalidatePath(`/doctor/patients/${patientId}`);
   redirect(`/doctor/patients/${patientId}?saved=measurements`);
 }
 
 // ---------- 评估会话 ----------
 
-const ALL_SCALE_IDS = ["frail", "mnasf", "fall", "tcm"] as const;
-
 export async function createSession(patientId: string, formData: FormData): Promise<void> {
   assertRecordId(patientId, "患者编号");
   const patient = await prisma.patient.findUnique({ where: { id: patientId } });
   if (!patient) throw new Error("患者不存在");
 
-  const scaleIds = ALL_SCALE_IDS.filter((id) => formData.get(`scale.${id}`) === "on");
-  if (scaleIds.length === 0) {
+  // 随访对比复评（docx §2(3)）：上次范围以数据库中最近一次已出报告会话为准，客户端提交值不作数
+  const lastReported = await prisma.assessmentSession.findFirst({
+    where: { patientId, status: { in: ["collected", "confirmed"] } },
+    orderBy: { startedAt: "desc" },
+  });
+  // 量表工具选择（docx §2）解析口径收敛在 scale-packages：套餐 / 自定义组合 / 随访复评 / 旧表单字段
+  const scaleIds = parseSessionScaleSelection(formData, {
+    followupScaleIds: lastReported ? (lastReported.scaleIds as string[]) : undefined,
+  });
+  if (!scaleIds) {
     redirect(`/doctor/patients/${patientId}?error=no-scale`);
   }
-  const session = await prisma.$transaction(async (tx) => {
-    const created = await tx.assessmentSession.create({
-      data: { patientId, scaleIds, status: "in_progress" },
-    });
-    await syncMeasurementAnswers(tx, created.id, scaleIds, patient);
-    return created;
+  const session = await prisma.assessmentSession.create({
+    data: { patientId, scaleIds, status: "in_progress" },
   });
   redirect(`/doctor/sessions/${session.id}`);
 }
@@ -141,11 +152,10 @@ async function persistAnswersFromForm(
     const question = questionById.get(questionId);
     const scale = scaleByQuestionId.get(questionId);
     if (!question || !scale) throw new Error(`未知题目：${questionId}`);
-    if (question.measurement) continue; // 测量题只能由服务端依据本地测量数据换算
-    const score = Number(value);
-    const option = optionsOf(scale, question).find((o) => o.score === score);
-    if (!option) throw new Error(`题目分值无效：${questionId}`);
-    submitted.set(questionId, { optionLabel: option.label, score });
+    // 表单提交的是选项 label（IADL 等量表存在同分选项，按分值提交无法区分）
+    const option = optionsOf(scale, question).find((o) => o.label === value);
+    if (!option) throw new Error(`题目选项无效：${questionId}`);
+    submitted.set(questionId, { optionLabel: option.label, score: option.score });
   }
 
   const existingByQuestionId = new Map(session.answers.map((answer) => [answer.questionId, answer]));
@@ -189,12 +199,6 @@ async function persistAnswersFromForm(
 export async function saveAnswers(sessionId: string, formData: FormData): Promise<void> {
   await prisma.$transaction(async (tx) => {
     await persistAnswersFromForm(tx, sessionId, formData, "in_progress");
-    const session = await tx.assessmentSession.findUnique({
-      where: { id: sessionId },
-      include: { patient: true },
-    });
-    if (!session || session.status !== "in_progress") throw new Error("当前会话状态不允许更新测量题");
-    await syncMeasurementAnswers(tx, session.id, session.scaleIds as string[], session.patient);
   });
   revalidatePath(`/doctor/sessions/${sessionId}`);
   redirect(`/doctor/sessions/${sessionId}?saved=1`);
@@ -215,7 +219,8 @@ export async function finalizeSession(sessionId: string, formData: FormData): Pr
   });
 
   if (outcome.kind === "incomplete") {
-    redirect(`/doctor/sessions/${sessionId}?error=incomplete&missing=${outcome.missing.join(",")}`);
+    const reasons = outcome.reasons.length > 0 ? `&reasons=${encodeURIComponent(outcome.reasons.join("；"))}` : "";
+    redirect(`/doctor/sessions/${sessionId}?error=incomplete&missing=${outcome.missing.join(",")}${reasons}`);
   }
   revalidatePath(`/doctor/sessions/${sessionId}`);
   redirect(`/doctor/sessions/${sessionId}`);
@@ -235,11 +240,6 @@ export async function reopenSession(sessionId: string): Promise<void> {
       where: { sessionId, status: { in: ["draft", "confirmed"] } },
       data: { status: "superseded" },
     });
-    const session = await tx.assessmentSession.findUniqueOrThrow({
-      where: { id: sessionId },
-      include: { patient: true },
-    });
-    await syncMeasurementAnswers(tx, session.id, session.scaleIds as string[], session.patient);
   });
   revalidatePath(`/doctor/sessions/${sessionId}`);
   redirect(`/doctor/sessions/${sessionId}`);
@@ -256,14 +256,14 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
     where: { sessionId, status: "draft" },
     orderBy: { createdAt: "desc" },
   });
-  // 取本次当前评估标签，用于计算"同类替换"项对本次患者的积分（可追溯）
+  // 取本次当前评估标签编码，用于计算"同类替换"项对本次患者的积分（可追溯）
   const result = await prisma.assessmentResult.findFirst({
     where: { sessionId, status: "current" },
     orderBy: { createdAt: "desc" },
   });
-  const tags = (result?.tags ?? []) as unknown as AssessmentTag[];
+  const tagCodes = ((result?.tags ?? []) as unknown as AssessmentTag[]).map((tag) => tag.code);
 
-  const candidates = plan.candidates as unknown as RecommendedIntervention[];
+  const candidates = (plan.candidates as unknown as PlanCandidatesV2).items;
   const inputs: Record<string, PlanReviewInput> = {};
   for (const candidate of candidates) {
     const action = textOrNull(formData, `action.${candidate.code}`) ?? "keep";
@@ -275,9 +275,15 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
     } else if (action === "replace") {
       const toCode = textOrNull(formData, `replaceWith.${candidate.code}`);
       if (!toCode) throw new Error(`未选择替换项：${candidate.code}`);
-      const replacement = buildIntervention(toCode, tags, candidate.rankInCategory);
-      if (!replacement) throw new Error(`替换项不存在：${toCode}`);
-      if (replacement.category !== candidate.category) throw new Error(`只能在同类别内替换：${candidate.code}`);
+      const built = buildInterventionV2(toCode, tagCodes);
+      if (!built) throw new Error(`替换项不存在：${toCode}`);
+      if (built.category !== candidate.category) throw new Error(`只能在同类别内替换：${candidate.code}`);
+      // 替换项继承被替换项的排位槽与类别展示标签（医生指定项不参与自动排序，仅占位展示）
+      const replacement: PlanCandidateItemV2 = {
+        ...built,
+        rankInCategory: candidate.rankInCategory,
+        categoryLabel: candidate.categoryLabel,
+      };
       inputs[candidate.code] = { action: "replace", replacement, note: note ?? undefined };
     } else {
       inputs[candidate.code] = { action: "keep", note: note ?? undefined };

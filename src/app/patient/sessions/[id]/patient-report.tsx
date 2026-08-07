@@ -23,14 +23,14 @@ import {
   IconShieldCheck,
   IconStethoscope,
 } from "@tabler/icons-react";
-import type { AssessmentTag } from "@/lib/scoring";
-import type { RecommendedIntervention } from "@/lib/recommend";
+import type { AssessmentTag } from "@/lib/assessment/report-types";
+import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleScope } from "@/lib/assessment/supplementary";
-import { interventionItemByCode, scoringCategories } from "@/lib/rules";
-import { InterventionVideo, InterventionImage } from "@/components/intervention-media";
+import { scoringCategories } from "@/lib/rules";
+import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 import { createSupplementarySession } from "@/lib/actions/patient";
 
-/** 三大类固定展示顺序：运动干预 → 膳食干预 → 中医食养干预（来源：积分数据 categories 顺序） */
+/** 5 大类固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他（来源：积分数据 categories 顺序） */
 const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
 
 const LEVEL_LABEL: Record<string, string> = {
@@ -80,7 +80,7 @@ interface PatientReportProps {
   /** 部分计分的量表（快照 AssessmentResult.deferred；老快照无此字段时页面传 []） */
   deferredScales: readonly DeferredScale[];
   planStatus: "draft" | "confirmed";
-  plan: readonly RecommendedIntervention[];
+  plan: readonly PlanCandidateItemV2[];
   confirmedAt: Date | null;
   historyReports: HistoryReportEntry[];
   remainingScales: RemainingScale[];
@@ -341,7 +341,7 @@ function PlanSection({
   confirmedAt,
 }: {
   planStatus: "draft" | "confirmed";
-  plan: readonly RecommendedIntervention[];
+  plan: readonly PlanCandidateItemV2[];
   confirmedAt: Date | null;
 }) {
   return (
@@ -383,7 +383,7 @@ function PlanSection({
       ) : (
         <div className="mt-7 space-y-7">
           {CATEGORY_ORDER.map((category) => {
-            const items = plan.filter((item) => item.category === category);
+            const items = plan.filter((item) => item.categoryLabel === category);
             return (
               <div key={category} className="space-y-3">
                 <h3 className="border-l-4 border-[var(--brand)] pl-3 text-lg font-bold text-[var(--brand-strong)]">
@@ -405,20 +405,24 @@ function PlanSection({
   );
 }
 
-function PlanCard({ item }: { item: RecommendedIntervention }) {
-  // 素材是否就绪按运行时数据判断（视频后续放入即生效）；正文即安全展示：图片含温馨提示、视频回退动作要点。
-  const available = interventionItemByCode.get(item.code)?.mediaAvailable ?? false;
+function PlanCard({ item }: { item: PlanCandidateItemV2 }) {
+  // 素材状态随候选快照落库（mediaAvailable），缺失如实标注"素材待补齐"；文本类正文即 content 全文
   return (
     <article className="ui-panel-subtle px-5 py-5 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xl font-bold text-[var(--ink)]">{item.name}</h3>
-        <span className="ui-badge">匹配分 {item.score}</span>
+        <span className="inline-flex items-center gap-2">
+          {item.forced && <span className="ui-badge ui-badge-danger">重点推荐</span>}
+          <span className="ui-badge">匹配分 {item.total}</span>
+        </span>
       </div>
       <div className="mt-4">
-        {item.mediaType === "video" ? (
-          <InterventionVideo src={item.mediaSrc} available={available} text={item.text} />
+        {item.mediaType === "text" ? (
+          <InterventionText name={item.name} content={item.content} />
+        ) : item.mediaType === "video" ? (
+          <InterventionVideo src={item.mediaSrc ?? ""} available={item.mediaAvailable} text={item.content} />
         ) : (
-          <InterventionImage src={item.mediaSrc} available={available} name={item.name} sourceFile={item.sourceFile} />
+          <InterventionImage src={item.mediaSrc ?? ""} available={item.mediaAvailable} name={item.name} sourceFile={null} />
         )}
       </div>
     </article>

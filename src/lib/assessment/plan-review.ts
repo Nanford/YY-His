@@ -6,12 +6,12 @@
  *         操作人、时间、调整原因和调整前后内容」。V2 干预正文为图片/标准动作文字，不再自由改写正文，
  *         "调整"收敛为"在同类别中替换为其他干预项"（替换项由调用方解析并计算积分）。
  */
-import type { RecommendedIntervention } from "@/lib/recommend";
+import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 
 export interface PlanReviewInput {
   action: "keep" | "remove" | "replace";
   /** action=replace 时，替换进来的候选（同类别；由调用方按积分矩阵解析并计算积分） */
-  replacement?: RecommendedIntervention;
+  replacement?: PlanCandidateItemV2;
   /** 调整原因/审核备注 */
   note?: string;
 }
@@ -31,22 +31,22 @@ export interface PlanDecision {
 }
 
 export interface PlanReviewResult {
-  finalPlan: RecommendedIntervention[];
+  finalPlan: PlanCandidateItemV2[];
   decisions: PlanDecision[];
 }
 
 /**
  * 依据医生逐项输入形成最终方案与决策留痕。
  * 每个候选映射为 0 或 1 个最终项（删除→0；保留/同类替换→1），因此候选已满足
- * "每类 1-2 项、总数不超过 6" 时，最终方案自然不突破上限（§4.2）。
+ * "每类 1-2 项"（V2：5 大类各至多 2 项）时，最终方案自然不突破上限。
  */
 export function applyPlanReview(
-  candidates: readonly RecommendedIntervention[],
+  candidates: readonly PlanCandidateItemV2[],
   inputs: Readonly<Record<string, PlanReviewInput>>,
   operator: string,
   now: Date
 ): PlanReviewResult {
-  const finalPlan: RecommendedIntervention[] = [];
+  const finalPlan: PlanCandidateItemV2[] = [];
   const decisions: PlanDecision[] = [];
   const at = now.toISOString();
 

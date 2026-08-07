@@ -4,6 +4,8 @@
  * POS:    覆盖"医患要可以自己建立档案，不是单独只能医护人员才可以"这条产品口径
  *         （2026-07-14 与用户确认）。核心不变量：自助建档不能绕过医生对干预方案的
  *         唯一审核关卡——自助生成的候选方案必须和医生录入的一样，停在 draft 等待确认。
+ *         V2 装机后口径：自助建档可选 42 个可评分量表（适老化短标题，M10.3b-2 由 25 扩至 42），默认勾
+ *         frail+fall_3q；全部答否时积分矩阵无匹配，候选方案为空，仍须医生确认归档。
  */
 import { expect, test } from "@playwright/test";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
@@ -32,7 +34,7 @@ async function readPatientCreatedBy(sessionId: string): Promise<{ status: string
 }
 
 test("患者全程自助建档并完成评估，仍需医生审核方案才能最终确认", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
 
   // ---------- 患者：自助建档，全程不经过医生端任何页面 ----------
   await page.goto("/patient");
@@ -43,6 +45,17 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   // 性别选项渲染为大按钮样式的 label（内部 radio 视觉隐藏），点击 label 才是真实用户操作
   await page.getByText("女", { exact: true }).click();
   await page.locator('input[name="age"]').fill("81");
+
+  // V2：42 个可评分量表多选（适老化短标题），默认勾 frail+fall_3q（可当场出报告的两项）
+  const scaleChecks = page.locator('input[type="checkbox"][name="scaleIds"]');
+  await expect(scaleChecks).toHaveCount(42);
+  await expect(page.locator('input[name="scaleIds"][value="frail"]')).toBeChecked();
+  await expect(page.locator('input[name="scaleIds"][value="fall_3q"]')).toBeChecked();
+  await expect(page.locator('input[name="scaleIds"][value="mnasf"]')).not.toBeChecked();
+  for (const label of ["衰弱评估", "跌倒风险", "营养评估", "中医体质辨识", "日常生活能力", "认知初筛"]) {
+    await expect(page.getByText(label, { exact: true })).toBeVisible();
+  }
+
   // 测量数据全部留空，验证选填字段真的可以跳过
   await page.getByRole("button", { name: "开始评估", exact: true }).click();
 
@@ -53,22 +66,34 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
 
   const created = await readPatientCreatedBy(sessionId);
   expect(created?.status).toBe("in_progress");
-  expect(JSON.parse(created?.scaleIds ?? "[]")).toEqual(["frail", "fall"]);
+  // 自助入口按 01 表文档顺序归一化：fall_3q 在 frail 之前
+  expect(JSON.parse(created?.scaleIds ?? "[]")).toEqual(["fall_3q", "frail"]);
 
-  // ---------- 患者：直接开始并答完（固定预设 FRAIL+跌倒，无测量/观察题缺口） ----------
+  // ---------- 患者：直接开始并答完（默认 fall_3q+frail，无测量/观察题缺口） ----------
   // 走"手动选择作答"：这条用例验证的是自助建档闭环本身，语音自动模式另有专门的 e2e 覆盖
   await page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" }).click();
-  // 数字医生先讲解（intro），点「开始」进入第一题
+  // 数字医生先讲解（intro），点「开始」进入采集编排（旁白自动推进）：先 fall_3q 后 frail
   await page.getByRole("button", { name: "开始回答健康问题" }).click();
-  for (let i = 0; i < 8; i++) {
-    await page.getByRole("button", { name: "否", exact: true }).click();
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole("button", { name: "否（筛查阴性）", exact: true }).click();
   }
-  await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 15_000 });
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole("button", { name: "否（0分）", exact: true }).click();
+  }
+  await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 20_000 });
   await expect.poll(async () => (await readPatientCreatedBy(sessionId))?.status).toBe("collected");
+
+  // 报告页：全阴性标签 + frail 系统读取题豁免的"部分计分"标注；积分矩阵无匹配 → 暂无干预
+  await page.getByRole("button", { name: "查看我的评估报告", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible();
+  await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
+  await expect(page.getByText("跌倒风险筛查阴性", { exact: true })).toBeVisible();
+  await expect(page.getByText("部分计分", { exact: true })).toBeVisible();
+  await expect(page.getByText("本次评估暂无需要执行的干预项目", { exact: false })).toBeVisible();
 
   // ---------- 核心不变量：自助建档不能绕过医生审核关卡 ----------
   // 医生端在此之前完全没有介入过这条会话，但应该能在患者列表里看到这个自助建档的患者，
-  // 并在会话页看到"待审核"状态与候选方案——干预方案必须医生审核确认，这一关没有被跳过。
+  // 并在会话页看到"待审核"状态与候选方案区——干预方案必须医生审核确认，这一关没有被跳过。
   await page.goto("/doctor");
   await expect(page.getByRole("cell", { name: "E2E 自助建档患者" })).toBeVisible();
 

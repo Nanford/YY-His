@@ -3,6 +3,8 @@
  * OUTPUT: 新建患者页（提交至 createPatient Server Action）
  * POS:    需求文档“第一步：基础信息录入”。姓名/性别/年龄必填；
  *         测量数据（身高/体重/腹围/小腿围）供 MNA-SF F 题与体质题 9/28 换算分值。
+ *         V2 扩展分区（基本情况补充/疾病与用药/测量补充，来源：Demo_v2更新说明.docx §1）
+ *         全部选填，仅医生端完整表单可见，患者自助建档保持简版。
  */
 import Link from "next/link";
 import {
@@ -13,6 +15,12 @@ import {
   IconUserPlus,
 } from "@tabler/icons-react";
 import { createPatient } from "@/lib/actions/doctor";
+import {
+  CARE_SITUATIONS,
+  EDUCATION_LEVELS,
+  LIVING_SITUATIONS,
+  MARITAL_STATUSES,
+} from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
 
 const inputCls = "ui-input";
@@ -44,6 +52,43 @@ function Field({
   );
 }
 
+/** 选填下拉：空值不提交（服务端按 null 处理），选项与服务端枚举共享同一常量，避免前后端口径漂移 */
+function SelectField({ label, name, options }: { label: string; name: string; options: readonly string[] }) {
+  return (
+    <label className="ui-field">
+      <span className="ui-label">{label}</span>
+      <select name={name} className="ui-select" defaultValue="">
+        <option value="">未填写</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function TextareaField({
+  label,
+  name,
+  placeholder,
+  hint,
+}: {
+  label: string;
+  name: string;
+  placeholder?: string;
+  hint?: string;
+}) {
+  return (
+    <label className="ui-field">
+      <span className="ui-label">{label}</span>
+      <textarea name={name} placeholder={placeholder} rows={3} className={inputCls} />
+      {hint && <span className="ui-helper mt-1">{hint}</span>}
+    </label>
+  );
+}
+
 export default async function NewPatientPage({ searchParams }: PageProps<"/doctor/patients/new">) {
   const error = firstQueryValue((await searchParams).error);
 
@@ -71,6 +116,15 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
         <div className="ui-alert ui-alert-danger" role="alert">
           <IconAlertCircle className="mt-0.5 shrink-0" size={18} stroke={2} aria-hidden="true" />
           <span>测量数据格式不正确，请填写合理的正数，或留空后稍后补录。</span>
+        </div>
+      )}
+      {error === "profile" && (
+        <div className="ui-alert ui-alert-danger" role="alert">
+          <IconAlertCircle className="mt-0.5 shrink-0" size={18} stroke={2} aria-hidden="true" />
+          <span>
+            补充信息格式不正确：请核对数值范围（体重 20–300kg、小腿围 10–80cm、握力 0–100kg、6 米用时 1–120 秒）、
+            下拉选项，以及用药清单格式（每行「药名，类别，剂量，频次」，类别限西药/中成药/保健品）；也可全部留空后稍后补录。
+          </span>
         </div>
       )}
 
@@ -108,6 +162,89 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
             <Field label="住址" name="address" placeholder="选填" />
             <Field label="住院号" name="admissionNo" placeholder="选填" />
             <Field label="门诊号" name="outpatientNo" placeholder="选填" />
+          </div>
+        </section>
+
+        {/* V2 扩展（来源：V2/Demo_v2更新说明.docx §1 基础信息填写），全部选填 */}
+        <section className="border-t border-[#dbe7f6]">
+          <div className="ui-panel-heading">
+            <div>
+              <h2 className="ui-panel-title">基本情况补充</h2>
+              <p className="mt-1 text-xs text-[#62779a]">文化程度供认知评估分层判定使用；均可稍后补录</p>
+            </div>
+            <span className="ui-badge">V2 选填</span>
+          </div>
+          <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
+            <SelectField label="文化程度" name="education" options={EDUCATION_LEVELS} />
+            <SelectField label="婚姻状况" name="maritalStatus" options={MARITAL_STATUSES} />
+            <SelectField label="居住情况" name="livingSituation" options={LIVING_SITUATIONS} />
+            <SelectField label="照护情况" name="careSituation" options={CARE_SITUATIONS} />
+          </div>
+        </section>
+
+        <section className="border-t border-[#dbe7f6]">
+          <div className="ui-panel-heading">
+            <div>
+              <h2 className="ui-panel-title">疾病与用药情况</h2>
+              <p className="mt-1 text-xs text-[#62779a]">结构化保存后，后续量表需要相同信息时直接调用，不再重复询问</p>
+            </div>
+            <span className="ui-badge">V2 选填</span>
+          </div>
+          <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
+            <TextareaField
+              label="现有诊断"
+              name="diagnoses"
+              placeholder="高血压，2型糖尿病"
+              hint="多个诊断用逗号或顿号分隔"
+            />
+            <TextareaField
+              label="既往病史"
+              name="pastHistory"
+              placeholder="脑梗死，髋关节置换术"
+              hint="多项用逗号或顿号分隔"
+            />
+            <TextareaField
+              label="近期急性疾病"
+              name="recentAcute"
+              placeholder="肺部感染"
+              hint="多项用逗号或顿号分隔"
+            />
+            <TextareaField
+              label="当前用药清单"
+              name="medications"
+              placeholder={"苯磺酸氨氯地平，西药，5mg，每日一次\n二甲双胍，西药，0.5g，每日两次\n钙片，保健品"}
+              hint='每行一条："药名，类别，剂量，频次"（剂量/频次可省）；类别限 西药 / 中成药 / 保健品'
+            />
+          </div>
+        </section>
+
+        <section className="border-t border-[#dbe7f6]">
+          <div className="ui-panel-heading">
+            <div>
+              <h2 className="ui-panel-title">测量补充</h2>
+              <p className="mt-1 text-xs text-[#62779a]">
+                体重史供非自主体重下降判定；握力计/步速传感器暂不接入，测试后手工填入；BMI 由系统按身高体重自动计算
+              </p>
+            </div>
+            <span className="ui-badge">V2 选填</span>
+          </div>
+          <div className="ui-panel-body space-y-5">
+            <div>
+              <p className="ui-label mb-2">历史体重（kg，现在体重见下方测量数据）</p>
+              <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-5">
+                <Field label="1 月前" name="weightM1" type="number" unit="kg" />
+                <Field label="2 月前" name="weightM2" type="number" unit="kg" />
+                <Field label="3 月前" name="weightM3" type="number" unit="kg" />
+                <Field label="6 月前" name="weightM6" type="number" unit="kg" />
+                <Field label="12 月前" name="weightM12" type="number" unit="kg" />
+              </div>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="小腿围-左" name="calfLeftCm" type="number" unit="cm" />
+              <Field label="小腿围-右" name="calfRightCm" type="number" unit="cm" />
+              <Field label="握力" name="gripStrengthKg" type="number" unit="kg" />
+              <Field label="6 米步行用时" name="gaitSpeed6mSec" type="number" unit="秒" />
+            </div>
           </div>
         </section>
 

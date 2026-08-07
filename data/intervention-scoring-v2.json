@@ -1,0 +1,1721 @@
+{
+  "generatedFrom": "V2/03_标签干预匹配表.xlsx",
+  "generatedAt": "2026-08-07T09:56:21.094Z",
+  "scoreSemantics": {
+    "forced": 100,
+    "forbidden": -100,
+    "unrelated": 0,
+    "normalMin": 2,
+    "normalMax": 10,
+    "note": "matrix 稀疏存储，未出现的对视为 0"
+  },
+  "categories": [
+    {
+      "key": "exercise",
+      "label": "运动干预",
+      "codePrefix": "YD",
+      "count": 10,
+      "mediaType": "video"
+    },
+    {
+      "key": "diet",
+      "label": "膳食营养",
+      "codePrefix": "SS",
+      "count": 10,
+      "mediaType": "image"
+    },
+    {
+      "key": "tcmFood",
+      "label": "中医食养",
+      "codePrefix": "ZY",
+      "count": 10,
+      "mediaType": "image"
+    },
+    {
+      "key": "referral",
+      "label": "就诊建议",
+      "codePrefix": "JZ",
+      "count": 15,
+      "mediaType": "text"
+    },
+    {
+      "key": "other",
+      "label": "其他",
+      "codePrefix": "QT",
+      "count": 15,
+      "mediaType": "mixed"
+    }
+  ],
+  "tags": [
+    {
+      "code": "ADL_DEPENDENCE_MILD",
+      "name": "轻度依赖"
+    },
+    {
+      "code": "ADL_DEPENDENCE_MODERATE",
+      "name": "中度依赖"
+    },
+    {
+      "code": "ADL_DEPENDENCE_NONE",
+      "name": "无依赖"
+    },
+    {
+      "code": "ADL_DEPENDENCE_SEVERE",
+      "name": "重度依赖"
+    },
+    {
+      "code": "AIS_NO_SLEEP_DISORDER",
+      "name": "无睡眠障碍"
+    },
+    {
+      "code": "AIS_POSSIBLE_SLEEP_DISORDER",
+      "name": "可能有睡眠障碍"
+    },
+    {
+      "code": "AIS_SLEEP_DISORDER_PRESENT",
+      "name": "存在睡眠障碍"
+    },
+    {
+      "code": "ANXIETY_2Q_NEGATIVE",
+      "name": "焦虑两问筛查阴性"
+    },
+    {
+      "code": "ANXIETY_2Q_POSITIVE",
+      "name": "焦虑两问筛查阳性"
+    },
+    {
+      "code": "BEHAVIORAL_PAIN_SCORE",
+      "name": "疼痛行为评估总分：{score}"
+    },
+    {
+      "code": "BRADEN_BELOW_LOW_RISK_THRESHOLD",
+      "name": "未达到低度危险阈值"
+    },
+    {
+      "code": "BRADEN_RISK_HIGH",
+      "name": "压力性损伤高度危险"
+    },
+    {
+      "code": "BRADEN_RISK_LOW",
+      "name": "压力性损伤低度危险"
+    },
+    {
+      "code": "BRADEN_RISK_MODERATE",
+      "name": "压力性损伤中度危险"
+    },
+    {
+      "code": "BRADEN_RISK_VERY_HIGH",
+      "name": "压力性损伤极度危险"
+    },
+    {
+      "code": "CAM_DELIRIUM_NEGATIVE",
+      "name": "未提示谵妄"
+    },
+    {
+      "code": "CAM_DELIRIUM_POSITIVE",
+      "name": "谵妄"
+    },
+    {
+      "code": "CHRONIC_PAIN_SCREEN_NEGATIVE",
+      "name": "慢性疼痛筛查阴性"
+    },
+    {
+      "code": "CHRONIC_PAIN_SCREEN_POSITIVE",
+      "name": "慢性疼痛筛查阳性"
+    },
+    {
+      "code": "COGNITIVE_BRIEF_SCREEN_NEGATIVE",
+      "name": "认知功能初筛阴性"
+    },
+    {
+      "code": "COGNITIVE_BRIEF_SCREEN_POSITIVE",
+      "name": "认知功能初筛阳性"
+    },
+    {
+      "code": "CONSTIPATION_ABDOMINAL_DISCOMFORT_RELIEVED",
+      "name": "腹痛或腹部不适排便后缓解"
+    },
+    {
+      "code": "CONSTIPATION_ANORECTAL_BLOCKAGE",
+      "name": "排便时肛门直肠堵塞感"
+    },
+    {
+      "code": "CONSTIPATION_CLINICAL_TYPE",
+      "name": "便秘类型：{clinical_type}"
+    },
+    {
+      "code": "CONSTIPATION_DIAGNOSED",
+      "name": "临床判定为便秘"
+    },
+    {
+      "code": "CONSTIPATION_INCOMPLETE_EVACUATION",
+      "name": "排便不尽感"
+    },
+    {
+      "code": "CONSTIPATION_LOW_FREQUENCY",
+      "name": "排便次数减少"
+    },
+    {
+      "code": "CONSTIPATION_MANUAL_MANEUVER",
+      "name": "需要手法辅助排便"
+    },
+    {
+      "code": "CONSTIPATION_NOT_DIAGNOSED",
+      "name": "临床判定未诊断便秘"
+    },
+    {
+      "code": "CONSTIPATION_PROLONGED_DEFECATION",
+      "name": "排便费时"
+    },
+    {
+      "code": "CONSTIPATION_SCREEN_NEGATIVE",
+      "name": "便秘筛查阴性"
+    },
+    {
+      "code": "CONSTIPATION_SCREEN_POSITIVE",
+      "name": "便秘筛查阳性"
+    },
+    {
+      "code": "DEPRESSION_2Q_NEGATIVE",
+      "name": "抑郁两问筛查阴性"
+    },
+    {
+      "code": "DEPRESSION_2Q_POSITIVE",
+      "name": "抑郁两问筛查阳性"
+    },
+    {
+      "code": "DYSPHAGIA_COUGH_CHOKE",
+      "name": "进食或饮水时呛咳"
+    },
+    {
+      "code": "DYSPHAGIA_DIFFICULTY_OR_PAIN",
+      "name": "吞咽困难或吞咽疼痛"
+    },
+    {
+      "code": "DYSPHAGIA_DROOLING",
+      "name": "流涎"
+    },
+    {
+      "code": "DYSPHAGIA_ORAL_LEAKAGE",
+      "name": "进食时食物或液体从嘴角流失"
+    },
+    {
+      "code": "DYSPHAGIA_ORAL_RESIDUE",
+      "name": "餐后口腔食物残留"
+    },
+    {
+      "code": "DYSPHAGIA_SCREEN_NEGATIVE",
+      "name": "吞咽障碍筛查阴性"
+    },
+    {
+      "code": "DYSPHAGIA_SCREEN_POSITIVE",
+      "name": "吞咽障碍筛查阳性"
+    },
+    {
+      "code": "FALL_FEAR_ACTIVITY_RESTRICTION",
+      "name": "因害怕跌倒而限制活动"
+    },
+    {
+      "code": "FALL_HISTORY_1Y",
+      "name": "过去一年有跌倒史"
+    },
+    {
+      "code": "FALL_SCREEN_NEGATIVE",
+      "name": "跌倒风险筛查阴性"
+    },
+    {
+      "code": "FALL_SCREEN_POSITIVE",
+      "name": "跌倒风险筛查阳性"
+    },
+    {
+      "code": "FALL_UNSTEADY_STANDING_WALKING",
+      "name": "站立或行走不稳"
+    },
+    {
+      "code": "FRAIL_FRAIL",
+      "name": "衰弱"
+    },
+    {
+      "code": "FRAIL_NONE",
+      "name": "无衰弱"
+    },
+    {
+      "code": "FRAIL_PREFRAIL",
+      "name": "衰弱前期"
+    },
+    {
+      "code": "GAD7_MODERATE_ANXIETY",
+      "name": "中度焦虑"
+    },
+    {
+      "code": "GAD7_NORMAL",
+      "name": "焦虑状态正常"
+    },
+    {
+      "code": "GAD7_SEVERE_ANXIETY",
+      "name": "重度焦虑"
+    },
+    {
+      "code": "GAIT_SPEED_FUNCTION_DECLINE",
+      "name": "躯体功能下降"
+    },
+    {
+      "code": "GAIT_SPEED_FUNCTION_NORMAL",
+      "name": "躯体功能未下降"
+    },
+    {
+      "code": "GDS15_MODERATE_DEPRESSION",
+      "name": "中度抑郁"
+    },
+    {
+      "code": "GDS15_NORMAL",
+      "name": "抑郁状态正常"
+    },
+    {
+      "code": "GDS15_SEVERE_DEPRESSION",
+      "name": "重度抑郁"
+    },
+    {
+      "code": "GLIM_MODERATE_MALNUTRITION",
+      "name": "中度营养不良"
+    },
+    {
+      "code": "GLIM_NO_MALNUTRITION",
+      "name": "未诊断营养不良"
+    },
+    {
+      "code": "GLIM_SEVERE_MALNUTRITION",
+      "name": "重度营养不良"
+    },
+    {
+      "code": "GRIP_STRENGTH_LOW",
+      "name": "肌肉力量下降"
+    },
+    {
+      "code": "GRIP_STRENGTH_NORMAL",
+      "name": "肌肉力量未下降"
+    },
+    {
+      "code": "HEARING_DECLINE",
+      "name": "听力下降"
+    },
+    {
+      "code": "HEARING_IMPAIRMENT",
+      "name": "听力障碍"
+    },
+    {
+      "code": "HEARING_NORMAL",
+      "name": "听力正常"
+    },
+    {
+      "code": "HEARING_TOTAL_LOSS",
+      "name": "完全失聪"
+    },
+    {
+      "code": "HOME_ANTI_SLIP_MAT_MISSING",
+      "name": "易滑处缺少固定防滑垫"
+    },
+    {
+      "code": "HOME_BATH_ANTI_SLIP_INADEQUATE",
+      "name": "洗澡处防滑措施不足"
+    },
+    {
+      "code": "HOME_BATH_GRAB_BAR_MISSING",
+      "name": "洗澡处缺少扶手"
+    },
+    {
+      "code": "HOME_BEDSIDE_LIGHT_SWITCH_INCONVENIENT",
+      "name": "床边开关灯不便"
+    },
+    {
+      "code": "HOME_ENVIRONMENT_SCORE",
+      "name": "居家环境筛查总分：{score}"
+    },
+    {
+      "code": "HOME_FLOOR_SLIPPERY",
+      "name": "地面易打滑"
+    },
+    {
+      "code": "HOME_FLOOR_UNSAFE",
+      "name": "地板不平整或不牢固"
+    },
+    {
+      "code": "HOME_INDOOR_LIGHTING_INADEQUATE",
+      "name": "室内照明不足"
+    },
+    {
+      "code": "HOME_INDOOR_STAIR_HANDRAIL_MISSING",
+      "name": "室内楼梯缺少可用扶手"
+    },
+    {
+      "code": "HOME_NIGHT_LIGHTING_INADEQUATE",
+      "name": "夜间室外或楼道照明不足"
+    },
+    {
+      "code": "HOME_OUTDOOR_STAIR_HANDRAIL_MISSING",
+      "name": "室外楼梯缺少可用扶手"
+    },
+    {
+      "code": "HOME_PATHWAY_OBSTRUCTED",
+      "name": "居家通道受阻"
+    },
+    {
+      "code": "HOME_STAIR_EDGE_UNCLEAR",
+      "name": "楼梯边缘不清晰"
+    },
+    {
+      "code": "HOME_SURROUNDING_ROAD_UNSAFE",
+      "name": "房屋周围道路状况不良"
+    },
+    {
+      "code": "HOME_TOILET_BATHROOM_ACCESS_INCONVENIENT",
+      "name": "厕所与洗澡处动线不便"
+    },
+    {
+      "code": "IADL_DEPENDENCE_MILD",
+      "name": "工具性日常生活能力轻度依赖"
+    },
+    {
+      "code": "IADL_DEPENDENCE_MODERATE",
+      "name": "工具性日常生活能力中度依赖"
+    },
+    {
+      "code": "IADL_DEPENDENCE_SEVERE",
+      "name": "工具性日常生活能力严重依赖"
+    },
+    {
+      "code": "IADL_NORMAL",
+      "name": "工具性日常生活能力正常"
+    },
+    {
+      "code": "ICIQ_CONTINUOUS_LEAKAGE",
+      "name": "持续漏尿"
+    },
+    {
+      "code": "ICIQ_INCONTINENCE_PRESENT",
+      "name": "存在尿失禁"
+    },
+    {
+      "code": "ICIQ_LEAK_ACTIVITY",
+      "name": "活动或运动时漏尿"
+    },
+    {
+      "code": "ICIQ_LEAK_ASLEEP",
+      "name": "睡眠中漏尿"
+    },
+    {
+      "code": "ICIQ_LEAK_BEFORE_TOILET",
+      "name": "未到厕所前漏尿"
+    },
+    {
+      "code": "ICIQ_LEAK_COUGH_SNEEZE",
+      "name": "咳嗽或打喷嚏时漏尿"
+    },
+    {
+      "code": "ICIQ_LEAK_NO_OBVIOUS_REASON",
+      "name": "无明显诱因漏尿"
+    },
+    {
+      "code": "ICIQ_LEAK_POST_VOID",
+      "name": "排尿结束后漏尿"
+    },
+    {
+      "code": "ICIQ_NO_INCONTINENCE",
+      "name": "未提示尿失禁"
+    },
+    {
+      "code": "ICIQ_UI_SF_SCORE",
+      "name": "ICIQ-UI SF总分：{score}"
+    },
+    {
+      "code": "INAPPROPRIATE_MEDICATION_PRESENT",
+      "name": "存在不适当用药"
+    },
+    {
+      "code": "LUBBEN_SUPPORT_FAIR",
+      "name": "社会支持一般"
+    },
+    {
+      "code": "LUBBEN_SUPPORT_GOOD",
+      "name": "社会支持良好"
+    },
+    {
+      "code": "LUBBEN_SUPPORT_POOR",
+      "name": "社会支持较差"
+    },
+    {
+      "code": "MEDICATION_COUNT",
+      "name": "当前使用药品数量：{count}"
+    },
+    {
+      "code": "MEDICATION_REVIEW_INSUFFICIENT_DATA",
+      "name": "用药信息不足，需进一步核实"
+    },
+    {
+      "code": "MEDICATION_REVIEW_NO_ISSUE",
+      "name": "未发现多重用药或不适当用药"
+    },
+    {
+      "code": "MMSE_COGNITIVE_DECLINE",
+      "name": "MMSE提示认知功能减退"
+    },
+    {
+      "code": "MMSE_UNABLE_TO_COMPLETE",
+      "name": "MMSE无法有效完成"
+    },
+    {
+      "code": "MMSE_WITHIN_NORMAL_RANGE",
+      "name": "MMSE认知功能未见明显减退"
+    },
+    {
+      "code": "MNA_SF_MALNUTRITION_RISK",
+      "name": "营养不良风险"
+    },
+    {
+      "code": "MNA_SF_NO_RISK",
+      "name": "未提示营养不良风险"
+    },
+    {
+      "code": "MORSE_FALL_RISK_HIGH",
+      "name": "跌倒高风险"
+    },
+    {
+      "code": "MORSE_FALL_RISK_LOW",
+      "name": "跌倒低风险"
+    },
+    {
+      "code": "MORSE_FALL_RISK_MODERATE",
+      "name": "跌倒中风险"
+    },
+    {
+      "code": "MOTOR_SCREEN_NEGATIVE",
+      "name": "运动功能初筛阴性"
+    },
+    {
+      "code": "MOTOR_SCREEN_POSITIVE",
+      "name": "运动功能初筛阳性"
+    },
+    {
+      "code": "NRS2002_INITIAL_NEGATIVE",
+      "name": "NRS 2002初筛阴性"
+    },
+    {
+      "code": "NRS2002_INITIAL_POSITIVE",
+      "name": "NRS 2002初筛阳性"
+    },
+    {
+      "code": "NRS2002_NO_NUTRITION_RISK",
+      "name": "未达到营养风险标准"
+    },
+    {
+      "code": "NRS2002_NUTRITION_RISK",
+      "name": "存在营养风险"
+    },
+    {
+      "code": "PAIN_BEHAVIOR_FACE",
+      "name": "面部疼痛表情"
+    },
+    {
+      "code": "PAIN_BEHAVIOR_UPPER_LIMB",
+      "name": "上肢疼痛防御动作"
+    },
+    {
+      "code": "PAIN_BEHAVIOR_VENTILATION",
+      "name": "机械通气不耐受表现"
+    },
+    {
+      "code": "PAIN_BEHAVIOR_VOCALIZATION",
+      "name": "疼痛相关发声"
+    },
+    {
+      "code": "PAIN_NRS_MILD",
+      "name": "轻度疼痛"
+    },
+    {
+      "code": "PAIN_NRS_MODERATE",
+      "name": "中度疼痛"
+    },
+    {
+      "code": "PAIN_NRS_NONE",
+      "name": "无疼痛"
+    },
+    {
+      "code": "PAIN_NRS_SEVERE",
+      "name": "重度疼痛"
+    },
+    {
+      "code": "POLYPHARMACY_AND_INAPPROPRIATE_USE",
+      "name": "多重用药合并不适当用药"
+    },
+    {
+      "code": "POLYPHARMACY_PRESENT",
+      "name": "存在多重用药"
+    },
+    {
+      "code": "PRESSURE_INJURY_LONG_TERM_BEDREST",
+      "name": "长期卧床"
+    },
+    {
+      "code": "PRESSURE_INJURY_SCREEN_NEGATIVE",
+      "name": "压力性损伤风险筛查阴性"
+    },
+    {
+      "code": "PRESSURE_INJURY_SCREEN_POSITIVE",
+      "name": "压力性损伤风险筛查阳性"
+    },
+    {
+      "code": "PRESSURE_INJURY_SKIN_ABNORMALITY",
+      "name": "受压部位皮肤异常"
+    },
+    {
+      "code": "SARCOPENIA_CALF_SCREEN_NEGATIVE",
+      "name": "肌少症筛查阴性"
+    },
+    {
+      "code": "SARCOPENIA_CALF_SCREEN_POSITIVE",
+      "name": "肌少症筛查阳性"
+    },
+    {
+      "code": "SARCOPENIA_DIAGNOSED",
+      "name": "肌少症"
+    },
+    {
+      "code": "SARCOPENIA_MUSCLE_MASS_NEGATIVE",
+      "name": "未达到肌少症肌量诊断界值"
+    },
+    {
+      "code": "SLEEP_DISORDER_SCREEN_NEGATIVE",
+      "name": "睡眠障碍筛查阴性"
+    },
+    {
+      "code": "SLEEP_DISORDER_SCREEN_POSITIVE",
+      "name": "睡眠障碍筛查阳性"
+    },
+    {
+      "code": "SPPB_GOOD",
+      "name": "体能状况良好"
+    },
+    {
+      "code": "SPPB_MODERATE",
+      "name": "体能状况中等"
+    },
+    {
+      "code": "SPPB_POOR",
+      "name": "体能状况较差"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_1",
+      "name": "粪便性状1型：干球状便"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_2",
+      "name": "粪便性状2型：腊肠样、很硬"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_3",
+      "name": "粪便性状3型：腊肠样、表面有裂缝"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_4",
+      "name": "粪便性状4型：光滑柔软的腊肠样或蛇状便"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_5",
+      "name": "粪便性状5型：切缘清楚的柔软团块"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_6",
+      "name": "粪便性状6型：松散碎片或糊状便"
+    },
+    {
+      "code": "STOOL_FORM_TYPE_7",
+      "name": "粪便性状7型：水样便"
+    },
+    {
+      "code": "TCM_BALANCED_BASICALLY",
+      "name": "平和质：基本是"
+    },
+    {
+      "code": "TCM_BALANCED_NO",
+      "name": "平和质：否"
+    },
+    {
+      "code": "TCM_BALANCED_YES",
+      "name": "平和质：是"
+    },
+    {
+      "code": "TCM_BLOOD_STASIS_NO",
+      "name": "血瘀质：否"
+    },
+    {
+      "code": "TCM_BLOOD_STASIS_TENDENCY",
+      "name": "血瘀质：倾向是"
+    },
+    {
+      "code": "TCM_BLOOD_STASIS_YES",
+      "name": "血瘀质：是"
+    },
+    {
+      "code": "TCM_DAMP_HEAT_NO",
+      "name": "湿热质：否"
+    },
+    {
+      "code": "TCM_DAMP_HEAT_TENDENCY",
+      "name": "湿热质：倾向是"
+    },
+    {
+      "code": "TCM_DAMP_HEAT_YES",
+      "name": "湿热质：是"
+    },
+    {
+      "code": "TCM_PHLEGM_DAMPNESS_NO",
+      "name": "痰湿质：否"
+    },
+    {
+      "code": "TCM_PHLEGM_DAMPNESS_TENDENCY",
+      "name": "痰湿质：倾向是"
+    },
+    {
+      "code": "TCM_PHLEGM_DAMPNESS_YES",
+      "name": "痰湿质：是"
+    },
+    {
+      "code": "TCM_QI_DEFICIENCY_NO",
+      "name": "气虚质：否"
+    },
+    {
+      "code": "TCM_QI_DEFICIENCY_TENDENCY",
+      "name": "气虚质：倾向是"
+    },
+    {
+      "code": "TCM_QI_DEFICIENCY_YES",
+      "name": "气虚质：是"
+    },
+    {
+      "code": "TCM_QI_STAGNATION_NO",
+      "name": "气郁质：否"
+    },
+    {
+      "code": "TCM_QI_STAGNATION_TENDENCY",
+      "name": "气郁质：倾向是"
+    },
+    {
+      "code": "TCM_QI_STAGNATION_YES",
+      "name": "气郁质：是"
+    },
+    {
+      "code": "TCM_SPECIAL_CONSTITUTION_NO",
+      "name": "特禀质：否"
+    },
+    {
+      "code": "TCM_SPECIAL_CONSTITUTION_TENDENCY",
+      "name": "特禀质：倾向是"
+    },
+    {
+      "code": "TCM_SPECIAL_CONSTITUTION_YES",
+      "name": "特禀质：是"
+    },
+    {
+      "code": "TCM_YANG_DEFICIENCY_NO",
+      "name": "阳虚质：否"
+    },
+    {
+      "code": "TCM_YANG_DEFICIENCY_TENDENCY",
+      "name": "阳虚质：倾向是"
+    },
+    {
+      "code": "TCM_YANG_DEFICIENCY_YES",
+      "name": "阳虚质：是"
+    },
+    {
+      "code": "TCM_YIN_DEFICIENCY_NO",
+      "name": "阴虚质：否"
+    },
+    {
+      "code": "TCM_YIN_DEFICIENCY_TENDENCY",
+      "name": "阴虚质：倾向是"
+    },
+    {
+      "code": "TCM_YIN_DEFICIENCY_YES",
+      "name": "阴虚质：是"
+    },
+    {
+      "code": "URINARY_INCONTINENCE_SCREEN_NEGATIVE",
+      "name": "尿失禁筛查阴性"
+    },
+    {
+      "code": "URINARY_INCONTINENCE_SCREEN_POSITIVE",
+      "name": "尿失禁筛查阳性"
+    },
+    {
+      "code": "VISION_BLIND",
+      "name": "盲"
+    },
+    {
+      "code": "VISION_LOW",
+      "name": "低视力"
+    },
+    {
+      "code": "VISION_NORMAL",
+      "name": "视力正常"
+    },
+    {
+      "code": "VISION_TOTAL_BLINDNESS",
+      "name": "完全失明"
+    },
+    {
+      "code": "VISUAL_DIFFICULTY_DAILY_ACTIVITY",
+      "name": "视物不便"
+    },
+    {
+      "code": "VISUAL_DISTORTION_SYMPTOM",
+      "name": "视物变形表现"
+    },
+    {
+      "code": "VISUAL_FIELD_DEFECT_SYMPTOM",
+      "name": "疑似视野缺损表现"
+    },
+    {
+      "code": "VISUAL_FUNCTION_GOOD",
+      "name": "视功能良好"
+    },
+    {
+      "code": "VISUAL_FUNCTION_IMPAIRED",
+      "name": "视功能较差"
+    },
+    {
+      "code": "VISUAL_FUNCTION_POOR",
+      "name": "视功能差"
+    },
+    {
+      "code": "WATER_SWALLOW_ABNORMAL",
+      "name": "吞咽功能异常"
+    },
+    {
+      "code": "WATER_SWALLOW_NORMAL",
+      "name": "吞咽功能正常"
+    },
+    {
+      "code": "WATER_SWALLOW_SUSPECTED_ABNORMAL",
+      "name": "吞咽功能可疑异常"
+    },
+    {
+      "code": "WHISPER_TEST_NEGATIVE",
+      "name": "耳语试验阴性"
+    },
+    {
+      "code": "WHISPER_TEST_POSITIVE",
+      "name": "耳语试验阳性"
+    }
+  ],
+  "matrix": {
+    "ADL_DEPENDENCE_MILD": {
+      "YD02": 5,
+      "YD03": 3,
+      "JZ02": 4,
+      "JZ03": 5,
+      "QT05": 3,
+      "QT15": 3
+    },
+    "ADL_DEPENDENCE_MODERATE": {
+      "YD02": 7,
+      "YD03": 5,
+      "JZ02": 5,
+      "JZ03": 6,
+      "QT05": 5,
+      "QT15": 5
+    },
+    "ADL_DEPENDENCE_SEVERE": {
+      "YD02": 9,
+      "YD03": 7,
+      "YD07": -100,
+      "YD10": 7,
+      "JZ02": 7,
+      "JZ03": 8,
+      "QT05": 7,
+      "QT15": 7
+    },
+    "AIS_POSSIBLE_SLEEP_DISORDER": {
+      "YD01": 3,
+      "ZY02": 5,
+      "JZ11": 7,
+      "QT08": 8
+    },
+    "AIS_SLEEP_DISORDER_PRESENT": {
+      "YD01": 3,
+      "ZY02": 7,
+      "JZ11": 10,
+      "QT08": 10
+    },
+    "ANXIETY_2Q_POSITIVE": {
+      "YD01": 4,
+      "ZY02": 4,
+      "JZ05": 6,
+      "QT08": 4,
+      "QT11": 5
+    },
+    "BRADEN_RISK_HIGH": {
+      "SS02": 5,
+      "SS03": 4,
+      "JZ13": 9,
+      "QT09": 9,
+      "QT15": 6
+    },
+    "BRADEN_RISK_LOW": {
+      "SS02": 3,
+      "SS03": 2,
+      "JZ13": 5,
+      "QT09": 5,
+      "QT15": 3
+    },
+    "BRADEN_RISK_MODERATE": {
+      "SS02": 3,
+      "SS03": 2,
+      "JZ13": 7,
+      "QT09": 7,
+      "QT15": 4
+    },
+    "BRADEN_RISK_VERY_HIGH": {
+      "SS02": 6,
+      "SS03": 5,
+      "JZ13": 10,
+      "QT09": 10,
+      "QT15": 7
+    },
+    "CAM_DELIRIUM_POSITIVE": {
+      "YD01": -100,
+      "YD02": -100,
+      "YD03": -100,
+      "YD04": -100,
+      "YD05": -100,
+      "YD06": -100,
+      "YD07": -100,
+      "YD08": -100,
+      "YD09": -100,
+      "YD10": -100,
+      "SS01": -100,
+      "SS02": -100,
+      "SS03": -100,
+      "SS04": -100,
+      "SS05": -100,
+      "SS06": -100,
+      "SS07": -100,
+      "SS08": -100,
+      "SS09": -100,
+      "SS10": -100,
+      "ZY01": -100,
+      "ZY02": -100,
+      "ZY03": -100,
+      "ZY04": -100,
+      "ZY05": -100,
+      "ZY06": -100,
+      "ZY07": -100,
+      "ZY08": -100,
+      "ZY09": -100,
+      "ZY10": -100,
+      "JZ01": 100,
+      "JZ02": 8,
+      "QT12": 5,
+      "QT15": 8
+    },
+    "CHRONIC_PAIN_SCREEN_POSITIVE": {
+      "YD01": 3,
+      "JZ03": 4,
+      "JZ12": 6
+    },
+    "COGNITIVE_BRIEF_SCREEN_POSITIVE": {
+      "JZ02": 5,
+      "JZ04": 8,
+      "QT11": 4,
+      "QT12": 8,
+      "QT15": 6
+    },
+    "CONSTIPATION_ABDOMINAL_DISCOMFORT_RELIEVED": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "CONSTIPATION_ANORECTAL_BLOCKAGE": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "CONSTIPATION_DIAGNOSED": {
+      "YD01": 3,
+      "SS05": 8,
+      "SS06": 7,
+      "ZY07": 8,
+      "JZ10": 8,
+      "QT07": 9
+    },
+    "CONSTIPATION_INCOMPLETE_EVACUATION": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "CONSTIPATION_LOW_FREQUENCY": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "CONSTIPATION_MANUAL_MANEUVER": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "CONSTIPATION_PROLONGED_DEFECATION": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "CONSTIPATION_SCREEN_POSITIVE": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "DEPRESSION_2Q_POSITIVE": {
+      "YD01": 4,
+      "ZY02": 4,
+      "JZ02": 4,
+      "JZ05": 6,
+      "QT11": 5
+    },
+    "DYSPHAGIA_COUGH_CHOKE": {
+      "SS08": 4,
+      "SS09": 7,
+      "JZ08": 4,
+      "JZ15": 7,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "DYSPHAGIA_DIFFICULTY_OR_PAIN": {
+      "SS08": 4,
+      "SS09": 7,
+      "JZ08": 4,
+      "JZ15": 7,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "DYSPHAGIA_DROOLING": {
+      "SS08": 4,
+      "SS09": 7,
+      "JZ08": 4,
+      "JZ15": 7,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "DYSPHAGIA_ORAL_LEAKAGE": {
+      "SS08": 4,
+      "SS09": 7,
+      "JZ08": 4,
+      "JZ15": 7,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "DYSPHAGIA_ORAL_RESIDUE": {
+      "SS08": 4,
+      "SS09": 7,
+      "JZ08": 4,
+      "JZ15": 7,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "DYSPHAGIA_SCREEN_POSITIVE": {
+      "SS08": 4,
+      "SS09": 7,
+      "JZ08": 4,
+      "JZ15": 7,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "FALL_FEAR_ACTIVITY_RESTRICTION": {
+      "YD02": 5,
+      "YD04": 4,
+      "YD06": 6,
+      "JZ03": 6,
+      "QT01": 4,
+      "QT02": 4,
+      "QT03": 4,
+      "QT04": 4,
+      "QT05": 6
+    },
+    "FALL_HISTORY_1Y": {
+      "YD02": 5,
+      "YD04": 4,
+      "YD06": 6,
+      "JZ03": 6,
+      "QT01": 4,
+      "QT02": 4,
+      "QT03": 4,
+      "QT04": 4,
+      "QT05": 6
+    },
+    "FALL_SCREEN_POSITIVE": {
+      "YD02": 5,
+      "YD04": 4,
+      "YD06": 6,
+      "JZ03": 6,
+      "QT01": 4,
+      "QT02": 4,
+      "QT03": 4,
+      "QT04": 4,
+      "QT05": 6
+    },
+    "FALL_UNSTEADY_STANDING_WALKING": {
+      "YD02": 7,
+      "YD04": 6,
+      "YD06": 8,
+      "YD07": -100,
+      "JZ03": 8,
+      "QT01": 6,
+      "QT02": 6,
+      "QT03": 6,
+      "QT04": 6,
+      "QT05": 8
+    },
+    "FRAIL_FRAIL": {
+      "YD01": 6,
+      "YD02": 9,
+      "SS02": 9,
+      "SS03": 8,
+      "ZY01": 6,
+      "JZ02": 8,
+      "JZ03": 7,
+      "QT15": 6
+    },
+    "FRAIL_PREFRAIL": {
+      "YD01": 7,
+      "YD02": 7,
+      "SS02": 7,
+      "SS03": 5,
+      "ZY01": 5,
+      "JZ02": 5,
+      "JZ03": 5,
+      "QT15": 3
+    },
+    "GAD7_MODERATE_ANXIETY": {
+      "YD01": 4,
+      "ZY02": 6,
+      "JZ05": 8,
+      "QT08": 6,
+      "QT11": 5
+    },
+    "GAD7_SEVERE_ANXIETY": {
+      "YD01": 3,
+      "ZY02": 7,
+      "JZ05": 10,
+      "QT08": 7,
+      "QT11": 5
+    },
+    "GAIT_SPEED_FUNCTION_DECLINE": {
+      "YD02": 8,
+      "YD03": 6,
+      "YD04": 6,
+      "YD05": 7,
+      "YD06": 5,
+      "JZ03": 8,
+      "QT05": 5
+    },
+    "GDS15_MODERATE_DEPRESSION": {
+      "YD01": 4,
+      "ZY02": 6,
+      "JZ02": 4,
+      "JZ05": 8,
+      "QT11": 7
+    },
+    "GDS15_SEVERE_DEPRESSION": {
+      "YD01": 3,
+      "ZY02": 7,
+      "JZ02": 4,
+      "JZ05": 10,
+      "QT11": 8
+    },
+    "GLIM_MODERATE_MALNUTRITION": {
+      "SS02": 8,
+      "SS03": 9,
+      "SS04": 8,
+      "ZY01": 5,
+      "JZ02": 5,
+      "JZ08": 9
+    },
+    "GLIM_SEVERE_MALNUTRITION": {
+      "SS02": 9,
+      "SS03": 10,
+      "SS04": 9,
+      "ZY01": 5,
+      "JZ02": 5,
+      "JZ08": 10
+    },
+    "GRIP_STRENGTH_LOW": {
+      "YD08": 10,
+      "YD09": 5,
+      "SS02": 7,
+      "JZ03": 6,
+      "JZ08": 4
+    },
+    "HEARING_DECLINE": {
+      "JZ07": 8,
+      "QT13": 7,
+      "QT15": 3
+    },
+    "HEARING_IMPAIRMENT": {
+      "JZ07": 8,
+      "QT13": 7,
+      "QT15": 3
+    },
+    "HEARING_TOTAL_LOSS": {
+      "JZ07": 10,
+      "QT13": 9,
+      "QT15": 3
+    },
+    "HOME_ANTI_SLIP_MAT_MISSING": {
+      "QT02": 10,
+      "QT05": 3
+    },
+    "HOME_BATH_ANTI_SLIP_INADEQUATE": {
+      "QT02": 10,
+      "QT05": 3
+    },
+    "HOME_BATH_GRAB_BAR_MISSING": {
+      "QT03": 10,
+      "QT05": 3
+    },
+    "HOME_BEDSIDE_LIGHT_SWITCH_INCONVENIENT": {
+      "QT04": 10,
+      "QT05": 3
+    },
+    "HOME_FLOOR_SLIPPERY": {
+      "QT02": 10,
+      "QT05": 3
+    },
+    "HOME_FLOOR_UNSAFE": {
+      "QT02": 10,
+      "QT05": 3
+    },
+    "HOME_INDOOR_LIGHTING_INADEQUATE": {
+      "QT04": 10,
+      "QT05": 3
+    },
+    "HOME_INDOOR_STAIR_HANDRAIL_MISSING": {
+      "QT03": 10,
+      "QT05": 3
+    },
+    "HOME_NIGHT_LIGHTING_INADEQUATE": {
+      "QT04": 10,
+      "QT05": 3
+    },
+    "HOME_OUTDOOR_STAIR_HANDRAIL_MISSING": {
+      "QT03": 10,
+      "QT05": 3
+    },
+    "HOME_PATHWAY_OBSTRUCTED": {
+      "QT01": 10,
+      "QT05": 3
+    },
+    "HOME_STAIR_EDGE_UNCLEAR": {
+      "QT04": 10,
+      "QT05": 3
+    },
+    "HOME_SURROUNDING_ROAD_UNSAFE": {
+      "QT01": 10,
+      "QT05": 3
+    },
+    "HOME_TOILET_BATHROOM_ACCESS_INCONVENIENT": {
+      "QT03": 10,
+      "QT05": 3
+    },
+    "IADL_DEPENDENCE_MILD": {
+      "YD01": 2,
+      "YD02": 3,
+      "JZ02": 4,
+      "QT10": 2,
+      "QT15": 2
+    },
+    "IADL_DEPENDENCE_MODERATE": {
+      "YD01": 4,
+      "YD02": 5,
+      "JZ02": 5,
+      "QT10": 4,
+      "QT15": 3
+    },
+    "IADL_DEPENDENCE_SEVERE": {
+      "YD01": 6,
+      "YD02": 7,
+      "JZ02": 7,
+      "QT10": 4,
+      "QT15": 5
+    },
+    "ICIQ_CONTINUOUS_LEAKAGE": {
+      "JZ02": 4,
+      "JZ09": 10,
+      "QT06": 9,
+      "QT15": 3
+    },
+    "ICIQ_INCONTINENCE_PRESENT": {
+      "JZ02": 4,
+      "JZ09": 10,
+      "QT06": 9,
+      "QT15": 3
+    },
+    "ICIQ_LEAK_ACTIVITY": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "ICIQ_LEAK_ASLEEP": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "ICIQ_LEAK_BEFORE_TOILET": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "ICIQ_LEAK_COUGH_SNEEZE": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "ICIQ_LEAK_NO_OBVIOUS_REASON": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "ICIQ_LEAK_POST_VOID": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "INAPPROPRIATE_MEDICATION_PRESENT": {
+      "JZ02": 5,
+      "JZ14": 9,
+      "QT10": 8
+    },
+    "LUBBEN_SUPPORT_FAIR": {
+      "JZ02": 3,
+      "QT11": 7,
+      "QT15": 3
+    },
+    "LUBBEN_SUPPORT_POOR": {
+      "JZ02": 5,
+      "QT11": 10,
+      "QT15": 5
+    },
+    "MEDICATION_REVIEW_INSUFFICIENT_DATA": {
+      "JZ02": 5,
+      "JZ14": 6,
+      "QT10": 6
+    },
+    "MMSE_COGNITIVE_DECLINE": {
+      "JZ02": 5,
+      "JZ04": 10,
+      "QT11": 4,
+      "QT12": 8,
+      "QT15": 6
+    },
+    "MMSE_UNABLE_TO_COMPLETE": {
+      "JZ02": 5,
+      "JZ04": 8,
+      "QT11": 4,
+      "QT12": 5,
+      "QT15": 6
+    },
+    "MNA_SF_MALNUTRITION_RISK": {
+      "SS02": 7,
+      "SS03": 8,
+      "SS04": 7,
+      "ZY01": 5,
+      "JZ02": 5,
+      "JZ08": 8
+    },
+    "MORSE_FALL_RISK_HIGH": {
+      "YD02": 8,
+      "YD04": 7,
+      "YD06": 9,
+      "YD07": -100,
+      "JZ03": 9,
+      "QT01": 7,
+      "QT02": 7,
+      "QT03": 7,
+      "QT04": 7,
+      "QT05": 9
+    },
+    "MORSE_FALL_RISK_LOW": {
+      "YD02": 4,
+      "YD04": 3,
+      "YD06": 4,
+      "JZ03": 4,
+      "QT01": 3,
+      "QT02": 3,
+      "QT03": 3,
+      "QT04": 3,
+      "QT05": 4
+    },
+    "MORSE_FALL_RISK_MODERATE": {
+      "YD02": 5,
+      "YD04": 4,
+      "YD06": 6,
+      "JZ03": 6,
+      "QT01": 4,
+      "QT02": 4,
+      "QT03": 4,
+      "QT04": 4,
+      "QT05": 6
+    },
+    "MOTOR_SCREEN_POSITIVE": {
+      "YD01": 8,
+      "YD02": 8,
+      "YD03": 6,
+      "YD04": 5,
+      "JZ03": 7
+    },
+    "NRS2002_INITIAL_POSITIVE": {
+      "SS02": 7,
+      "SS03": 6,
+      "SS04": 6,
+      "ZY01": 5,
+      "JZ02": 5,
+      "JZ08": 6
+    },
+    "NRS2002_NUTRITION_RISK": {
+      "SS02": 8,
+      "SS03": 9,
+      "SS04": 8,
+      "ZY01": 5,
+      "JZ02": 5,
+      "JZ08": 9
+    },
+    "PAIN_BEHAVIOR_FACE": {
+      "JZ03": 5,
+      "JZ12": 7
+    },
+    "PAIN_BEHAVIOR_UPPER_LIMB": {
+      "JZ03": 5,
+      "JZ12": 7
+    },
+    "PAIN_BEHAVIOR_VENTILATION": {
+      "JZ03": 5,
+      "JZ12": 7
+    },
+    "PAIN_BEHAVIOR_VOCALIZATION": {
+      "JZ03": 5,
+      "JZ12": 7
+    },
+    "PAIN_NRS_MILD": {
+      "YD01": 3,
+      "JZ03": 3,
+      "JZ12": 5
+    },
+    "PAIN_NRS_MODERATE": {
+      "JZ03": 6,
+      "JZ12": 8
+    },
+    "PAIN_NRS_SEVERE": {
+      "JZ03": 8,
+      "JZ12": 10
+    },
+    "POLYPHARMACY_AND_INAPPROPRIATE_USE": {
+      "JZ02": 5,
+      "JZ14": 10,
+      "QT10": 9
+    },
+    "POLYPHARMACY_PRESENT": {
+      "JZ02": 5,
+      "JZ14": 9,
+      "QT10": 8
+    },
+    "PRESSURE_INJURY_LONG_TERM_BEDREST": {
+      "YD10": 7,
+      "SS02": 4,
+      "SS03": 3,
+      "JZ13": 8,
+      "QT05": 5,
+      "QT09": 8,
+      "QT15": 5
+    },
+    "PRESSURE_INJURY_SCREEN_POSITIVE": {
+      "SS02": 3,
+      "SS03": 2,
+      "JZ13": 7,
+      "QT09": 7,
+      "QT15": 4
+    },
+    "PRESSURE_INJURY_SKIN_ABNORMALITY": {
+      "SS02": 6,
+      "SS03": 5,
+      "JZ13": 10,
+      "QT09": 10,
+      "QT15": 7
+    },
+    "SARCOPENIA_CALF_SCREEN_POSITIVE": {
+      "YD02": 7,
+      "YD03": 6,
+      "SS02": 7,
+      "ZY01": 4,
+      "JZ03": 5,
+      "JZ08": 4
+    },
+    "SARCOPENIA_DIAGNOSED": {
+      "YD02": 10,
+      "YD03": 8,
+      "YD04": 6,
+      "YD08": 6,
+      "SS02": 10,
+      "SS03": 8,
+      "ZY01": 5,
+      "JZ03": 9,
+      "JZ08": 7
+    },
+    "SLEEP_DISORDER_SCREEN_POSITIVE": {
+      "YD01": 3,
+      "ZY02": 4,
+      "JZ11": 6,
+      "QT08": 7
+    },
+    "SPPB_MODERATE": {
+      "YD01": 6,
+      "YD02": 8,
+      "YD03": 7,
+      "YD04": 5,
+      "YD05": 6,
+      "YD06": 5,
+      "JZ03": 6,
+      "QT05": 3
+    },
+    "SPPB_POOR": {
+      "YD01": 4,
+      "YD02": 10,
+      "YD03": 9,
+      "YD04": 7,
+      "YD05": 8,
+      "YD06": 7,
+      "YD07": -100,
+      "JZ03": 9,
+      "QT05": 6
+    },
+    "STOOL_FORM_TYPE_1": {
+      "YD01": 3,
+      "SS05": 8,
+      "SS06": 7,
+      "ZY07": 8,
+      "JZ10": 8,
+      "QT07": 9
+    },
+    "STOOL_FORM_TYPE_2": {
+      "YD01": 3,
+      "SS05": 8,
+      "SS06": 7,
+      "ZY07": 8,
+      "JZ10": 8,
+      "QT07": 9
+    },
+    "STOOL_FORM_TYPE_3": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "STOOL_FORM_TYPE_4": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "STOOL_FORM_TYPE_5": {
+      "YD01": 3,
+      "SS05": 6,
+      "SS06": 5,
+      "ZY07": 6,
+      "JZ10": 6,
+      "QT07": 7
+    },
+    "STOOL_FORM_TYPE_6": {
+      "JZ10": 4
+    },
+    "STOOL_FORM_TYPE_7": {
+      "JZ10": 4
+    },
+    "TCM_BLOOD_STASIS_TENDENCY": {
+      "ZY05": 2,
+      "JZ02": 3
+    },
+    "TCM_BLOOD_STASIS_YES": {
+      "ZY05": 4,
+      "JZ02": 3
+    },
+    "TCM_DAMP_HEAT_TENDENCY": {
+      "SS10": 2,
+      "ZY04": 3,
+      "ZY10": 5
+    },
+    "TCM_DAMP_HEAT_YES": {
+      "SS10": 4,
+      "ZY04": 5,
+      "ZY10": 7
+    },
+    "TCM_PHLEGM_DAMPNESS_TENDENCY": {
+      "YD01": 2,
+      "SS10": 3,
+      "ZY04": 6
+    },
+    "TCM_PHLEGM_DAMPNESS_YES": {
+      "YD01": 4,
+      "SS10": 3,
+      "ZY04": 9
+    },
+    "TCM_QI_DEFICIENCY_TENDENCY": {
+      "YD01": 2,
+      "SS02": 2,
+      "ZY01": 6
+    },
+    "TCM_QI_DEFICIENCY_YES": {
+      "YD01": 4,
+      "SS02": 4,
+      "ZY01": 9
+    },
+    "TCM_QI_STAGNATION_TENDENCY": {
+      "ZY05": 5,
+      "ZY06": 4,
+      "JZ05": 3,
+      "QT11": 2
+    },
+    "TCM_QI_STAGNATION_YES": {
+      "ZY05": 8,
+      "ZY06": 6,
+      "JZ05": 3,
+      "QT11": 4
+    },
+    "TCM_SPECIAL_CONSTITUTION_TENDENCY": {
+      "SS01": 2,
+      "JZ02": 2
+    },
+    "TCM_SPECIAL_CONSTITUTION_YES": {
+      "SS01": 2,
+      "JZ02": 3
+    },
+    "TCM_YANG_DEFICIENCY_TENDENCY": {
+      "ZY08": 6
+    },
+    "TCM_YANG_DEFICIENCY_YES": {
+      "ZY08": 9
+    },
+    "TCM_YIN_DEFICIENCY_TENDENCY": {
+      "SS06": 2,
+      "ZY03": 6,
+      "ZY09": 3
+    },
+    "TCM_YIN_DEFICIENCY_YES": {
+      "SS06": 4,
+      "ZY03": 9,
+      "ZY09": 5
+    },
+    "URINARY_INCONTINENCE_SCREEN_POSITIVE": {
+      "JZ02": 4,
+      "JZ09": 8,
+      "QT06": 7,
+      "QT15": 3
+    },
+    "VISION_BLIND": {
+      "YD07": -100,
+      "JZ06": 6,
+      "QT01": 5,
+      "QT02": 5,
+      "QT04": 4,
+      "QT13": 5
+    },
+    "VISION_LOW": {
+      "JZ06": 6,
+      "QT04": 4,
+      "QT13": 5
+    },
+    "VISION_TOTAL_BLINDNESS": {
+      "YD07": -100,
+      "JZ06": 10,
+      "QT01": 5,
+      "QT02": 5,
+      "QT04": 8,
+      "QT13": 9
+    },
+    "VISUAL_DIFFICULTY_DAILY_ACTIVITY": {
+      "JZ06": 6,
+      "QT04": 4,
+      "QT13": 5
+    },
+    "VISUAL_DISTORTION_SYMPTOM": {
+      "JZ06": 6,
+      "QT04": 4,
+      "QT13": 5
+    },
+    "VISUAL_FIELD_DEFECT_SYMPTOM": {
+      "YD07": -100,
+      "JZ06": 6,
+      "QT01": 5,
+      "QT02": 5,
+      "QT04": 4,
+      "QT13": 5
+    },
+    "VISUAL_FUNCTION_IMPAIRED": {
+      "JZ06": 9,
+      "QT04": 6,
+      "QT13": 8
+    },
+    "VISUAL_FUNCTION_POOR": {
+      "JZ06": 9,
+      "QT04": 6,
+      "QT13": 8
+    },
+    "WATER_SWALLOW_ABNORMAL": {
+      "SS08": 7,
+      "SS09": 10,
+      "JZ08": 4,
+      "JZ15": 10,
+      "QT14": 9,
+      "QT15": 5
+    },
+    "WATER_SWALLOW_SUSPECTED_ABNORMAL": {
+      "SS08": 5,
+      "SS09": 8,
+      "JZ08": 4,
+      "JZ15": 8,
+      "QT14": 7,
+      "QT15": 5
+    },
+    "WHISPER_TEST_POSITIVE": {
+      "JZ07": 7,
+      "QT13": 6,
+      "QT15": 3
+    }
+  }
+}

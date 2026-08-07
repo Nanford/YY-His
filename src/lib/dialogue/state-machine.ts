@@ -1,11 +1,15 @@
 /**
- * INPUT:  会话勾选的量表（src/lib/rules）、对话快照（答案状态 + 提问/回答计数，由 turns/answers 派生）
- * OUTPUT: askableQuestions、nextStep、resolveReply —— 追问状态机（纯函数、无 IO）
- * POS:    数字医生问询流程的确定性核心：提问 → 追问 1 次 → 待确认 →
+ * INPUT:  会话勾选的量表（src/lib/rules）、V2 旁白（src/lib/rules/v2 的 narrationsV2）、
+ *         对话快照（答案状态 + 提问/回答计数 + 已播报旁白，由 turns/answers 派生）
+ * OUTPUT: askableQuestions、buildTimeline、nextStep、resolveReply —— 采集编排 + 追问状态机（纯函数、无 IO）
+ * POS:    数字医生问询流程的确定性核心：总开场/分类过渡/工具说明旁白按 01 表顺序播报
+ *         （来源：V2/Demo_v2更新说明.docx §3「采集过程中应按照预设顺序播放开场白、分类过渡句
+ *         和必要的工具说明」），题目仍走 提问 → 追问 1 次 → 待确认 →
  *         轮末换说法复问 → 待人工确认（AGENTS.md 硬约束 3）。
  *         状态完全由 DialogueTurn/Answer 派生，不引入额外持久化状态字段。
  */
 import { optionsOf, scaleById, type QuestionOption, type ScaleQuestion } from "@/lib/rules";
+import { narrationsV2, scalesV2, type NarrationV2 } from "@/lib/rules/v2";
 import { clarifyText, recheckText } from "./prompts";
 import type { NormalizationOutcome } from "./normalize-rules";
 
@@ -19,9 +23,9 @@ export interface AskableQuestion {
 
 /**
  * 计算患者端问询题目清单（保持量表勾选顺序与题目原始顺序）。
- * 跳过规则（来源：AGENTS.md"已知的坑"与评分实现要点）：
- * - measurement 题：由本地测量数据换算，禁止向患者提问，也禁止采用口头报数；
- * - observerAssisted 题（舌象、神经心理等）：需调查员/医生观察判断，走医生端代填。
+ * 跳过规则（来源：V2/01_评估采集规则表.xlsx 条目类型）：
+ * - observerAssisted 计分条目（条目类型 ≠ 正式问题：系统读取/逻辑计算/操作测试/绘图操作等）：
+ *   不向患者提问，系统读取自动作答（M9.5）或走医生端代填；缺失时按 deferClinical 口径豁免。
  */
 export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[] {
   const items: AskableQuestion[] = [];
@@ -29,16 +33,77 @@ export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[]
     const scale = scaleById.get(scaleId);
     if (!scale) throw new Error(`会话包含未知量表：${scaleId}`);
     for (const question of scale.questions) {
-      if (question.measurement || question.observerAssisted) continue;
+      // observerAssisted（V2：条目类型 ≠ 正式问题的计分条目，如系统读取/逻辑计算/操作测试）：
+      // 禁止向患者提问，走医生端代填；缺失时按 deferClinical 口径豁免计分
+      if (question.observerAssisted) continue;
       items.push({ question, scaleId: scale.id, scaleName: scale.name, options: optionsOf(scale, question) });
     }
   }
   return items;
 }
 
+// ---------- 采集编排时间线（M9.2：总开场/分类过渡/工具说明旁白） ----------
+
+/** 采集编排步骤：旁白（只播报、不需作答）或正式提问 */
+export type TimelineStep =
+  | { kind: "narration"; narration: NarrationV2 }
+  | { kind: "question"; item: AskableQuestion };
+
+/** 01 表各量表首个条目的行号（用于给 scaleId 为空的分类过渡找"紧邻其后的量表"锚点） */
+const scaleFirstRowV2: ReadonlyMap<string, number> = new Map(
+  scalesV2.map((scale) => [scale.id, Math.min(...scale.items.map((item) => item.row))])
+);
+
+/**
+ * 旁白锚定量表（来源：V2/01_评估采集规则表.xlsx 行序）：
+ * - 工具说明行自带 scaleId（紧邻其后的量表）；
+ * - 分类过渡行 scaleId 为空，锚到"其后第一个量表"（首个条目行号大于旁白行号的量表）；
+ * - 总开场不锚定任何量表（恒在最前，由 buildTimeline 单独处理）。
+ */
+function narrationAnchorScaleId(narration: NarrationV2): string | null {
+  if (narration.scaleId) return narration.scaleId;
+  for (const scale of scalesV2) {
+    if ((scaleFirstRowV2.get(scale.id) ?? Infinity) > narration.row) return scale.id;
+  }
+  return null;
+}
+
+/**
+ * 组装采集编排时间线：总开场恒在最前；每条分类过渡/工具说明锚定到其后的量表，
+ * 仅当该量表被本次会话勾选时才纳入，插在该量表首题之前；同一量表前多条旁白按 01 表行号排序。
+ * 未勾选量表的旁白不播；正文为空的旁白行（如 01 表 112 行）跳过。
+ * 来源：V2/Demo_v2更新说明.docx §3 —— 按预设顺序播放开场白、分类过渡句和必要的工具说明。
+ */
+export function buildTimeline(scaleIds: readonly string[]): TimelineStep[] {
+  const questions = askableQuestions(scaleIds); // 复用题目过滤与未知量表校验
+  const steps: TimelineStep[] = [];
+  for (const narration of narrationsV2) {
+    if (narration.entryType === "总开场" && narration.text.trim()) {
+      steps.push({ kind: "narration", narration });
+    }
+  }
+  for (const scaleId of scaleIds) {
+    const anchored = narrationsV2
+      .filter(
+        (narration) =>
+          narration.entryType !== "总开场" &&
+          narration.text.trim() &&
+          narrationAnchorScaleId(narration) === scaleId
+      )
+      .sort((a, b) => a.row - b.row);
+    for (const narration of anchored) {
+      steps.push({ kind: "narration", narration });
+    }
+    for (const item of questions) {
+      if (item.scaleId === scaleId) steps.push({ kind: "question", item });
+    }
+  }
+  return steps;
+}
+
 export type AnswerStatus = "confirmed" | "pending" | "manual" | "superseded";
 
-/** 对话快照：从 DialogueTurn（提问/回答计数）与 Answer（答案状态）派生 */
+/** 对话快照：从 DialogueTurn（提问/回答/旁白播报计数）与 Answer（答案状态）派生 */
 export interface DialogueSnapshot {
   /** 题目 id → 当前答案状态（无记录则不在 Map 中） */
   answerStatus: ReadonlyMap<string, AnswerStatus>;
@@ -46,6 +111,8 @@ export interface DialogueSnapshot {
   doctorAskCount: ReadonlyMap<string, number>;
   /** 题目 id → 患者已回答的次数 */
   patientReplyCount: ReadonlyMap<string, number>;
+  /** 已播报旁白 id 集合（播报时写入 role=system、questionId=旁白 id 的轮次，由此派生） */
+  deliveredNarrationIds: ReadonlySet<string>;
 }
 
 /** 提问尝试序号：1=首问（口语版） 2=追问 3=轮末换说法复问 */
@@ -62,6 +129,8 @@ export interface DialoguePrompt {
 export type DialogueStep =
   /** 需要向患者发出新的提问（调用方应写入 doctor 轮次并播报） */
   | { kind: "prompt"; prompt: DialoguePrompt }
+  /** 遇到未播报的旁白（调用方播报并写 system 轮次后即完成，不需患者作答） */
+  | { kind: "narration"; narration: NarrationV2 }
   /** 提问已发出，等待患者作答（页面刷新/查询状态时命中此分支） */
   | { kind: "awaiting"; item: AskableQuestion; attempt: AskAttempt; phase: "main" | "recheck" }
   /** 全部题目均已有结论（confirmed / manual），问询结束 */
@@ -75,14 +144,22 @@ function counts(snapshot: DialogueSnapshot, questionId: string): { asks: number;
 }
 
 /**
- * 由当前快照推导下一步。遍历顺序即题目顺序：
- * 主轮：首个无答案记录的题目 → 首问或追问；
+ * 由当前快照推导下一步。遍历顺序即时间线顺序（旁白插在锚定量表首题之前）：
+ * 主轮：未播报的旁白 → narration 步骤（不需作答）；首个无答案记录的题目 → 首问或追问；
  * 复问轮：主轮全部有记录后，对 pending 题目发轮末复问；
- * 全部题目 confirmed/manual → finished。
+ * 全部旁白已播报且全部题目 confirmed/manual → finished。
+ * 刷新重放安全：已写入 system 轮次的旁白（deliveredNarrationIds）不会再次返回。
  */
-export function nextStep(questions: readonly AskableQuestion[], snapshot: DialogueSnapshot): DialogueStep {
-  // ---- 主轮 ----
-  for (const item of questions) {
+export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSnapshot): DialogueStep {
+  // ---- 主轮（旁白与题目按时间线顺序交错） ----
+  for (const step of timeline) {
+    if (step.kind === "narration") {
+      if (!snapshot.deliveredNarrationIds.has(step.narration.id)) {
+        return { kind: "narration", narration: step.narration };
+      }
+      continue;
+    }
+    const item = step.item;
     const status = snapshot.answerStatus.get(item.question.id);
     if (status) continue; // 已有记录（confirmed/pending/manual）→ 主轮完成
     const { asks, replies } = counts(snapshot, item.question.id);
@@ -107,7 +184,9 @@ export function nextStep(questions: readonly AskableQuestion[], snapshot: Dialog
   }
 
   // ---- 轮末复问轮 ----
-  for (const item of questions) {
+  for (const step of timeline) {
+    if (step.kind !== "question") continue;
+    const item = step.item;
     if (snapshot.answerStatus.get(item.question.id) !== "pending") continue;
     const { asks, replies } = counts(snapshot, item.question.id);
     if (asks === 2) {

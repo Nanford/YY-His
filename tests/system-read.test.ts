@@ -1,0 +1,213 @@
+/**
+ * INPUT:  src/lib/assessment/system-read.ts（M9.5 系统读取推导）、data/scales-v2.json（选项 label 事实来源）
+ * OUTPUT: 5 个「系统读取」条目（frail_4/frail_5/mnasf_2/mnasf_6/morse_2）的推导规则用例：
+ *         BMI 四档边界、小腿围回退、体重史 5%/3kg 边界、诊断数阈值、缺数据不答、
+ *         产出 label 在规则数据该条目 options 中精确可查、existing 集合跳过已有 confirmed 答案
+ * POS:    系统读取自动作答的回归保险（确定性红线：label 必须命中规则数据，分值边界锁死）。
+ */
+import { describe, expect, it } from "vitest";
+import { scalesV2 } from "@/lib/rules/v2";
+import { resolveSystemReadAnswers, type PatientLike, type SystemReadAnswer } from "@/lib/assessment/system-read";
+
+const ALL_SCALES = ["frail", "mnasf"] as const;
+
+function resolve(patient: PatientLike, existing?: ReadonlySet<string>): SystemReadAnswer[] {
+  return resolveSystemReadAnswers(patient, ALL_SCALES, existing ? { existing } : undefined);
+}
+
+function byQuestion(answers: SystemReadAnswer[], questionId: string): SystemReadAnswer | undefined {
+  return answers.find((a) => a.questionId === questionId);
+}
+
+/** 规则数据反查：该条目 options 中必须存在这个 label（全链路确定性红线的守门口径） */
+function optionLabels(questionId: string): string[] {
+  for (const scale of scalesV2) {
+    const item = scale.items.find((i) => i.id === questionId);
+    if (item?.options) return item.options.map((o) => o.label);
+  }
+  throw new Error(`测试数据异常：找不到条目 ${questionId} 的选项`);
+}
+
+describe("mnasf_6：BMI 四档（优先按 BMI）", () => {
+  // 身高 100cm 时 BMI 数值 == 体重数值，便于直接写边界
+  it.each([
+    [18.9, 0, "BMI＜19（0分）"],
+    [19, 1, "19≤BMI＜21（1分）"],
+    [21, 2, "21≤BMI＜23（2分）"],
+    [23, 3, "BMI≥23（3分）"],
+  ])("BMI=%s → %s 分档", (weightKg, score, label) => {
+    const answer = byQuestion(resolve({ heightCm: 100, weightKg }), "mnasf_6");
+    expect(answer).toBeDefined();
+    expect(answer!.score).toBe(score);
+    expect(answer!.optionLabel).toBe(label);
+    expect(answer!.rawText).toContain("BMI=");
+  });
+});
+
+describe("mnasf_6：BMI 算不出时回退小腿围", () => {
+  it("双腿取较细，<31cm → 0 分档", () => {
+    const answer = byQuestion(resolve({ weightKg: 66, calfLeftCm: 29.5, calfRightCm: 31.5 }), "mnasf_6");
+    expect(answer).toBeDefined();
+    expect(answer!.score).toBe(0);
+    expect(answer!.rawText).toContain("29.5");
+    expect(answer!.optionLabel).toBe("＜31 cm（0分）");
+  });
+
+  it("双腿取较细，≥31cm → 3 分档（label 精确取「≥31 cm（3分）」）", () => {
+    const answer = byQuestion(resolve({ weightKg: 66, calfLeftCm: 33, calfRightCm: 32 }), "mnasf_6");
+    expect(answer!.score).toBe(3);
+    expect(answer!.optionLabel).toBe("≥31 cm（3分）");
+    expect(answer!.rawText).toContain("32.0");
+  });
+
+  it("双腿缺失回退旧字段 calfCm", () => {
+    const answer = byQuestion(resolve({ calfCm: 30 }), "mnasf_6");
+    expect(answer!.score).toBe(0);
+    expect(answer!.rawText).toContain("30.0");
+  });
+
+  it("BMI 与小腿围全缺 → 不答", () => {
+    expect(byQuestion(resolve({}), "mnasf_6")).toBeUndefined();
+    expect(byQuestion(resolve({ heightCm: 170 }), "mnasf_6")).toBeUndefined();
+  });
+});
+
+describe("frail_5：体重下降 ≥5% → 是（峰值口径）", () => {
+  it("下降 4.9% → 否（0分）", () => {
+    const answer = byQuestion(resolve({ weightKg: 95.1, weightHistory: { m3: 100 } }), "frail_5");
+    expect(answer!.score).toBe(0);
+    expect(answer!.optionLabel).toBe("否（0分）");
+  });
+
+  it("下降 5.0% → 是（1分）", () => {
+    const answer = byQuestion(resolve({ weightKg: 95, weightHistory: { m3: 100 } }), "frail_5");
+    expect(answer!.score).toBe(1);
+    expect(answer!.optionLabel).toBe("是（1分）");
+  });
+
+  it("峰值取体重史与当前的最大值（当前最重 → 下降 0% → 否）", () => {
+    const answer = byQuestion(resolve({ weightKg: 72, weightHistory: { m1: 70, m6: 68 } }), "frail_5");
+    expect(answer!.score).toBe(0);
+  });
+
+  it("weightHistory 为空/缺失 → 不答", () => {
+    expect(byQuestion(resolve({ weightKg: 66, weightHistory: {} }), "frail_5")).toBeUndefined();
+    expect(byQuestion(resolve({ weightKg: 66 }), "frail_5")).toBeUndefined();
+    expect(byQuestion(resolve({ weightHistory: { m3: 70 } }), "frail_5")).toBeUndefined();
+  });
+});
+
+describe("mnasf_2：近 3 个月体重下降四档", () => {
+  it("下降 3.0kg → 2 分档（1～3kg）", () => {
+    const answer = byQuestion(resolve({ weightKg: 100, weightHistory: { m3: 103 } }), "mnasf_2");
+    expect(answer!.score).toBe(2);
+    expect(answer!.optionLabel).toBe("体重下降1～3 kg（2分）");
+  });
+
+  it("下降 3.1kg → 0 分档（＞3kg）", () => {
+    const answer = byQuestion(resolve({ weightKg: 100, weightHistory: { m3: 103.1 } }), "mnasf_2");
+    expect(answer!.score).toBe(0);
+    expect(answer!.optionLabel).toBe("体重下降＞3 kg（0分）");
+  });
+
+  it("下降 0.5kg → 3 分档（无下降）", () => {
+    const answer = byQuestion(resolve({ weightKg: 100, weightHistory: { m3: 100.5 } }), "mnasf_2");
+    expect(answer!.score).toBe(3);
+    expect(answer!.optionLabel).toBe("体重没有下降（3分）");
+  });
+
+  it("体重上升（diff 为负）→ 3 分档", () => {
+    const answer = byQuestion(resolve({ weightKg: 100, weightHistory: { m3: 99 } }), "mnasf_2");
+    expect(answer!.score).toBe(3);
+  });
+
+  it("m3 缺失 → 不答；「不知道（1分）」档永不自动产生", () => {
+    expect(byQuestion(resolve({ weightKg: 100, weightHistory: { m1: 103 } }), "mnasf_2")).toBeUndefined();
+    const answer = byQuestion(resolve({ weightKg: 100, weightHistory: { m3: 104 } }), "mnasf_2");
+    expect(answer!.optionLabel).not.toBe("不知道（1分）");
+  });
+});
+
+describe("frail_4：现有诊断 ≥5 种 → 是", () => {
+  it("4 种 → 否（0分）", () => {
+    const answer = byQuestion(resolve({ diagnoses: ["高血压", "糖尿病", "冠心病", "骨质疏松"] }), "frail_4");
+    expect(answer!.score).toBe(0);
+    expect(answer!.optionLabel).toBe("否（0分）");
+    expect(answer!.rawText).toContain("4 种");
+  });
+
+  it("5 种 → 是（1分）", () => {
+    const answer = byQuestion(
+      resolve({ diagnoses: ["高血压", "糖尿病", "冠心病", "骨质疏松", "慢阻肺"] }),
+      "frail_4"
+    );
+    expect(answer!.score).toBe(1);
+    expect(answer!.optionLabel).toBe("是（1分）");
+  });
+
+  it("diagnoses 缺失 → 不答", () => {
+    expect(byQuestion(resolve({}), "frail_4")).toBeUndefined();
+  });
+});
+
+describe("morse_2：当前诊断 >1 个 → 15 分档（M10.3b 新增，与 frail_4 同 diagnoses 单源口径）", () => {
+  const resolveMorse = (patient: PatientLike): SystemReadAnswer[] =>
+    resolveSystemReadAnswers(patient, ["morse"]);
+
+  it("1 种诊断 → 0 分档「无或仅1个医疗诊断（0分）」", () => {
+    const answer = byQuestion(resolveMorse({ diagnoses: ["高血压"] }), "morse_2");
+    expect(answer).toBeDefined();
+    expect(answer!.score).toBe(0);
+    expect(answer!.optionLabel).toBe("无或仅1个医疗诊断（0分）");
+    expect(answer!.rawText).toContain("1 种");
+  });
+
+  it("2 种诊断 → 15 分档「超过1个医疗诊断（15分）」", () => {
+    const answer = byQuestion(resolveMorse({ diagnoses: ["高血压", "糖尿病"] }), "morse_2");
+    expect(answer!.score).toBe(15);
+    expect(answer!.optionLabel).toBe("超过1个医疗诊断（15分）");
+  });
+
+  it("空诊断清单 → 0 分档；diagnoses 缺失 → 不答", () => {
+    expect(byQuestion(resolveMorse({ diagnoses: [] }), "morse_2")!.score).toBe(0);
+    expect(byQuestion(resolveMorse({}), "morse_2")).toBeUndefined();
+  });
+
+  it("morse_4（静脉输液）/morse_5（步态）无推导器，不产出（口径未拍板，留医生代填）", () => {
+    const answers = resolveMorse({ diagnoses: ["高血压", "糖尿病"] });
+    expect(byQuestion(answers, "morse_4")).toBeUndefined();
+    expect(byQuestion(answers, "morse_5")).toBeUndefined();
+  });
+});
+
+describe("通用行为", () => {
+  const fullPatient: PatientLike = {
+    heightCm: 170,
+    weightKg: 66,
+    weightHistory: { m1: 68, m3: 70 },
+    diagnoses: ["高血压", "糖尿病", "冠心病", "骨质疏松", "慢阻肺", "白内障"],
+  };
+
+  it("产出的 optionLabel 全部能在规则数据该条目 options 中精确查到", () => {
+    const answers = resolve(fullPatient);
+    expect(answers.length).toBeGreaterThan(0);
+    for (const answer of answers) {
+      expect(optionLabels(answer.questionId)).toContain(answer.optionLabel);
+    }
+  });
+
+  it("existing（已有 confirmed 人工答案）命中的题目跳过，不产出", () => {
+    const answers = resolve(fullPatient, new Set(["frail_4", "mnasf_6"]));
+    expect(byQuestion(answers, "frail_4")).toBeUndefined();
+    expect(byQuestion(answers, "mnasf_6")).toBeUndefined();
+    expect(byQuestion(answers, "frail_5")).toBeDefined();
+    expect(byQuestion(answers, "mnasf_2")).toBeDefined();
+  });
+
+  it("scaleIds 只覆盖勾选量表；逻辑计算条目（mnasf_3 等）不产出", () => {
+    const answers = resolveSystemReadAnswers(fullPatient, ["frail"]);
+    expect(answers.every((a) => a.questionId.startsWith("frail_"))).toBe(true);
+    const mnasfAnswers = resolveSystemReadAnswers(fullPatient, ["mnasf"]);
+    expect(byQuestion(mnasfAnswers, "mnasf_3")).toBeUndefined();
+  });
+});

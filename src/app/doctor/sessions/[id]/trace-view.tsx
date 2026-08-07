@@ -5,7 +5,7 @@
  */
 import { questionById, scaleByQuestionId } from "@/lib/rules";
 
-export type TraceAnswerSource = "voice" | "text" | "button" | "doctor" | "measurement";
+export type TraceAnswerSource = "voice" | "text" | "button" | "doctor" | "measurement" | "system";
 export type TraceAnswerStatus = "confirmed" | "pending" | "manual" | "superseded";
 export type TraceAudioStatus = "available" | "missing" | "processing" | "not_recorded";
 
@@ -51,6 +51,7 @@ const SOURCE_META: Record<TraceAnswerSource, { label: string; cls: string }> = {
   button: { label: "快捷按钮", cls: "border-slate-200 bg-slate-50 text-slate-700" },
   doctor: { label: "医生补录", cls: "border-blue-200 bg-blue-50 text-blue-700" },
   measurement: { label: "测量换算", cls: "border-blue-200 bg-blue-50 text-blue-700" },
+  system: { label: "系统读取", cls: "border-blue-200 bg-blue-50 text-blue-700" },
 };
 
 const STATUS_META: Record<TraceAnswerStatus, { label: string; cls: string }> = {

@@ -1,0 +1,606 @@
+{
+  "generatedFrom": "V2/04_干预方案信息表.xlsx",
+  "generatedAt": "2026-08-07T09:56:21.094Z",
+  "interventions": [
+    {
+      "code": "YD01",
+      "name": "定时步行训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：提高耐力与步行能力。动作：选择平整安全的地面，抬头看前方，自然摆臂，按平时能接受的速度步行。开始时每次5～10分钟，逐渐增加到15～30分钟；每周5天。注意：穿防滑鞋；出现胸闷、头晕、明显气促或疼痛加重时立即停止。",
+      "mediaSrc": "/interventions/videos/YD01.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD02",
+      "name": "扶椅坐站训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：增强下肢力量、改善起立和转移动作。动作：选择稳固有靠背的椅子，坐在椅子前1/2处，双脚分开与肩同宽，身体微向前倾，扶椅扶手或椅背站起，再慢慢坐下。每次5～10下，每天1～2组。注意：站立不稳时需有人在旁保护。",
+      "mediaSrc": "/interventions/videos/YD02.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD03",
+      "name": "坐位伸膝训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：增强大腿前侧力量。动作：坐在稳固椅子上，背部坐正，一侧小腿慢慢伸直，与地面尽量平行，停2～3秒后放下，再换另一侧。每侧8～10次，每天1～2组。注意：动作缓慢，不要猛踢。",
+      "mediaSrc": "/interventions/videos/YD03.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD04",
+      "name": "扶椅提踵训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：增强小腿力量和踝关节稳定。动作：双手扶住稳固椅背，双脚与肩同宽，慢慢抬起脚后跟，用前脚掌站立，停2秒后缓慢放下。每次8～12下，每天1～2组。注意：全程扶稳，防止后仰。",
+      "mediaSrc": "/interventions/videos/YD04.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD05",
+      "name": "扶椅原地抬腿训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：改善步行前准备能力和下肢协调。动作：扶住稳固椅背，身体站稳，左右交替抬起膝盖，抬到自己舒服的高度即可，再放下。左右各10次，每天1～2组。注意：动作均匀，不要耸肩和屏气。",
+      "mediaSrc": "/interventions/videos/YD05.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD06",
+      "name": "前后脚站立训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：改善静态平衡。动作：站在稳固支撑物旁，一只脚放在另一只脚前方，脚跟接近前脚脚尖，双眼看前方，尽量保持10秒；完成后左右脚前后互换。每侧练习3～5次。注意：旁边必须有支撑物。",
+      "mediaSrc": "/interventions/videos/YD06.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD07",
+      "name": "扶椅单脚站立训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：提高单脚平衡能力。动作：站在稳固椅背旁，单手扶椅，一只脚抬离地面，另一只脚站稳，保持5～10秒后换脚。每侧3～5次。注意：仅适合跌倒风险不高、站立较稳的人群；不可单独练习。",
+      "mediaSrc": "/interventions/videos/YD07.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD08",
+      "name": "握力球训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：增强手部和前臂力量。动作：手握握力球或柔软球，用力握紧3秒后放松，重复进行，再换另一只手。每手10～15次，每天1～2组。注意：如果手指或腕部疼痛明显，可减少次数。",
+      "mediaSrc": "/interventions/videos/YD08.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD09",
+      "name": "墙面俯卧撑训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：增强上肢和躯干力量。动作：面对墙壁站立，双手扶墙与肩同宽，身体向墙靠近后再推回原位，像在墙上做俯卧撑。每次8～12下，每天1组。注意：保持身体成一直线，避免憋气。",
+      "mediaSrc": "/interventions/videos/YD09.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "YD10",
+      "name": "踝泵训练",
+      "category": "运动",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "目标：维持踝关节活动和下肢基础循环。动作：坐位或卧位时，双腿自然伸展，脚尖尽量向上勾，再向下压，反复交替。每次15～20下，每天2～3次。注意：动作可缓慢连续进行，适合活动少或卧床者。",
+      "mediaSrc": "/interventions/videos/YD10.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS01",
+      "name": "均衡多样膳食",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：每天食物尽量多样化，主食、蔬菜、水果、肉蛋奶豆都要有。可按“三餐两加餐”安排：早餐有主食+蛋/奶，午晚餐有主食+蔬菜+蛋白食物，每天吃1～2种水果。目标：避免长期偏食、单一饮食。",
+      "mediaSrc": "/interventions/SS01.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS02",
+      "name": "优质蛋白强化膳食",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：在原有饮食基础上增加优质蛋白食物。可每天安排：鸡蛋1个、牛奶300毫升左右、鱼/虾/瘦肉1～2掌心量、豆腐或豆制品1份。目标：改善蛋白质摄入不足，帮助维持肌肉和体力。",
+      "mediaSrc": "/interventions/SS02.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS03",
+      "name": "高能量高蛋白少量多餐",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：食量小或体重下降时，不勉强一次吃很多，可改成3餐+2～3次加餐。加餐可选牛奶、酸奶、鸡蛋羹、豆浆、肉末粥、营养饼干等。目标：提高总能量和蛋白质摄入。",
+      "mediaSrc": "/interventions/SS03.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS04",
+      "name": "口服营养补充方案",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：当日常吃饭明显不够时，可在医生或营养师指导下使用口服营养补充制剂。一般可作为两餐之间加餐使用，每次1瓶或按专业建议服用。目标：补充能量、蛋白质和微量营养素。",
+      "mediaSrc": "/interventions/SS04.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS05",
+      "name": "高膳食纤维方案",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：便秘或膳食纤维不足时，增加蔬菜、水果、全谷物和杂豆。每天尽量吃深浅搭配蔬菜，水果1～2份，主食中可加入燕麦、玉米、红薯、杂豆等。目标：帮助维持排便规律。",
+      "mediaSrc": "/interventions/SS05.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS06",
+      "name": "足量饮水方案",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：白天分时段主动喝水，不要等口渴才喝。可安排晨起1杯、上午1杯、午后1～2杯、晚餐前后少量饮水。目标：改善饮水不足，辅助预防便秘和脱水。注意：限水者需遵医嘱。",
+      "mediaSrc": "/interventions/SS06.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS07",
+      "name": "钙和维生素D膳食方案",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：每天摄入奶及奶制品，如牛奶、酸奶、奶酪，并搭配豆制品、小鱼虾等含钙食物；适度晒太阳。目标：维护骨骼健康和肌肉功能。",
+      "mediaSrc": "/interventions/SS07.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS08",
+      "name": "细软易咀嚼膳食",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：牙口差或咀嚼费力时，将食物煮软、切碎、剁细。可选蒸蛋、软米饭、烂面、炖菜、鱼泥、肉末、豆腐等。目标：让老人更容易吃进去，减少咀嚼负担。",
+      "mediaSrc": "/interventions/SS08.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS09",
+      "name": "糊状及增稠膳食",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：吞咽不安全时，食物尽量做成糊状、半流质，液体按专业建议加增稠剂。可选择米糊、菜泥、肉泥、稠粥等。目标：降低呛咳风险，保证进食安全。",
+      "mediaSrc": "/interventions/SS09.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "SS10",
+      "name": "清淡控盐控油膳食",
+      "category": "膳食营养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "核心建议：做菜少盐少油，少吃腌制品、油炸食品、肥肉和高糖零食。烹调以蒸、煮、炖、拌为主。目标：帮助控制慢病风险，减轻胃肠负担。",
+      "mediaSrc": "/interventions/SS10.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY01",
+      "name": "山药莲子粥",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：健脾益气。原料：山药30克、莲子15克、大米50克。做法：将山药切小块，与莲子、大米同煮成粥，约30～40分钟。食用建议：每周3～5次，早餐或晚餐温热食用。适合食欲差、乏力、脾胃偏虚者。",
+      "mediaSrc": "/interventions/ZY01.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY02",
+      "name": "百合莲子羹",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：养心安神。原料：百合20克、莲子15克、冰糖少量。做法：百合、莲子加水煮熟，做成羹，口味可微甜。食用建议：每周2～4次，晚间或下午食用。适合睡眠不安、心烦者。",
+      "mediaSrc": "/interventions/ZY02.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY03",
+      "name": "玉竹百合粥",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：养阴润燥。原料：玉竹15克、百合15克、大米50克。做法：玉竹先煮20分钟取汁，再加入百合和大米煮成粥。食用建议：每周2～4次。适合口干、咽燥、阴虚偏燥者。",
+      "mediaSrc": "/interventions/ZY03.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY04",
+      "name": "赤小豆薏苡仁粥",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：健脾祛湿。原料：赤小豆20克、薏苡仁20克、大米40克。做法：赤小豆和薏苡仁提前浸泡后与大米同煮成粥。食用建议：每周2～4次。适合痰湿偏盛、身体困重者。",
+      "mediaSrc": "/interventions/ZY04.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY05",
+      "name": "陈皮山楂饮",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：理气消食。原料：陈皮3克、山楂10克。做法：加水500毫升，小火煮15分钟后饮用。食用建议：饭后温饮，每周2～3次。适合食积、腹胀、胃口差者。",
+      "mediaSrc": "/interventions/ZY05.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY06",
+      "name": "陈皮大枣饮",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：理气和中。原料：陈皮3克、大枣3～5枚。做法：加水煮15分钟，代茶饮。食用建议：每周3～5次。适合脾胃不和、食欲欠佳、气机不畅者。",
+      "mediaSrc": "/interventions/ZY06.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY07",
+      "name": "火麻仁黑芝麻糊",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：润肠通便。原料：火麻仁10克、黑芝麻15克、燕麦或米粉适量。做法：将火麻仁和黑芝麻打碎，与燕麦或米粉煮成糊。食用建议：每周2～4次，早餐或加餐食用。适合大便干结者。",
+      "mediaSrc": "/interventions/ZY07.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY08",
+      "name": "生姜大枣茶",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：温中散寒。原料：生姜3片、大枣3～5枚。做法：加水煮10～15分钟，趁温饮用。食用建议：每周2～4次。适合脾胃偏寒、畏冷者。",
+      "mediaSrc": "/interventions/ZY08.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY09",
+      "name": "枸杞桑椹饮",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：滋补肝肾。原料：枸杞子10克、桑椹10克。做法：加水煮10分钟或温水冲泡后饮用。食用建议：每周2～4次。适合肝肾不足、眼干或疲乏者。",
+      "mediaSrc": "/interventions/ZY09.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "ZY10",
+      "name": "赤小豆冬瓜汤",
+      "category": "中医食养",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "功效方向：利水消肿。原料：赤小豆20克、冬瓜150克。做法：赤小豆煮至半熟后加入冬瓜，继续煮熟调味。食用建议：每周2～3次。适合水湿偏盛、下肢浮肿者。",
+      "mediaSrc": "/interventions/ZY10.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ01",
+      "name": "紧急就医建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：出现急性意识改变、谵妄、明显呼吸困难、持续胸痛、严重呛咳无法进食、急性外伤等情况。展示内容：提示“建议立即前往急诊或马上联系医务人员”，并提醒家属陪同、携带既往病历和用药清单。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ02",
+      "name": "老年综合诊疗建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：多问题共存，如衰弱、功能下降、跌倒风险、营养风险、认知或情绪问题并存。展示内容：建议到老年医学科做综合评估，并准备既往疾病、近期体重变化、正在服用的药物和既往评估结果。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ03",
+      "name": "运动与功能康复建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：运动功能下降、SPPB异常、跌倒风险高、肌少症或日常活动能力下降。展示内容：建议到康复医学科评估平衡、步态和肌力，由专业人员制定功能训练计划。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ04",
+      "name": "认知功能专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：简易智力评估或MMSE提示认知异常。展示内容：建议到神经内科、记忆门诊或认知障碍门诊进一步检查，必要时做认知量表、头颅影像及相关实验室检查。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ05",
+      "name": "情绪心理专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：抑郁、焦虑筛查或量表异常。展示内容：建议到精神心理科或心理门诊评估，必要时进一步评估睡眠、情绪、焦虑程度和治疗需求。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ06",
+      "name": "视力专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：视力或视觉功能异常。展示内容：建议到眼科检查视力、眼底、白内障、青光眼等情况，并确认是否需要更换眼镜。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ07",
+      "name": "听力专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：听力筛查异常。展示内容：建议到耳鼻咽喉科或听力中心进一步做听力学检查，评估是否需要助听器或其他干预。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ08",
+      "name": "营养专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：营养风险、体重下降、食量明显减少或营养不良。展示内容：建议到临床营养科或营养门诊评估营养状态，必要时制定个体化饮食及补充方案。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ09",
+      "name": "尿失禁专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：尿失禁筛查阳性或ICIQ-UI SF异常。展示内容：建议到泌尿外科、尿控门诊、妇科或老年医学科明确漏尿类型和严重程度。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ10",
+      "name": "便秘专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：便秘长期反复、症状重或伴腹痛腹胀。展示内容：建议到消化内科或肛肠科进一步评估便秘原因，并排除器质性疾病。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ11",
+      "name": "睡眠专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：AIS提示睡眠障碍或失眠困扰明显。展示内容：建议到睡眠门诊、神经内科或精神心理科评估睡眠问题及相关影响因素。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ12",
+      "name": "慢性疼痛专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：慢性疼痛评分较高或疼痛影响生活。展示内容：建议到疼痛科或相关专科评估疼痛原因、部位、程度及处理方案。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ13",
+      "name": "压力性损伤诊疗建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：长期卧床、皮肤发红破损、Braden评分提示较高风险。展示内容：建议到伤口造口门诊、护理门诊或相关专科评估皮肤情况并接受处理。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ14",
+      "name": "用药综合评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：多重用药、不适当用药或服药管理困难。展示内容：建议到临床药学门诊或老年医学科核对全部药物，包括西药、中成药、保健品，减少重复和风险。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "JZ15",
+      "name": "吞咽功能专科评估建议",
+      "category": "就诊建议",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "适用场景：吞咽障碍筛查阳性或饮水试验异常。展示内容：建议到康复医学科、吞咽门诊或耳鼻咽喉科进一步评估吞咽安全性和进食方式。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT01",
+      "name": "居家通道清理",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：清理卧室、客厅、走廊和卫生间通道中的杂物、地线、小地毯和容易绊倒的障碍物；常用物品放在容易拿取的位置。目标：减少绊倒风险。",
+      "mediaSrc": "/interventions/QT01.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT02",
+      "name": "地面防滑改造",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：对厨房、卫生间、洗澡处和门口等湿滑区域增加固定防滑垫或防滑条，及时擦干积水，避免穿太滑的拖鞋。目标：减少滑倒风险。",
+      "mediaSrc": "/interventions/QT02.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT03",
+      "name": "扶手安装改造",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：在厕所、洗澡区、床边、室内外楼梯等位置安装牢固扶手；保证扶手高度合适、抓握方便。目标：帮助站起、转身和上下楼更安全。",
+      "mediaSrc": "/interventions/QT03.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT04",
+      "name": "夜间照明改善",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：床边、卧室到厕所的路径、楼道和门口增加夜灯或感应灯；开关位置要容易够到。目标：改善夜间看不清的问题，减少跌倒。",
+      "mediaSrc": "/interventions/QT04.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT05",
+      "name": "辅助器具评估",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：由专业人员评估是否需要手杖、助行器、轮椅或坐便椅，并指导正确高度和使用方法。目标：提高活动安全性，减少跌倒和过度依赖。",
+      "mediaSrc": "/interventions/QT05.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT06",
+      "name": "定时排尿训练",
+      "category": "其他",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "具体做法：白天按固定时间排尿，如每2～3小时主动去一次厕所，即使没有明显尿意也先尝试排尿；逐渐建立规律。目标：减少尿急、漏尿和憋尿。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT07",
+      "name": "定时排便训练",
+      "category": "其他",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "具体做法：建议每天固定在早餐后或自己最容易排便的时间如厕5～10分钟，形成规律；不要长时间久坐用力。目标：帮助建立排便习惯。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT08",
+      "name": "睡眠卫生管理",
+      "category": "其他",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "具体做法：固定上床和起床时间，白天少睡长觉，睡前2小时避免浓茶、咖啡、激烈活动和长时间看手机；卧室保持安静、舒适和较暗。目标：改善入睡和夜间睡眠。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT09",
+      "name": "定时翻身减压",
+      "category": "其他",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "具体做法：长期卧床者每2小时左右翻身1次，交替变换体位，并检查骶尾部、足跟、髋部等受压部位皮肤。目标：减少压力性损伤风险。",
+      "mediaSrc": "/interventions/videos/QT09.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT10",
+      "name": "用药整理管理",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：把正在使用的全部药物、西药、中成药和保健品整理成清单，注明药名、剂量、吃法；可使用分格药盒，按早中晚分类。目标：减少漏服、重服和错服。",
+      "mediaSrc": "/interventions/QT10.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT11",
+      "name": "固定社会联系",
+      "category": "其他",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "具体做法：安排固定的与家人、朋友联系时间，如每周电话2～3次、每周见面1次，或参加社区活动。目标：增加社会支持，减少孤独感。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT12",
+      "name": "时间地点定向训练",
+      "category": "其他",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "具体做法：每天固定时间一起看日期、星期、天气和所在地点，可配合日历、时钟、提示卡反复练习。目标：帮助维持定向能力。",
+      "mediaSrc": "/interventions/videos/QT12.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT13",
+      "name": "眼镜或助听器检查",
+      "category": "其他",
+      "display": "图片",
+      "mediaType": "image",
+      "content": "具体做法：检查眼镜度数是否合适、镜片是否清洁；检查助听器电量、佩戴方式和声音大小是否合适。目标：让已有辅助设备真正发挥作用。",
+      "mediaSrc": "/interventions/QT13.png",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT14",
+      "name": "安全进食管理",
+      "category": "其他",
+      "display": "视频",
+      "mediaType": "video",
+      "content": "具体做法：进食时坐直，头稍向前，少量多次，细嚼慢咽；不要边说话边吞咽；必要时由家属陪同观察。目标：降低呛咳和误吸风险。",
+      "mediaSrc": "/interventions/videos/QT14.mp4",
+      "mediaAvailable": false
+    },
+    {
+      "code": "QT15",
+      "name": "照护者支持方案",
+      "category": "其他",
+      "display": "文本",
+      "mediaType": "text",
+      "content": "具体做法：向家属或照护者提供日常照护重点，如防跌倒、防呛咳、翻身、服药提醒、情绪观察和复诊准备。目标：提高家庭照护质量。",
+      "mediaSrc": null,
+      "mediaAvailable": false
+    }
+  ]
+}

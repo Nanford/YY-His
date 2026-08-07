@@ -14,8 +14,8 @@ import { scaleById, scales } from "@/lib/rules";
 import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 import { completedScaleIds, scaleNeedsClinician, scaleScopes } from "@/lib/assessment/supplementary";
 import { firstQueryValue } from "@/lib/query";
-import type { AssessmentTag } from "@/lib/scoring";
-import type { RecommendedIntervention } from "@/lib/recommend";
+import type { AssessmentTag } from "@/lib/assessment/report-types";
+import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { DeferredScale } from "./patient-report";
 import { InterviewScreen } from "./interview-screen";
 import { PatientReport } from "./patient-report";
@@ -70,9 +70,12 @@ export default async function PatientSessionPage({
     );
     if (latestResult && latestPlan) {
       const planStatus = latestPlan.status === "confirmed" ? "confirmed" : "draft";
+      // 候选快照为 PlanCandidatesV2（items+forcedCodes+forbidden）；已确认方案是审核后的平铺列表
       const plan = (
-        planStatus === "confirmed" ? (latestPlan.finalPlan ?? []) : latestPlan.candidates
-      ) as unknown as RecommendedIntervention[];
+        planStatus === "confirmed"
+          ? (latestPlan.finalPlan ?? [])
+          : (latestPlan.candidates as unknown as PlanCandidatesV2).items
+      ) as unknown as PlanCandidateItemV2[];
 
       // 同患者全部会话：报告范围标识（新增/复评）、历史报告入口、补充评估可选量表都由此派生
       const siblings = await prisma.assessmentSession.findMany({
