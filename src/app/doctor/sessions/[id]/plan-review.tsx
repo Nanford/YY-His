@@ -76,7 +76,12 @@ function InterventionCard({ item, reviewing, decision }: InterventionCardProps) 
   const options = REPLACE_OPTIONS[item.categoryLabel]?.filter((o) => o.code !== item.code) ?? [];
 
   return (
-    <article className="rounded-2xl border border-[#dbe7f6] bg-white p-5 shadow-[0_8px_20px_rgba(33,87,160,0.05)]">
+    <article
+      className={[
+        "rounded-2xl border bg-white p-5 shadow-[0_8px_20px_rgba(33,87,160,0.05)]",
+        item.forced ? "border-2 border-[#c23b4a] bg-[#fff8f8]" : "border-[#dbe7f6]",
+      ].join(" ")}
+    >
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs font-bold tracking-wide text-blue-500">{item.code}</span>
@@ -85,7 +90,7 @@ function InterventionCard({ item, reviewing, decision }: InterventionCardProps) 
           {item.forced && (
             <span className="ui-badge ui-badge-danger">
               <IconAlertTriangle size={13} aria-hidden="true" />
-              强制优先推荐
+              强制优先推荐（100）
             </span>
           )}
           {decision?.action === "replace" && (
@@ -95,6 +100,11 @@ function InterventionCard({ item, reviewing, decision }: InterventionCardProps) 
             </span>
           )}
         </div>
+        {item.forced && (
+          <p className="text-xs font-semibold leading-5 text-[#c23b4a]">
+            03 表匹配分 100：强制优先展示，不占用该类普通名额；审核时请优先保留并确认。
+          </p>
+        )}
         <ScoreDetail item={item} />
       </div>
 

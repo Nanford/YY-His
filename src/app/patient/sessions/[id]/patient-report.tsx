@@ -460,15 +460,32 @@ function PlanSection({
 
 function PlanCard({ item }: { item: PlanCandidateItemV2 }) {
   // 素材状态随候选快照落库（mediaAvailable），缺失如实标注"素材待补齐"；文本类正文即 content 全文
+  // 100 分强制项（如 CAM 谵妄 → JZ01）醒目标注（Demo_v2 §5 + 03 表 100 语义）
   return (
-    <article className="ui-panel-subtle px-5 py-5 md:px-6">
+    <article
+      className={[
+        "ui-panel-subtle px-5 py-5 md:px-6",
+        item.forced ? "border-2 border-[var(--danger)] bg-[var(--danger-soft)]" : "",
+      ].join(" ")}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xl font-bold text-[var(--ink)]">{item.name}</h3>
-        <span className="inline-flex items-center gap-2">
-          {item.forced && <span className="ui-badge ui-badge-danger">重点推荐</span>}
+        <span className="inline-flex flex-wrap items-center gap-2">
+          {item.forced && (
+            <span className="ui-badge ui-badge-danger">
+              <IconAlertTriangle size={14} stroke={2} aria-hidden="true" />
+              强制优先推荐
+            </span>
+          )}
+          <span className="ui-badge font-mono text-xs">{item.code}</span>
           <span className="ui-badge">匹配分 {item.total}</span>
         </span>
       </div>
+      {item.forced && (
+        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--danger)]">
+          本项由评估规则标记为强制优先（匹配分 100），请务必优先遵从医生安排。
+        </p>
+      )}
       <div className="mt-4">
         {item.mediaType === "text" ? (
           <InterventionText name={item.name} content={item.content} />

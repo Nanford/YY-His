@@ -76,7 +76,40 @@ describe("deriveReuseAnswers：焦虑两问 ↔ GAD-7 条件复用（01 表复�
     const fills = derive(BOTH_SCALES, { anxiety_2q_1: NEGATIVE, anxiety_2q_2: NEGATIVE });
     expect(fills.map((fill) => fill.questionId).sort()).toEqual(["gad7_1", "gad7_2"]);
   });
+});
 
+describe("deriveReuseAnswers：M10.3b 后扩充规则", () => {
+  it("运动初筛阴性 → frail_2 / frail_3 回填否", () => {
+    const fills = derive(["motor_screen", "frail"], {
+      motor_screen_1: "否（筛查阴性）",
+    });
+    expect(fills.map((f) => f.questionId).sort()).toEqual(["frail_2", "frail_3"]);
+    expect(fills.every((f) => f.optionLabel === "否（0分）")).toBe(true);
+  });
+
+  it("跌倒三问过去1年否 → morse_1 无跌倒史", () => {
+    const fills = derive(["fall_3q", "morse"], { fall_3q_1: NEGATIVE });
+    expect(fills).toHaveLength(1);
+    expect(fills[0].questionId).toBe("morse_1");
+    expect(fills[0].optionLabel).toBe(zeroScoreLabel("morse_1"));
+  });
+
+  it("尿失禁筛查否 → iciq_1 / iciq_2 / iciq_4", () => {
+    const fills = derive(["ui_2q", "iciq"], { ui_2q_1: NEGATIVE });
+    expect(fills.map((f) => f.questionId).sort()).toEqual(["iciq_1", "iciq_2", "iciq_4"]);
+    expect(fills.find((f) => f.questionId === "iciq_4")?.optionLabel).toBe("从不漏尿");
+  });
+
+  it("运动初筛阳性 → 不回填 FRAIL 步行题", () => {
+    expect(
+      derive(["motor_screen", "frail"], {
+        motor_screen_1: "是（筛查阳性，进入SPPB评估）",
+      })
+    ).toHaveLength(0);
+  });
+});
+
+describe("deriveReuseAnswers：边界", () => {
   it("源题未确认（无答案记录）→ 不回填", () => {
     expect(derive(BOTH_SCALES, {})).toHaveLength(0);
   });
