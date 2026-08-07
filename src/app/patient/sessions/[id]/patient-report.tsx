@@ -327,12 +327,12 @@ function TagsSection({
         <div>
           <span className="ui-badge">
             <IconClipboardCheck size={16} stroke={1.8} aria-hidden="true" />
-            ④ 结果判断
+            评估结论
           </span>
-          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">评估结论</h2>
+          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">评估结果</h2>
         </div>
         <p className="max-w-md text-sm leading-6 text-[var(--ink-muted)]">
-          Demo_v2：结果页先展示评估结论（按量表分组，异常标签置顶），再展示干预建议。
+          按量表分组展示，需要关注的结果会优先标出。
         </p>
       </div>
 
@@ -403,9 +403,9 @@ function PlanSection({
         <div>
           <span className="ui-badge">
             <IconHeartHandshake size={16} stroke={1.8} aria-hidden="true" />
-            ⑤⑥ 干预匹配与展示
+            干预建议
           </span>
-          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">干预建议</h2>
+          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">个性化干预方案</h2>
         </div>
         {planStatus === "confirmed" ? (
           <span className="ui-badge ui-badge-success">
@@ -483,7 +483,7 @@ function PlanCard({ item }: { item: PlanCandidateItemV2 }) {
       </div>
       {item.forced && (
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--danger)]">
-          本项由评估规则标记为强制优先（匹配分 100），请务必优先遵从医生安排。
+          此项为优先关注建议，请务必遵从医生安排。
         </p>
       )}
       <div className="mt-4">

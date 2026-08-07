@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "老年健康智能评估与干预系统 Demo",
+  title: "老年健康智能评估与干预系统",
   description: "智能化健康信息采集、标准化评估与个体化干预方案推荐",
 };
 

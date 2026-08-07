@@ -29,15 +29,15 @@ export default async function DoctorHomePage() {
     <div className="app-page space-y-6 u-stagger">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">DEMO V2 · 医生工作台</p>
+          <p className="page-eyebrow">医生工作台</p>
           <h1 className="page-title">患者管理</h1>
           <p className="page-description">
-            按《Demo_v2更新说明》主流程：先完成基础信息填写，再在患者详情发起量表工具选择与采集审核。
+            管理患者档案，发起健康评估，并审核确认干预方案。
           </p>
         </div>
         <Link href="/doctor/patients/new" className="ui-button ui-button-primary ui-button-lg">
           <IconPlus size={19} stroke={2.2} aria-hidden="true" />
-          ① 新建患者档案
+          新建患者档案
         </Link>
       </div>
 
@@ -45,16 +45,14 @@ export default async function DoctorHomePage() {
 
       <div className="v2-section-banner">
         <div>
-          <strong>医生端在本流程中的职责</strong>
+          <strong>建议操作顺序</strong>
           <p>
-            <b>① 基础信息</b>完整建档（含疾病用药与测量）；
-            <b> ② 量表工具选择</b>（常规综合 / 病历智能 / 随访 / 自选组合）；
-            医护题与系统读取结果在采集页代填；
-            <b> ⑤ 干预匹配审核</b>（删留/替换，留痕后确认）。
+            先完成患者建档（基本情况、疾病用药、测量指标），再选择本次评估量表并完成采集；
+            评估生成后请审核干预方案并确认。
           </p>
         </div>
         <Link href="/doctor/patients/new" className="ui-button ui-button-secondary shrink-0">
-          从建档开始
+          新建档案
           <IconArrowRight size={16} aria-hidden="true" />
         </Link>
       </div>
@@ -102,7 +100,7 @@ export default async function DoctorHomePage() {
           </span>
           <h2 className="mt-5 text-lg font-extrabold text-[#173766]">暂无患者档案</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#62779a]">
-            先完成 Demo V2 第 ① 步「基础信息填写」，再在患者详情发起第 ② 步「量表工具选择」。
+            请先新建患者档案，再在患者详情页发起健康评估。
           </p>
           <Link href="/doctor/patients/new" className="ui-button ui-button-primary mt-6">
             <IconPlus size={18} stroke={2.2} aria-hidden="true" />

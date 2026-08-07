@@ -145,9 +145,6 @@ export default async function PatientRegisterPage({
 
       <section className="patient-panel overflow-hidden">
         <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
-          <p className="mb-3 text-sm font-extrabold tracking-[0.12em] text-blue-700">
-            DEMO V2 · ① 基础信息填写
-          </p>
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
               <IconUser size={26} stroke={1.9} aria-hidden="true" />

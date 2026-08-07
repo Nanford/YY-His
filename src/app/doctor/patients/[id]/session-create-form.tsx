@@ -76,13 +76,13 @@ export default function SessionCreateForm({ packages, groups, followup, action }
             <IconClipboardText size={21} stroke={1.9} aria-hidden="true" />
           </span>
           <div>
-            <h2 className="ui-panel-title">② 量表工具选择</h2>
+            <h2 className="ui-panel-title">选择评估内容</h2>
             <p className="mt-1 text-xs text-[#62779a]">
-              来源 Demo_v2 §2：常规综合评估 · 病历智能评估 · 随访对比评估 · 自选组合评估
+              常规综合评估 · 病历智能评估 · 随访对比评估 · 自选组合评估
             </p>
           </div>
         </div>
-        <span className="ui-badge">默认：常规综合评估包</span>
+        <span className="ui-badge">默认：常规综合评估</span>
       </div>
       <div className="ui-panel-body space-y-5">
         {followup && (

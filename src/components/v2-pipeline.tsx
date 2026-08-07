@@ -41,14 +41,14 @@ export const V2_PIPELINE_STEPS = [
     key: "match",
     title: "干预匹配",
     short: "匹配",
-    description: "100 强制 / -100 禁止，五大类各取前 1～2 项",
+    description: "按规则匹配，五大类各取前 1～2 项",
   },
   {
     step: 6,
     key: "show",
     title: "干预展示",
     short: "展示",
-    description: "先结论后建议；视频 / 图片 / 文本教程",
+    description: "先看结论，再看干预建议与教程",
   },
 ] as const;
 
@@ -67,7 +67,7 @@ interface Props {
 export function V2DemoPipeline({ current = 0, compact = false, links, className = "" }: Props) {
   return (
     <nav
-      aria-label="Demo V2 评估主流程"
+      aria-label="评估与干预主流程"
       className={[
         "v2-pipeline",
         compact ? "v2-pipeline-compact" : "v2-pipeline-full",
@@ -77,12 +77,12 @@ export function V2DemoPipeline({ current = 0, compact = false, links, className 
       {!compact && (
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <p className="page-eyebrow">DEMO V2 主流程</p>
+            <p className="page-eyebrow">服务流程</p>
             <h2 className="mt-1 text-lg font-extrabold tracking-[-0.02em] text-[#102a56]">
               基础信息 → 量表选择 → 采集 → 判定 → 匹配 → 展示
             </h2>
           </div>
-          <span className="ui-badge">共 6 步 · 来源 Demo_v2更新说明</span>
+          <span className="ui-badge">共 6 步</span>
         </div>
       )}
       <ol className="v2-pipeline-track">

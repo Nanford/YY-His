@@ -115,13 +115,13 @@ export default async function PatientDetailPage({
     <div className="app-page space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">DEMO V2 · 患者主页</p>
+          <p className="page-eyebrow">患者档案</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="page-title">{patient.name}</h1>
             <span className="ui-badge font-mono">{patient.code}</span>
           </div>
           <p className="page-description">
-            ① 档案与测量在此维护；② 下方发起评估完成量表工具选择；采集后进入 ③～⑥ 判定与干预审核。
+            在此维护档案与测量数据，发起健康评估，并查看历次评估记录。
           </p>
         </div>
         <Link href="/doctor" className="ui-button ui-button-quiet">
@@ -244,7 +244,7 @@ export default async function PatientDetailPage({
         <section className="ui-panel overflow-hidden">
           <div className="ui-panel-heading">
             <div>
-              <h2 className="ui-panel-title">补充档案（V2）</h2>
+              <h2 className="ui-panel-title">补充档案</h2>
               <p className="mt-1 text-xs text-[#62779a]">基本情况、疾病与用药、测量补充；后续量表将直接调用，不再重复询问</p>
             </div>
             <span className="ui-badge">结构化存档</span>

@@ -38,12 +38,12 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         </nav>
 
         <div className="doctor-sidebar-footer">
-          <span className="doctor-sidebar-footer-label">数据安全策略</span>
+          <span className="doctor-sidebar-footer-label">数据安全</span>
           <span className="flex items-center gap-2 text-sm font-bold text-[#1769e8]">
             <IconShieldCheck size={18} stroke={2} aria-hidden="true" />
-            PII 本地化存储
+            身份信息仅本地保存
           </span>
-          <span className="text-xs leading-5 text-[#62779a]">评估信息全程留痕，可逐级追溯。</span>
+          <span className="text-xs leading-5 text-[#62779a]">评估过程全程留痕，可逐级追溯。</span>
         </div>
       </aside>
 
@@ -54,13 +54,13 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             患者身份信息仅保存在本地数据库，云端调用只使用患者唯一编号。
           </div>
           <div className="doctor-topbar-actions">
-            <div className="doctor-user" aria-label="当前为医生工作台演示模式">
+            <div className="doctor-user" aria-label="医生工作台">
               <span className="doctor-user-avatar" aria-hidden="true">
                 <IconStethoscope size={18} stroke={2} />
               </span>
               <span>
                 <strong className="block text-[#29486f]">医生工作台</strong>
-                <span>本地演示模式</span>
+                <span>已登录</span>
               </span>
             </div>
           </div>

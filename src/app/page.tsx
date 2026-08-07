@@ -18,14 +18,14 @@ const entrances = [
     href: "/doctor",
     icon: IconStethoscope,
     label: "医生工作台",
-    description: "①建档 → ②选量表 → ③代填采集 → ⑤审核干预",
+    description: "患者建档、量表选择、结果审核与干预方案确认",
     action: "进入医生工作台",
   },
   {
     href: "/patient",
     icon: IconUserHeart,
     label: "患者评估大屏",
-    description: "①自助建档 → ③语音/点选采集 → ④⑥看结论与建议",
+    description: "自助建档、健康问询与评估报告查看",
     action: "开始健康评估",
   },
 ];
@@ -38,7 +38,7 @@ export default function HomePage() {
           <div className="space-y-6 pb-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700">
               <IconShieldCheck size={18} stroke={2} aria-hidden="true" />
-              Demo V2 · 医疗信息仅在本地保存
+              医疗信息本地安全保存
             </div>
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-blue-700">
@@ -48,12 +48,11 @@ export default function HomePage() {
                 <span className="text-sm font-bold tracking-[0.16em]">老年健康智能评估与干预</span>
               </div>
               <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.15] tracking-[-0.045em] text-[#102a56] sm:text-5xl">
-                按六步主流程
-                <span className="block text-blue-600">跑通评估与干预</span>
+                标准化采集
+                <span className="block text-blue-600">个体化评估与干预</span>
               </h1>
               <p className="max-w-2xl text-base leading-8 text-[#62779a] sm:text-lg">
-                依据《Demo_v2更新说明》：基础信息填写 → 量表工具选择 → 数据采集 → 结果判断 →
-                干预匹配 → 干预展示。评分与推荐为确定性规则，大模型只做语言理解。
+                完成基础信息与量表采集后，系统自动生成评估结论，并推荐运动、膳食、中医食养与就诊等干预建议，供医生审核确认。
               </p>
             </div>
           </div>

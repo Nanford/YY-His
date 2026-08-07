@@ -102,7 +102,7 @@ function InterventionCard({ item, reviewing, decision }: InterventionCardProps) 
         </div>
         {item.forced && (
           <p className="text-xs font-semibold leading-5 text-[#c23b4a]">
-            03 表匹配分 100：强制优先展示，不占用该类普通名额；审核时请优先保留并确认。
+            系统标记为强制优先推荐，审核时请优先保留并确认。
           </p>
         )}
         <ScoreDetail item={item} />

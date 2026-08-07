@@ -157,7 +157,7 @@ export default async function SessionPage({
     <div className="app-page space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">DEMO V2 · 采集 / 判定 / 匹配</p>
+          <p className="page-eyebrow">评估会话</p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="page-title inline-flex items-center gap-2">
               <IconClipboardText size={27} className="text-blue-600" aria-hidden="true" />

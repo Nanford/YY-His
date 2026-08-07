@@ -97,10 +97,10 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
     <div className="app-page-narrow space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">DEMO V2 · ① 基础信息填写</p>
+          <p className="page-eyebrow">基础信息填写</p>
           <h1 className="page-title">新建患者档案</h1>
           <p className="page-description">
-            依据《Demo_v2更新说明》第 1 部分：基本情况、疾病与用药、人体测量与客观指标。结构化保存后，后续量表直接调用、不再重复询问。
+            请填写基本情况、疾病与用药、人体测量等信息。已填写内容将自动用于后续评估，无需重复询问。
           </p>
         </div>
         <Link href="/doctor" className="ui-button ui-button-quiet">
@@ -113,12 +113,12 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
 
       <div className="v2-section-banner">
         <div>
-          <strong>本页对应：基础信息填写</strong>
+          <strong>填写说明</strong>
           <p>
-            必填姓名、性别、年龄；文化程度/婚姻/居住/照护、诊断用药与测量均为选填。握力计传感器、DXA/BIA 文档注明暂不接入，可手工填入。
+            姓名、性别、年龄为必填；文化程度、婚姻、居住、照护、诊断用药与测量指标为选填，可稍后补录。
           </p>
         </div>
-        <span className="ui-badge">下一步：患者详情 · 量表工具选择</span>
+        <span className="ui-badge">下一步：选择评估量表</span>
       </div>
 
       {error === "required" && (
@@ -155,10 +155,10 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
             <div>
               <h2 className="ui-panel-title">一、基本情况</h2>
               <p className="mt-1 text-xs text-[#62779a]">
-                姓名 / 性别 / 年龄必填；文化程度、婚姻状况、居住情况、照护情况选填（Demo_v2 §1）
+                姓名、性别、年龄必填；文化程度、婚姻状况、居住情况、照护情况选填
               </p>
             </div>
-            <span className="ui-badge">① 基础信息</span>
+            <span className="ui-badge">基本情况</span>
           </div>
           <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
             <Field label="姓名" name="name" required placeholder="张三" />
@@ -195,7 +195,7 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
                 现有诊断、既往病史、近期急性疾病；当前西药 / 中成药 / 保健品（结构化后供系统读取题复用）
               </p>
             </div>
-            <span className="ui-badge">① 基础信息</span>
+            <span className="ui-badge">疾病用药</span>
           </div>
           <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
             <TextareaField
@@ -235,11 +235,11 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
               <div>
                 <h2 className="ui-panel-title">三、人体测量与客观指标</h2>
                 <p className="mt-1 text-xs text-[#62779a]">
-                  身高、体重（现在及 1/2/3/6/12 月前）、BMI 自动计算；小腿围双侧、握力、6 米步速可手工填入（传感器暂不接入）；DXA/BIA 暂不接入
+                  身高、体重（现在及 1/2/3/6/12 月前）可填，BMI 由系统自动计算；小腿围、握力、步速可现场测量后填入
                 </p>
               </div>
             </div>
-            <span className="ui-badge">① 基础信息</span>
+            <span className="ui-badge">测量指标</span>
           </div>
           <div className="ui-panel-body space-y-5">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -269,7 +269,7 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dbe7f6] px-[22px] py-4">
           <p className="text-xs leading-5 text-[#7f94b3]">
-            创建后进入患者详情，执行第 ② 步「量表工具选择」并生成采集任务。
+            保存后将进入患者详情，可继续选择评估量表并开始采集。
           </p>
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
             <IconUserPlus size={19} stroke={2.1} aria-hidden="true" />

@@ -58,13 +58,13 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
     <section className="ui-panel overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#dbe7f6] bg-[#f8fbff] px-6 py-5">
         <div>
-          <p className="page-eyebrow">④ 结果判断 · DETERMINISTIC</p>
+          <p className="page-eyebrow">评估结果</p>
           <h2 className="mt-1 inline-flex items-center gap-2 text-lg font-extrabold text-[#173766]">
             <IconClipboardData size={21} className="text-blue-600" aria-hidden="true" />
             评估标签
           </h2>
           <p className="mt-2 text-sm leading-6 text-[#6b82a4]">
-            按量表分组、异常标签置顶；可展开核对每道题的计分依据（Demo_v2 §4）。
+            按量表分组展示，可展开查看每道题的计分依据。
           </p>
         </div>
         <span className="ui-badge">{tags.length} 个标签</span>

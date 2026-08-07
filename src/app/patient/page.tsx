@@ -22,22 +22,21 @@ import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 
 export const dynamic = "force-dynamic";
 
-/** 对齐 Demo_v2 主流程中患者侧可见步骤（① 建档 → ③ 采集 → ④⑥ 结论与建议） */
 const assessmentSteps = [
   {
     icon: IconUserPlus,
-    title: "① 基础信息填写",
-    description: "姓名、性别、年龄，可选量表",
+    title: "建立健康档案",
+    description: "填写姓名、性别、年龄",
   },
   {
     icon: IconHeartRateMonitor,
-    title: "③ 数据采集",
-    description: "语音、点选、数字、画钟",
+    title: "完成健康问询",
+    description: "可语音或手动选择作答",
   },
   {
     icon: IconFileDescription,
-    title: "④⑥ 结论与干预",
-    description: "先看评估标签，再看干预建议",
+    title: "查看评估报告",
+    description: "了解评估结论与干预建议",
   },
 ];
 
@@ -58,11 +57,11 @@ export default async function PatientHomePage() {
           <div>
             <span className="ui-badge">
               <IconHeartRateMonitor size={17} stroke={2.1} aria-hidden="true" />
-              Demo V2 · 患者评估大屏
+              患者自助评估
             </span>
-            <h1 className="patient-display-title mt-5">按流程完成评估：建档 → 问答 → 看报告</h1>
+            <h1 className="patient-display-title mt-5">从健康档案开始，完成一次安心的评估</h1>
             <p className="patient-display-copy max-w-2xl">
-              依据《Demo_v2更新说明》：先填写基础信息，再完成数据采集（语音/点选/数字/画钟），最后查看评估结论与干预建议。
+              填写基础信息后即可开始健康问询，完成后可直接查看评估结论与个性化干预建议。
             </p>
             <div className="mt-7 flex flex-col items-stretch gap-4 sm:items-start">
               <Link href="/patient/register" className="patient-primary-action w-full sm:w-auto">
