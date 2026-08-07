@@ -77,45 +77,66 @@ export function AnswerInput(props: AnswerInputProps) {
 
   // 切题时的状态重置由父组件的 key（questionId+attempt）触发整体重挂载完成
 
+  /** 语音模式：监听区置顶作主视觉；选项/专用控件作兜底，避免大按钮把声波挤成角落小控件 */
+  const voicePrimary = voiceActive && !pendingVoice && showVoiceTextFallback;
+
+  const specialOrOptions = pendingVoice ? (
+    <TranscriptConfirm
+      transcript={pendingVoice.text}
+      disabled={props.disabled}
+      onConfirm={() => {
+        props.onSubmitVoice(pendingVoice);
+        setPendingVoice(null);
+      }}
+      onRetry={() => setPendingVoice(null)}
+    />
+  ) : answerType === "number" ? (
+    <NumberInputPanel
+      prompt={props.prompt}
+      disabled={props.disabled}
+      onSelect={props.onSubmitButton}
+    />
+  ) : answerType === "multiChoice" ? (
+    <MultiChoicePanel
+      prompt={props.prompt}
+      disabled={props.disabled}
+      onSubmit={props.onSubmitMulti}
+    />
+  ) : answerType === "imageChoice" ? (
+    <ImageChoicePanel
+      prompt={props.prompt}
+      disabled={props.disabled}
+      onSelect={props.onSubmitButton}
+    />
+  ) : answerType === "drawing" ? (
+    <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
+  ) : (
+    <OptionButtons
+      prompt={props.prompt}
+      disabled={props.disabled}
+      onSelect={props.onSubmitButton}
+      compact={voicePrimary}
+    />
+  );
+
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
-      {pendingVoice ? (
-        <TranscriptConfirm
-          transcript={pendingVoice.text}
+    <div className="mx-auto w-full max-w-3xl space-y-4">
+      {voicePrimary && props.micStream && (
+        <VoiceButton
+          micStream={props.micStream}
+          autoStart={props.autoStart}
+          sessionId={props.sessionId}
           disabled={props.disabled}
-          onConfirm={() => {
-            props.onSubmitVoice(pendingVoice);
-            setPendingVoice(null);
-          }}
-          onRetry={() => setPendingVoice(null)}
-        />
-      ) : answerType === "number" ? (
-        <NumberInputPanel
-          prompt={props.prompt}
-          disabled={props.disabled}
-          onSelect={props.onSubmitButton}
-        />
-      ) : answerType === "multiChoice" ? (
-        <MultiChoicePanel
-          prompt={props.prompt}
-          disabled={props.disabled}
-          onSubmit={props.onSubmitMulti}
-        />
-      ) : answerType === "imageChoice" ? (
-        <ImageChoicePanel
-          prompt={props.prompt}
-          disabled={props.disabled}
-          onSelect={props.onSubmitButton}
-        />
-      ) : answerType === "drawing" ? (
-        <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
-      ) : (
-        <OptionButtons
-          prompt={props.prompt}
-          disabled={props.disabled}
-          onSelect={props.onSubmitButton}
+          onTranscript={handleTranscript}
+          onNotice={props.onNotice}
         />
       )}
+
+      {!pendingVoice && voicePrimary && (
+        <p className="voice-fallback-label">不方便说话时，也可点选下方选项</p>
+      )}
+
+      {specialOrOptions}
 
       {textOpen && !pendingVoice && showVoiceTextFallback && (
         <TextPanel
@@ -128,8 +149,8 @@ export function AnswerInput(props: AnswerInputProps) {
       )}
 
       {showVoiceTextFallback && (
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-          {voiceActive && props.micStream && !pendingVoice && (
+        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-0.5">
+          {!voicePrimary && voiceActive && props.micStream && !pendingVoice && (
             <VoiceButton
               micStream={props.micStream}
               autoStart={props.autoStart}
@@ -143,20 +164,20 @@ export function AnswerInput(props: AnswerInputProps) {
             type="button"
             onClick={() => setTextOpen((open) => !open)}
             disabled={props.disabled}
-            className="ui-button ui-button-secondary ui-button-lg"
+            className="ui-button ui-button-secondary min-h-[48px] px-4 text-base"
           >
-            <IconKeyboard size={21} stroke={1.8} aria-hidden="true" />
+            <IconKeyboard size={20} stroke={1.8} aria-hidden="true" />
             <span>文字输入</span>
           </button>
           {voiceActive && (
-            <label className="ui-choice min-h-[52px] rounded-[14px] px-4 text-base">
+            <label className="ui-choice min-h-[48px] rounded-[14px] px-3.5 text-sm sm:text-base">
               <input
                 type="checkbox"
                 checked={directVoice}
                 onChange={(event) => setDirectVoice(event.target.checked)}
-                className="w-5 h-5"
+                className="h-4 w-4"
               />
-              语音直答（免确认）
+              说完直接提交
             </label>
           )}
         </div>
@@ -165,20 +186,27 @@ export function AnswerInput(props: AnswerInputProps) {
   );
 }
 
-/** 大按钮快捷作答：选项即按钮，适老化大字体 */
+/** 大按钮快捷作答：选项即按钮；语音为主时 compact 略收高度，避免压过监听区 */
 function OptionButtons({
   prompt,
   disabled,
   onSelect,
+  compact = false,
 }: {
   prompt: PatientPromptDto;
   disabled: boolean;
   onSelect: (score: number) => void;
+  /** 语音主视觉模式下作兜底，按钮略矮、字号略收 */
+  compact?: boolean;
 }) {
   const twoColumns = prompt.options.length > 2;
   return (
     <div
-      className={["grid gap-4", twoColumns ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2"].join(" ")}
+      className={[
+        "grid",
+        compact ? "gap-2.5" : "gap-3.5",
+        twoColumns ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2",
+      ].join(" ")}
     >
       {prompt.options.map((option) => (
         <button
@@ -186,10 +214,15 @@ function OptionButtons({
           type="button"
           disabled={disabled}
           onClick={() => onSelect(option.score)}
-          className="patient-choice min-h-[88px] w-full justify-between text-left sm:justify-center sm:text-center"
+          className={[
+            "patient-choice w-full justify-between text-left sm:justify-center sm:text-center",
+            compact
+              ? "min-h-[64px] px-4 py-3 text-[clamp(18px,1.8vw,24px)]"
+              : "min-h-[80px]",
+          ].join(" ")}
         >
           <span>{option.label}</span>
-          <IconArrowRight size={26} stroke={1.7} aria-hidden="true" />
+          <IconArrowRight size={compact ? 22 : 26} stroke={1.7} aria-hidden="true" />
         </button>
       ))}
     </div>
@@ -513,11 +546,11 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
   );
 }
 
-/** 声波条数：奇数带中心，21 根在大屏与移动端都饱满不拥挤 */
-const WAVE_BAR_COUNT = 21;
-/** 声条高度范围（px），与 globals.css .voice-wave 的 60px 容器匹配 */
-const WAVE_MIN_PX = 6;
-const WAVE_MAX_PX = 52;
+/** 声波条数：奇数带中心；监听主视觉下略增条数更饱满 */
+const WAVE_BAR_COUNT = 25;
+/** 声条高度范围（px），与 .voice-listen-hero .voice-wave 的 72px 容器匹配 */
+const WAVE_MIN_PX = 8;
+const WAVE_MAX_PX = 60;
 
 /** 静息基线：中间略高的对称小丘，配合 CSS 呼吸动画即成"待命声波" */
 function idleWaveLevels(): number[] {
@@ -675,38 +708,34 @@ function VoiceButton({
 
   if (transcribing) {
     return (
-      <div className="ui-alert mx-auto w-fit text-lg">
-        <IconLoader2 className="animate-spin" size={22} stroke={1.8} aria-hidden="true" />
-        <span>正在识别您的回答…</span>
+      <div className="voice-listen-hero" role="status">
+        <IconLoader2 className="animate-spin text-[var(--brand)]" size={28} stroke={1.8} aria-hidden="true" />
+        <span className="text-xl font-bold text-[var(--brand-strong)]">正在识别您的回答…</span>
       </div>
     );
   }
 
   if (recording) {
     return (
-      <div className="flex flex-col items-center gap-3">
-        <div
-          className={[
-            "flex flex-col items-center gap-2 rounded-[18px] border px-6 py-4 transition-colors",
-            speaking
-              ? "border-[#f1c4ca] bg-[var(--danger-soft)]"
-              : "border-[var(--line-strong)] bg-[var(--surface-blue)]",
-          ].join(" ")}
-        >
+      <div className="flex w-full flex-col items-center gap-2.5">
+        <div className="voice-listen-hero" data-speaking={speaking}>
           <VoiceWave levels={waveLevels} speaking={speaking} />
           <span
             className={[
-              "inline-flex items-center gap-2 text-lg font-semibold",
+              "inline-flex items-center gap-2 text-xl font-bold sm:text-2xl",
               speaking ? "text-[var(--danger)]" : "text-[var(--brand-strong)]",
             ].join(" ")}
           >
             {speaking ? (
-              <IconWaveSine size={22} stroke={1.8} aria-hidden="true" />
+              <IconWaveSine size={26} stroke={1.8} aria-hidden="true" />
             ) : (
-              <IconMicrophone size={21} stroke={1.8} aria-hidden="true" />
+              <IconMicrophone size={24} stroke={1.8} aria-hidden="true" />
             )}
             <span>{speaking ? "正在听您说话…" : "请开始说话…"}</span>
           </span>
+          <p className="text-sm leading-6 text-[var(--ink-muted)]">
+            说完稍停片刻会自动提交；停顿较长可点下方按钮
+          </p>
         </div>
         <button
           type="button"
@@ -725,10 +754,10 @@ function VoiceButton({
       type="button"
       disabled={disabled}
       onClick={startRecording}
-      className="ui-button ui-button-primary ui-button-lg"
+      className="patient-primary-action w-full max-w-xl justify-center self-center text-xl"
     >
-      <IconMicrophone size={22} stroke={1.8} aria-hidden="true" />
-      <span>语音回答</span>
+      <IconMicrophone size={26} stroke={1.8} aria-hidden="true" />
+      <span>开始语音回答</span>
     </button>
   );
 }

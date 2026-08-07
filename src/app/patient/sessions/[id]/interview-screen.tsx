@@ -488,21 +488,23 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
         </div>
       )}
 
-      <div className="patient-main">
+      <div className="patient-main patient-main-interview">
 
         <section className="patient-panel overflow-hidden u-rise-in">
-          <div className="grid min-h-[560px] lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
-            {/* 左侧：大大的数字医生（改版主视觉，意见4）*/}
-            <aside className="flex flex-col items-center justify-center gap-7 border-b border-[var(--line)] bg-[var(--surface-blue)] px-8 py-12 text-center lg:border-r lg:border-b-0">
+          <div className="patient-interview-stage lg:border-0">
+            {/* 左侧：数字医生主视觉；栏宽约 1:2.1，形象与状态文案垂直居中 */}
+            <aside className="patient-interview-aside lg:border-r lg:border-b-0">
               <DoctorAvatar
                 speaking={speaking}
                 mouthLevel={mouthLevel}
                 mode={state.capabilities.avatarMode}
                 size="xl"
               />
-              <div>
-                <p className="text-3xl font-extrabold text-[var(--ink)]">数字医生</p>
-                <p className="mt-2 text-xl leading-8 text-[var(--ink-muted)]">
+              <div className="w-full max-w-[16rem] xl:max-w-[18rem]">
+                <p className="text-2xl font-extrabold tracking-tight text-[var(--ink)] xl:text-[1.65rem]">
+                  数字医生
+                </p>
+                <p className="mt-1.5 text-base leading-7 text-[var(--ink-muted)] xl:text-lg xl:leading-8">
                   {speaking
                     ? state.phase === "intro"
                       ? "正在为您讲解…"
@@ -514,21 +516,21 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                       : "全程陪伴本次问询"}
                 </p>
                 {speaking && subtitle && (
-                  <p className="mx-auto mt-3 max-w-[260px] text-base leading-7 text-[var(--ink-faint)]">
+                  <p className="mx-auto mt-2 line-clamp-3 text-sm leading-6 text-[var(--ink-faint)]">
                     “{subtitle}”
                   </p>
                 )}
               </div>
               {state.phase === "in_question" && (
-                <div className="w-full max-w-[260px]">
-                  <div className="mb-2 flex items-center justify-between text-base font-semibold text-[var(--ink-muted)]">
+                <div className="w-full max-w-[16rem] xl:max-w-[18rem]">
+                  <div className="mb-1.5 flex items-center justify-between text-sm font-semibold text-[var(--ink-muted)]">
                     <span>进度</span>
                     <span>
                       {state.progress.answered} / {state.progress.total} 题
                     </span>
                   </div>
                   <div
-                    className="h-2.5 overflow-hidden rounded-full bg-white"
+                    className="h-2 overflow-hidden rounded-full bg-white"
                     role="progressbar"
                     aria-label="评估完成进度"
                     aria-valuemin={0}
@@ -547,8 +549,8 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               )}
             </aside>
 
-            {/* 右侧：按阶段渲染 */}
-            <div className="flex min-h-[560px] min-w-0 flex-col">
+            {/* 右侧：按阶段渲染；问询阶段对话区 flex 吃满，作答区固定比例 */}
+            <div className="patient-interview-main">
               {state.phase === "not_started" && (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:px-12">
                   <span className="ui-badge">
@@ -625,10 +627,10 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                 <>
                   {/* 旁白说明（M9.2 总开场/分类过渡/工具说明）：与提问同款大字气泡（带「说明」徽章），
                       不显示作答区；播报完自动推进，「继续」按钮作刷新/降级兜底 */}
-                  <div ref={talkScrollRef} className="max-h-[52vh] flex-1 overflow-y-auto px-6 py-8 md:px-10">
+                  <div ref={talkScrollRef} className="patient-interview-log">
                     <ConversationLog talks={talks} speaking={speaking} />
                   </div>
-                  <div className="border-t border-[var(--line)] px-6 py-6 md:px-10">
+                  <div className="patient-interview-answer">
                     <div className="flex items-center justify-between gap-3">
                       <button
                         type="button"
@@ -655,14 +657,14 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
               {state.phase === "in_question" && state.prompt && (
                 <>
-                  {/* 大字体对话记录（意见4）：医生问 + 患者答，自动滚到最新 */}
-                  <div ref={talkScrollRef} className="max-h-[52vh] flex-1 overflow-y-auto px-6 py-8 md:px-10">
+                  {/* 大字体对话记录：占右侧上半 flex 空间，随视口伸缩，不再死锁 52vh */}
+                  <div ref={talkScrollRef} className="patient-interview-log">
                     <ConversationLog talks={talks} speaking={speaking} />
                   </div>
 
-                  {/* 作答区：语音为主，按钮/文字兜底（AGENTS.md 四模式并存）*/}
-                  <div className="border-t border-[var(--line)] px-6 py-6 md:px-10">
-                    <div className="mb-4 flex items-center justify-between gap-3">
+                  {/* 作答区：语音为主视觉，按钮/文字为兜底；高度上限避免挤掉对话 */}
+                  <div className="patient-interview-answer">
+                    <div className="mb-3 flex items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={replay}
@@ -671,14 +673,14 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         <IconVolume size={20} stroke={1.8} aria-hidden="true" />
                         <span>再听一遍</span>
                       </button>
-                      <span className="text-base font-semibold text-[var(--ink-muted)]">
+                      <span className="text-sm font-semibold text-[var(--ink-muted)] sm:text-base">
                         第 {state.progress.answered + 1} / {state.progress.total} 题
                       </span>
                     </div>
 
                     {/* 语音未激活但 ASR 可用（如刷新/重进会话丢了麦克风流）时，常驻找回入口 */}
                     {!voiceReady && state.capabilities.asr && (
-                      <div className="mb-5">
+                      <div className="mb-4">
                         <button
                           type="button"
                           disabled={submitting}
@@ -690,7 +692,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                           <span>用语音回答</span>
                         </button>
                         <p className="mt-2 text-sm leading-6 text-[var(--ink-faint)]">
-                          点一下，数字医生会再读一遍问题，然后自动听您回答；也可以直接用下面的按钮或文字作答。
+                          点一下后自动听您回答；也可以直接用下面的按钮或文字作答。
                         </p>
                       </div>
                     )}
@@ -907,7 +909,7 @@ function ConversationLog({ talks, speaking }: { talks: TalkEntry[]; speaking: bo
     );
   }
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 xl:gap-4">
       {talks.map((talk, index) => {
         const isDoctor = talk.role === "doctor";
         const isCurrent = isDoctor && index === talks.length - 1;
@@ -915,13 +917,13 @@ function ConversationLog({ talks, speaking }: { talks: TalkEntry[]; speaking: bo
           <div key={talk.id} className={`u-rise-in ${isDoctor ? "flex justify-start" : "flex justify-end"}`}>
             <div
               className={[
-                "max-w-[90%] rounded-3xl px-6 py-4 leading-relaxed",
+                "max-w-[min(92%,42rem)] rounded-3xl px-5 py-3.5 leading-relaxed xl:px-6 xl:py-4",
                 isDoctor
                   ? "rounded-tl-md bg-[var(--surface-blue)] text-[var(--ink)]"
                   : "rounded-tr-md border border-[var(--line-strong)] bg-white text-[var(--ink)]",
                 isCurrent
-                  ? "text-[clamp(24px,2.6vw,34px)] font-bold shadow-[0_10px_24px_rgb(23_105_232_/_10%)]"
-                  : "text-2xl",
+                  ? "text-[clamp(22px,2.2vw,30px)] font-bold shadow-[0_10px_24px_rgb(23_105_232_/_10%)]"
+                  : "text-[clamp(18px,1.7vw,22px)]",
               ].join(" ")}
             >
               <p className="mb-1 text-sm font-bold tracking-wide text-[var(--ink-faint)]">
