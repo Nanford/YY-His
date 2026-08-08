@@ -12,7 +12,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { scaleById, scales } from "@/lib/rules";
 import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
-import { completedScaleIds, scaleNeedsClinician, scaleScopes } from "@/lib/assessment/supplementary";
+import { completedScaleIds, scaleComparisons, scaleNeedsClinician, scaleScopes } from "@/lib/assessment/supplementary";
 import { firstQueryValue } from "@/lib/query";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
@@ -77,11 +77,24 @@ export default async function PatientSessionPage({
           : (latestPlan.candidates as unknown as PlanCandidatesV2).items
       ) as unknown as PlanCandidateItemV2[];
 
-      // 同患者全部会话：报告范围标识（新增/复评）、历史报告入口、补充评估可选量表都由此派生
+      // 同患者全部会话：报告范围标识（新增/复评）、历史报告入口、补充评估可选量表都由此派生；
+      // 复评量表的随访对比（Demo_v2 步骤 2）还需各会话当次报告的标签快照作为对比基准
       const siblings = await prisma.assessmentSession.findMany({
         where: { patientId: session.patientId },
         orderBy: { startedAt: "desc" },
-        select: { id: true, status: true, scaleIds: true, startedAt: true, completedAt: true },
+        select: {
+          id: true,
+          status: true,
+          scaleIds: true,
+          startedAt: true,
+          completedAt: true,
+          results: {
+            where: { status: "current" },
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: 1,
+            select: { tags: true },
+          },
+        },
       });
       const toInfo = (s: (typeof siblings)[number]) => ({
         status: s.status,
@@ -104,6 +117,21 @@ export default async function PatientSessionPage({
         scope: scopeByScaleId.get(scaleId) ?? ("new" as const),
       }));
 
+      // 复评量表的随访对比（Demo_v2 步骤 2）：与同患者上次已出报告会话比标签集合与总分
+      const currentTags = latestResult.tags as unknown as AssessmentTag[];
+      const comparisons = scaleComparisons(
+        session.startedAt,
+        { scaleIds: sessionScaleIds, tags: currentTags },
+        siblings
+          .filter((s) => s.id !== session.id)
+          .map((s) => ({
+            status: s.status,
+            scaleIds: s.scaleIds as string[],
+            startedAt: s.startedAt,
+            tags: (s.results[0]?.tags ?? []) as unknown as AssessmentTag[],
+          }))
+      );
+
       // 历史报告入口：同患者其他已出报告的会话，按评估时间分别展示（不覆盖、可下钻）
       const historyReports = siblings
         .filter((s) => s.id !== session.id && (s.status === "collected" || s.status === "confirmed"))
@@ -125,8 +153,9 @@ export default async function PatientSessionPage({
           patientLabel={patientLabel}
           assessedAt={session.completedAt ?? session.startedAt}
           reportScales={reportScales}
-          tags={latestResult.tags as unknown as AssessmentTag[]}
+          tags={currentTags}
           deferredScales={(latestResult.deferred ?? []) as unknown as DeferredScale[]}
+          comparisons={comparisons}
           planStatus={planStatus}
           plan={plan}
           confirmedAt={latestPlan.confirmedAt}

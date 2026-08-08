@@ -1,8 +1,9 @@
 /**
  * INPUT:  src/lib/assessment/system-read.ts（M9.5 系统读取推导）、data/scales-v2.json（选项 label 事实来源）
- * OUTPUT: 5 个「系统读取」条目（frail_4/frail_5/mnasf_2/mnasf_6/morse_2）的推导规则用例：
- *         BMI 四档边界、小腿围回退、体重史 5%/3kg 边界、诊断数阈值、缺数据不答、
- *         产出 label 在规则数据该条目 options 中精确可查、existing 集合跳过已有 confirmed 答案
+ * OUTPUT: 8 个「系统读取」条目（frail_4/frail_5/mnasf_2/mnasf_6/morse_2/glim_1/glim_2/glim_3）
+ *         的推导规则用例：BMI 四档边界、小腿围回退、体重史 5%/3kg/10% 边界、GLIM 年龄分层
+ *         低 BMI 界值、诊断数阈值、缺数据不答、产出 label 在规则数据该条目 options 中精确可查、
+ *         existing 集合跳过已有 confirmed 答案
  * POS:    系统读取自动作答的回归保险（确定性红线：label 必须命中规则数据，分值边界锁死）。
  */
 import { describe, expect, it } from "vitest";
@@ -177,6 +178,127 @@ describe("morse_2：当前诊断 >1 个 → 15 分档（M10.3b 新增，与 frai
     const answers = resolveMorse({ diagnoses: ["高血压", "糖尿病"] });
     expect(byQuestion(answers, "morse_4")).toBeUndefined();
     expect(byQuestion(answers, "morse_5")).toBeUndefined();
+  });
+});
+
+describe("glim_1/glim_2/glim_3：GLIM 体重史与低 BMI 界值（01 表「系统读取」）", () => {
+  const resolveGlim = (patient: PatientLike, existing?: ReadonlySet<string>): SystemReadAnswer[] =>
+    resolveSystemReadAnswers(patient, ["glim"], existing ? { existing } : undefined);
+
+  describe("glim_1：过去6个月内体重下降＞5% → 是", () => {
+    it("6 月前 100kg → 现在 94kg（下降 6%）→ 是", () => {
+      const answer = byQuestion(resolveGlim({ weightKg: 94, weightHistory: { m6: 100 } }), "glim_1");
+      expect(answer).toBeDefined();
+      expect(answer!.optionLabel).toBe("是：过去6个月内体重下降＞5%");
+      expect(answer!.score).toBe(1); // 无分合成选项哨兵：「是」→1
+      expect(answer!.rawText).toContain("6.0%");
+    });
+
+    it("恰降 5%（100→95）→ 否（01 表口径为＞5%，等于不算）", () => {
+      const answer = byQuestion(resolveGlim({ weightKg: 95, weightHistory: { m6: 100 } }), "glim_1");
+      expect(answer!.optionLabel).toBe("否");
+      expect(answer!.score).toBe(0);
+    });
+
+    it("窗口内任一时点超 5% 即判「是」（取 m1/m2/m3/m6 最大下降）", () => {
+      const answer = byQuestion(
+        resolveGlim({ weightKg: 96, weightHistory: { m1: 97, m2: 102, m3: 98 } }),
+        "glim_1"
+      );
+      expect(answer!.optionLabel).toBe("是：过去6个月内体重下降＞5%");
+      expect(answer!.rawText).toContain("102.0");
+    });
+
+    it("仅 m12 体重（超出 6 个月窗口）→ 不答", () => {
+      expect(byQuestion(resolveGlim({ weightKg: 90, weightHistory: { m12: 100 } }), "glim_1")).toBeUndefined();
+    });
+
+    it("缺当前体重或缺体重史 → 不答", () => {
+      expect(byQuestion(resolveGlim({ weightHistory: { m3: 100 } }), "glim_1")).toBeUndefined();
+      expect(byQuestion(resolveGlim({ weightKg: 66, weightHistory: {} }), "glim_1")).toBeUndefined();
+      expect(byQuestion(resolveGlim({ weightKg: 66 }), "glim_1")).toBeUndefined();
+    });
+  });
+
+  describe("glim_2：超过6个月的体重下降＞10% → 是", () => {
+    it("12 月前 100kg → 现在 89kg（下降 11%）→ 是", () => {
+      const answer = byQuestion(resolveGlim({ weightKg: 89, weightHistory: { m12: 100 } }), "glim_2");
+      expect(answer!.optionLabel).toBe("是：超过6个月的体重下降＞10%");
+      expect(answer!.score).toBe(1);
+      expect(answer!.rawText).toContain("11.0%");
+    });
+
+    it("恰降 10%（100→90）→ 否（01 表口径为＞10%，等于不算）", () => {
+      const answer = byQuestion(resolveGlim({ weightKg: 90, weightHistory: { m12: 100 } }), "glim_2");
+      expect(answer!.optionLabel).toBe("否");
+      expect(answer!.score).toBe(0);
+    });
+
+    it("m12 缺失（仅 m6，不足「超过 6 个月」）→ 不答", () => {
+      expect(byQuestion(resolveGlim({ weightKg: 85, weightHistory: { m6: 100 } }), "glim_2")).toBeUndefined();
+    });
+
+    it("缺当前体重 → 不答", () => {
+      expect(byQuestion(resolveGlim({ weightHistory: { m12: 100 } }), "glim_2")).toBeUndefined();
+    });
+  });
+
+  describe("glim_3：低 BMI 界值（＜70 岁 BMI＜18.5 / ≥70 岁 BMI＜20）", () => {
+    // 身高 100cm 时 BMI 数值 == 体重数值，便于直接写边界
+    it("65 岁 BMI 18.4 → 符合低BMI界值", () => {
+      const answer = byQuestion(resolveGlim({ age: 65, heightCm: 100, weightKg: 18.4 }), "glim_3");
+      expect(answer!.optionLabel).toBe("符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²");
+      expect(answer!.score).toBe(1); // 哨兵：^符合 命中→1（「不符合」不被误判）
+      expect(answer!.rawText).toContain("18.5");
+    });
+
+    it("65 岁 BMI 恰 18.5 → 不符合（界值为＜18.5）", () => {
+      const answer = byQuestion(resolveGlim({ age: 65, heightCm: 100, weightKg: 18.5 }), "glim_3");
+      expect(answer!.optionLabel).toBe("不符合");
+      expect(answer!.score).toBe(0);
+    });
+
+    it("69 岁 BMI 19 → 不符合（＜70 岁界值 18.5，不按高龄档）", () => {
+      const answer = byQuestion(resolveGlim({ age: 69, heightCm: 100, weightKg: 19 }), "glim_3");
+      expect(answer!.optionLabel).toBe("不符合");
+    });
+
+    it("70 岁 BMI 19.9 → 符合低BMI界值（≥70 岁界值 20）", () => {
+      const answer = byQuestion(resolveGlim({ age: 70, heightCm: 100, weightKg: 19.9 }), "glim_3");
+      expect(answer!.optionLabel).toBe("符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²");
+    });
+
+    it("70 岁 BMI 恰 20 → 不符合", () => {
+      const answer = byQuestion(resolveGlim({ age: 70, heightCm: 100, weightKg: 20 }), "glim_3");
+      expect(answer!.optionLabel).toBe("不符合");
+    });
+
+    it("缺年龄或缺身高/体重 → 不答", () => {
+      expect(byQuestion(resolveGlim({ heightCm: 100, weightKg: 18 }), "glim_3")).toBeUndefined();
+      expect(byQuestion(resolveGlim({ age: 80, weightKg: 18 }), "glim_3")).toBeUndefined();
+      expect(byQuestion(resolveGlim({ age: 80, heightCm: 100 }), "glim_3")).toBeUndefined();
+    });
+  });
+
+  it("existing（已有 confirmed 人工答案）命中的 glim 题跳过，不覆盖", () => {
+    const patient: PatientLike = {
+      age: 75,
+      heightCm: 160,
+      weightKg: 45,
+      weightHistory: { m3: 50, m12: 56 },
+    };
+    const answers = resolveGlim(patient, new Set(["glim_1", "glim_3"]));
+    expect(byQuestion(answers, "glim_1")).toBeUndefined();
+    expect(byQuestion(answers, "glim_3")).toBeUndefined();
+    expect(byQuestion(answers, "glim_2")).toBeDefined();
+  });
+
+  it("产出的 glim optionLabel 全部能在规则数据该条目 options 中精确查到", () => {
+    const answers = resolveGlim({ age: 75, heightCm: 160, weightKg: 45, weightHistory: { m3: 50, m12: 56 } });
+    expect(answers.length).toBeGreaterThan(0);
+    for (const answer of answers) {
+      expect(optionLabels(answer.questionId)).toContain(answer.optionLabel);
+    }
   });
 });
 

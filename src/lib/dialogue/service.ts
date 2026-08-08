@@ -16,6 +16,7 @@ import { CLOSING_TEXT, OPENING_TEXT, clarifyText, recheckText } from "./prompts"
 import {
   askableQuestions,
   buildTimeline,
+  matchButtonOption,
   nextStep,
   progressOf,
   resolveReply,
@@ -92,7 +93,9 @@ export interface SubmitAnswerInput {
   mode: "voice" | "text" | "button" | "multi" | "drawing";
   /** voice/text 模式的原始回答文本（语音为 ASR 转写） */
   utterance?: string;
-  /** button 模式点选的选项分值（服务端按规则选项校验） */
+  /** button 模式点选的选项 label（完整字符串，按 label 精确匹配选项，同分选项不歧义） */
+  label?: string;
+  /** button 模式的选项分值（仅 number 题数字面板走此路径；choice/imageChoice 一律传 label） */
   score?: number;
   /** multi 模式选中的选项 label 列表 */
   labels?: string[];
@@ -125,7 +128,7 @@ export class DialogueConflictError extends Error {
 // ---------- 内部：快照加载与 DTO 组装 ----------
 
 interface LoadedContext {
-  session: { id: string; status: string; scaleIds: string[]; patientCode: string };
+  session: { id: string; status: string; scaleIds: string[]; patientCode: string; patientName: string };
   questions: AskableQuestion[];
   /** 采集编排时间线（M9.2：旁白 + 题目按 01 表顺序交错） */
   timeline: TimelineStep[];
@@ -139,7 +142,7 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
   const session = await tx.assessmentSession.findUnique({
     where: { id: sessionId },
     include: {
-      patient: { select: { code: true } },
+      patient: { select: { code: true, name: true } },
       answers: { select: { questionId: true, status: true } },
       turns: { select: { role: true, questionId: true } },
     },
@@ -177,6 +180,8 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
       status: session.status,
       scaleIds,
       patientCode: session.patient.code,
+      // 档案姓名仅用于归一化出网前的值级替换脱敏（硬约束 1），本身不出网
+      patientName: session.patient.name,
     },
     questions,
     timeline,
@@ -503,11 +508,15 @@ export async function advancePatientNarration(sessionId: string): Promise<Patien
   });
 }
 
-/** 按钮作答直接按选项分值确认（确定性输入，无需归一化） */
-function buttonOutcome(item: AskableQuestion, score: number | undefined): NormalizationOutcome {
-  const option = item.options.find((candidate) => candidate.score === score);
+/** 按钮作答直接按选项确认（确定性输入，无需归一化）；label 优先、分值兜底，见 matchButtonOption */
+function buttonOutcome(
+  item: AskableQuestion,
+  label: string | undefined,
+  score: number | undefined
+): NormalizationOutcome {
+  const option = matchButtonOption(item, label, score);
   if (!option) {
-    throw new DialogueConflictError("按钮选项无效：分值未命中题目选项");
+    throw new DialogueConflictError("按钮选项无效：未命中题目选项");
   }
   return {
     status: "matched",
@@ -570,10 +579,24 @@ export async function submitPatientAnswer(
     throw new DialogueConflictError("当前会话不在采集中，无法作答");
   }
   const previewStep = nextStep(preview.timeline, preview.snapshot);
-  if (previewStep.kind !== "awaiting" || previewStep.item.question.id !== input.questionId) {
+  // A2 复用回填撤回后的重新提问：提问轮次可能尚未落库（患者经 GET /state 看到题目后直接作答），
+  // 允许 prompt 形态通过预检，提问轮次在事务内补写
+  const previewItem =
+    previewStep.kind === "awaiting"
+      ? previewStep.item
+      : previewStep.kind === "prompt"
+        ? previewStep.prompt.item
+        : null;
+  const previewAttempt =
+    previewStep.kind === "awaiting"
+      ? previewStep.attempt
+      : previewStep.kind === "prompt"
+        ? previewStep.prompt.attempt
+        : null;
+  if (previewItem === null || previewItem.question.id !== input.questionId) {
     throw new DialogueConflictError("提交的题目与当前问询进度不符，请刷新患者端");
   }
-  const item = previewStep.item;
+  const item = previewItem;
 
   const utterance = (input.utterance ?? "").trim();
   if (input.mode === "voice" || input.mode === "text") {
@@ -581,7 +604,7 @@ export async function submitPatientAnswer(
   }
   const outcome =
     input.mode === "button"
-      ? buttonOutcome(item, input.score)
+      ? buttonOutcome(item, input.label, input.score)
       : input.mode === "multi"
         ? multiOutcome(item, input.labels)
         : input.mode === "drawing"
@@ -591,6 +614,7 @@ export async function submitPatientAnswer(
               options: item.options,
               utterance,
               patientCode: preview.session.patientCode,
+              patientName: preview.session.patientName,
             });
 
   // 第二步（事务内）：重新校验进度未变化后落库
@@ -599,11 +623,30 @@ export async function submitPatientAnswer(
     if (context.session.status !== "in_progress") {
       throw new DialogueConflictError("当前会话不在采集中，无法作答");
     }
-    const step = nextStep(context.timeline, context.snapshot);
+    const step0 = nextStep(context.timeline, context.snapshot);
+    // A2：复用撤回后的重新提问（asks≥2 的 prompt）轮次尚未落库 → 先在事务内补写 doctor 轮次，
+    //     再按等答（awaiting）处理；首轮首问（asks=0）不在此列，仍按进度不符拒绝
+    let step = step0;
+    if (
+      step.kind === "prompt" &&
+      step.prompt.item.question.id === input.questionId &&
+      (context.snapshot.doctorAskCount.get(input.questionId) ?? 0) >= 2
+    ) {
+      await tx.dialogueTurn.create({
+        data: {
+          sessionId,
+          role: "doctor",
+          questionId: input.questionId,
+          text: step.prompt.text,
+        },
+      });
+      bumpCount(context.snapshot.doctorAskCount, input.questionId);
+      step = nextStep(context.timeline, context.snapshot);
+    }
     if (
       step.kind !== "awaiting" ||
       step.item.question.id !== input.questionId ||
-      step.attempt !== previewStep.attempt
+      step.attempt !== previewAttempt
     ) {
       throw new DialogueConflictError("问询进度已变化，请刷新患者端");
     }

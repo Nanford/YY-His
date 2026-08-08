@@ -85,12 +85,31 @@ describe("interventions-v2.json（04 表：60 项干预方案）", () => {
     expect(dist).toEqual({ video: 13, image: 27, text: 20 });
   });
 
-  it("素材当前均未就位（mediaAvailable 全 false），mediaSrc 规则正确", () => {
+  it("素材：V1 映射的 12 项 mediaAvailable=true 且 mediaSrc 带内容哈希，其余保持 false", () => {
+    // 与 scripts/convert-rules-v2.ts 的 MEDIA_V1_SOURCE 一一对应（V1→V2 素材映射，2026-08-08 核查）
+    const mapped: Record<string, string> = {
+      YD01: "videos/M12.mp4", YD02: "videos/M01.mp4", YD03: "videos/M02.mp4", YD04: "videos/M03.mp4",
+      YD05: "videos/M11.mp4", YD06: "videos/M09.mp4", YD09: "videos/M07.mp4",
+      SS02: "D03.png", SS03: "D05.png", SS04: "D10.png", ZY02: "C08.png", ZY10: "C05.png",
+    };
+    const pubDir = path.join(process.cwd(), "public", "interventions");
     for (const x of interventions.interventions) {
-      expect(x.mediaAvailable).toBe(false);
-      if (x.mediaType === "video") expect(x.mediaSrc).toBe(`/interventions/videos/${x.code}.mp4`);
-      if (x.mediaType === "image") expect(x.mediaSrc).toBe(`/interventions/${x.code}.png`);
-      if (x.mediaType === "text") expect(x.mediaSrc).toBeNull();
+      if (x.mediaType === "text") {
+        expect(x.mediaSrc).toBeNull();
+        expect(x.mediaAvailable).toBe(false);
+        continue;
+      }
+      const base = x.mediaType === "video" ? `/interventions/videos/${x.code}.mp4` : `/interventions/${x.code}.png`;
+      if (x.code in mapped) {
+        // 映射成功：mediaAvailable=true，mediaSrc 附内容哈希 ?v=<md5 前 8 位>，且 V2 编码命名文件已复制就位
+        expect(x.mediaAvailable).toBe(true);
+        expect(x.mediaSrc).toMatch(new RegExp(`^${base.replace(/[/.]/g, "\\$&")}\\?v=[0-9a-f]{8}$`));
+        expect(fs.existsSync(path.join(pubDir, base.replace("/interventions/", "")))).toBe(true);
+      } else {
+        // 未映射项：素材待补齐，保持原约定路径、无哈希
+        expect(x.mediaAvailable).toBe(false);
+        expect(x.mediaSrc).toBe(base);
+      }
     }
   });
 });

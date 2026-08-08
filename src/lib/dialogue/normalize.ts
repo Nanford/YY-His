@@ -24,6 +24,8 @@ export async function normalizeAnswer(input: {
   options: QuestionOption[];
   utterance: string;
   patientCode: string;
+  /** 患者档案姓名（可选）：用于出网前的值级替换脱敏，见 deepseek.ts */
+  patientName?: string;
 }): Promise<NormalizationOutcome> {
   const llmOutcome = await normalizeByDeepSeek({
     standardText: input.question.standardText,
@@ -31,6 +33,7 @@ export async function normalizeAnswer(input: {
     options: input.options,
     utterance: input.utterance,
     patientCode: input.patientCode,
+    patientName: input.patientName,
   });
   if (llmOutcome !== null) return llmOutcome;
   return normalizeByRules(input.question, input.options, input.utterance);

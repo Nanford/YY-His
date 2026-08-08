@@ -27,7 +27,7 @@ import {
   patientIdentitySchema,
   textOrNull,
 } from "@/lib/assessment/patient-intake";
-import { completedScaleIds } from "@/lib/assessment/supplementary";
+import { completedScaleIds, checkSupplementaryGuard } from "@/lib/assessment/supplementary";
 
 export async function registerPatient(formData: FormData): Promise<void> {
   const identity = patientIdentitySchema.safeParse({
@@ -85,6 +85,25 @@ export async function createSupplementarySession(sessionId: string, formData: Fo
     include: { patient: true },
   });
   if (!source) throw new Error("会话不存在");
+
+  // 归属校验（防越权）：只认本机 cookie 对应会话与源会话同患者，且源会话已出报告
+  // （collected/confirmed）才允许发起；拒绝时不创建会话、不切 cookie。
+  // 纯判定逻辑在 supplementary.ts checkSupplementaryGuard（有单测）。
+  const cookieSessionId = (await cookies()).get(PATIENT_SESSION_COOKIE)?.value ?? null;
+  const cookieSession = cookieSessionId
+    ? await prisma.assessmentSession.findUnique({
+        where: { id: cookieSessionId },
+        select: { patientId: true },
+      })
+    : null;
+  const guard = checkSupplementaryGuard(cookieSession?.patientId ?? null, {
+    patientId: source.patientId,
+    status: source.status,
+  });
+  if (!guard.ok) {
+    if (guard.reason === "forbidden") throw new Error("无权为该患者发起补充评估");
+    redirect(`/patient/sessions/${sessionId}?error=not_reported`);
+  }
 
   const scaleIds = parseScaleSelection(formData);
   if (!scaleIds) redirect(`/patient/sessions/${sessionId}?error=scales`);

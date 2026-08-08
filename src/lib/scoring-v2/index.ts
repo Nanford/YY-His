@@ -4,6 +4,7 @@
  * POS:    V2 评分引擎的唯一对外入口。纯函数、确定性、无 IO：大模型只做语言理解，
  *         绝不参与评分与判定（硬约束 #2）。按 judgment.type 派发判定器，注册表数据驱动。
  *         M10.3b 起：一个量表允许 1～N 份判定配置（judgments 数组），依次执行并合并结果。
+ *         另含全豁免守卫：零条已答计分条目（全部缺失且全部 deferClinical 豁免）的量表不产标签。
  */
 import { judgmentByScaleId, scaleV2ById, type JudgmentV2, type ScaleV2 } from "@/lib/rules/v2";
 import { scoreAnyBelowThreshold } from "./any-below-threshold";
@@ -117,7 +118,25 @@ export function scoreScaleV2(scaleId: string, answers: AnswersV2, opts: ScoreOpt
     throw new Error(`量表 ${scaleId} 判定配置为空（judgments 数组至少 1 份）`);
   }
   const parts = entry.judgments.map((j) => runJudgment(scale, j, answers, opts));
-  return mergeJudgmentResults(scale, parts);
+  return guardFullyDeferred(mergeJudgmentResults(scale, parts));
+}
+
+/**
+ * 全豁免守卫（统一入口，覆盖全部判定器）：某量表全部计分条目均缺失且全部被
+ * deferClinical 豁免（零条已答计分条目）时，该量表不产出任何标签。
+ * 否则 anyYes=false、总分 0 等会产出「肌肉力量未下降」「NRS2002 初筛阴性」类伪造阴性标签
+ * （患者自助勾纯测量量表 calf/grip/gait_speed/dxa_bia 时可问题数为 0，会话直接 finished，
+ * 全部条目走豁免即命中此情形）。
+ * 只摘标签：deferred 快照、partial 标注、totalScore 照旧，报告页「部分计分」逻辑不受影响。
+ */
+function guardFullyDeferred(result: ScaleScoreResultV2): ScaleScoreResultV2 {
+  if (!result.ok || result.tags.length === 0 || result.deferred.length === 0) return result;
+  // 计分条目 = 明细中未排除（excluded=false）的条目；已答 = 有命中 label 或有分值
+  const scored = result.details.filter((d) => !d.excluded);
+  if (scored.length === 0) return result;
+  const anyAnswered = scored.some((d) => d.score !== null || d.answerLabel !== null);
+  if (anyAnswered) return result;
+  return { ...result, tags: [] };
 }
 
 /** 批量评分：按传入顺序逐量表评分，互不影响（某量表抛错即整体抛错——确定性红线） */

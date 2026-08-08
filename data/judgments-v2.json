@@ -406,6 +406,8 @@
           },
           "balanced": {
             "questionIds": ["tcm_constitution_A.1-1", "tcm_constitution_A.1-2", "tcm_constitution_A.1-3", "tcm_constitution_A.1-4"],
+            "comment": "来源：国标 CCMQ 平和质负向题反向计分口径——A.1-2/A.1-3/A.1-4 为负向症状题，按 6−原始分 计入平和质",
+            "reverseItemIds": ["tcm_constitution_A.1-2", "tcm_constitution_A.1-3", "tcm_constitution_A.1-4"],
             "tagCodes": {
               "yes": "TCM_BALANCED_YES",
               "basically": "TCM_BALANCED_BASICALLY",

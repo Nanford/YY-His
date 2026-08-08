@@ -2,6 +2,7 @@
  * INPUT:  候选/最终干预方案（积分排名结果）、医生审核决定、会话标识
  * OUTPUT: 候选方案审核表单（保留/删除/同类替换 + 备注）与只读最终方案
  * POS:    医生端干预方案审核组件。展示每项积分与积分来源明细、视频/图文教程、素材状态与审核留痕。
+ *         同类替换下拉对本患者 -100 禁忌项禁用并红字标注「本患者禁止」（服务端 confirmPlan 同步硬拦截）。
  *         来源：需求更新说明 V2.0 §4.2 医生审核（保留/删除/同类替换，记录操作人/时间/原因/前后编码）、
  *         §5 干预展示、§5.3 安全提示与"初步方案→医生已确认"。
  */
@@ -70,10 +71,13 @@ interface InterventionCardProps {
   item: PlanCandidateItemV2;
   reviewing: boolean;
   decision?: PlanDecision;
+  /** 本患者被 -100 禁止的干预明细（禁忌红线：替换下拉命中即禁用并标注） */
+  forbidden?: readonly ForbiddenItemV2[];
 }
 
-function InterventionCard({ item, reviewing, decision }: InterventionCardProps) {
+function InterventionCard({ item, reviewing, decision, forbidden = [] }: InterventionCardProps) {
   const options = REPLACE_OPTIONS[item.categoryLabel]?.filter((o) => o.code !== item.code) ?? [];
+  const forbiddenByCode = new Map(forbidden.map((f) => [f.code, f]));
 
   return (
     <article
@@ -135,11 +139,20 @@ function InterventionCard({ item, reviewing, decision }: InterventionCardProps) 
               <span className="ui-label">替换为（选择「同类替换」时生效）</span>
               <select name={`replaceWith.${item.code}`} defaultValue="" className="ui-input" aria-label={`${item.name}同类替换项`}>
                 <option value="">— 保持原项 —</option>
-                {options.map((o) => (
-                  <option key={o.code} value={o.code}>
-                    {o.code}　{o.name}
-                  </option>
-                ))}
+                {options.map((o) => {
+                  const banned = forbiddenByCode.get(o.code);
+                  return (
+                    <option
+                      key={o.code}
+                      value={o.code}
+                      disabled={Boolean(banned)}
+                      className={banned ? "font-bold text-red-700" : undefined}
+                    >
+                      {o.code}　{o.name}
+                      {banned ? "（本患者禁止）" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </label>
           )}
@@ -165,10 +178,12 @@ function GroupedList({
   items,
   reviewing,
   decisions = [],
+  forbidden = [],
 }: {
   items: readonly PlanCandidateItemV2[];
   reviewing: boolean;
   decisions?: readonly PlanDecision[];
+  forbidden?: readonly ForbiddenItemV2[];
 }) {
   // 最终方案的决定按"最终项编码"回填：保留→自身编码，替换→toCode
   const decisionByFinalCode = new Map<string, PlanDecision>();
@@ -192,7 +207,7 @@ function GroupedList({
             </div>
             <div className="space-y-3">
               {group.map((item) => (
-                <InterventionCard key={item.code} item={item} reviewing={reviewing} decision={decisionByFinalCode.get(item.code)} />
+                <InterventionCard key={item.code} item={item} reviewing={reviewing} decision={decisionByFinalCode.get(item.code)} forbidden={forbidden} />
               ))}
             </div>
           </section>
@@ -273,7 +288,7 @@ export function PlanReview({
       </div>
 
       <form action={confirmPlan.bind(null, sessionId)} className="space-y-7 p-6">
-        {hasCandidates ? <GroupedList items={candidates} reviewing /> : <EmptyPlan final={false} />}
+        {hasCandidates ? <GroupedList items={candidates} reviewing forbidden={forbidden} /> : <EmptyPlan final={false} />}
         <div className="flex justify-end border-t border-[#dbe7f6] pt-5">
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
             <IconClipboardCheck size={19} aria-hidden="true" />

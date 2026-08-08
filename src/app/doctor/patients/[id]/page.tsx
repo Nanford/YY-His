@@ -356,6 +356,7 @@ export default async function PatientDetailPage({
         packages={SCALE_PACKAGES}
         groups={scaleGroups}
         followup={followup}
+        patientId={patient.id}
         action={createSession.bind(null, patient.id)}
       />
 

@@ -145,8 +145,9 @@ function counts(snapshot: DialogueSnapshot, questionId: string): { asks: number;
 
 /**
  * 由当前快照推导下一步。遍历顺序即时间线顺序（旁白插在锚定量表首题之前）：
- * 主轮：未播报的旁白 → narration 步骤（不需作答）；首个无答案记录的题目 → 首问或追问；
- * 复问轮：主轮全部有记录后，对 pending 题目发轮末复问；
+ * 主轮：未播报的旁白 → narration 步骤（不需作答）；首个无答案记录的题目 → 首问或追问
+ * （复用回填被撤回、计数残留的题目按既有计数重新提问，见主轮内注释）；
+ * 复问轮：主轮全部有记录后，对 pending 题目发轮末复问（画钟题 pending 只等医生计分，跳过不复问）；
  * 全部旁白已播报且全部题目 confirmed/manual → finished。
  * 刷新重放安全：已写入 system 轮次的旁白（deliveredNarrationIds）不会再次返回。
  */
@@ -169,17 +170,30 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
         prompt: { kind: "ask", item, attempt: 1, text: item.question.colloquialText },
       };
     }
-    if (asks === 1 && replies === 1) {
-      // 首答模糊 → 追问 1 次（AGENTS.md 硬约束 3）
+    // 计数由 turns 派生、无法重置，故一轮"首问+追问"内 attempt 按 asks 奇偶推导：
+    // 奇数 asks 对应该轮首问（attempt 1）、偶数 asks 对应追问（attempt 2）。
+    // 正常流程只会走到 (1,0)/(1,1)/(2,1)；asks≥2 且 asks=replies 仍无答案记录，
+    // 只可能是复用回填被撤回（答案置 superseded，见 service.ts loadContext）——
+    // 此时按既有计数重新提问（新一轮首问），而不是抛错卡死：
+    // 撤回源于医生改答源题这一正常操作，患者理应能重新作答（A2 修复）。
+    if (asks === replies) {
+      const attempt: AskAttempt = asks % 2 === 1 ? 2 : 1;
       return {
         kind: "prompt",
-        prompt: { kind: "clarify", item, attempt: 2, text: clarifyText(item.question, item.options) },
+        prompt: {
+          kind: attempt === 1 ? "ask" : "clarify",
+          item,
+          attempt,
+          text: attempt === 1 ? item.question.colloquialText : clarifyText(item.question, item.options),
+        },
       };
     }
-    if (asks === replies + 1 && (asks === 1 || asks === 2)) {
-      return { kind: "awaiting", item, attempt: asks as AskAttempt, phase: "main" };
+    if (asks === replies + 1) {
+      // 提问已发出、等待作答（奇偶推导同上文注释）
+      const attempt: AskAttempt = asks % 2 === 1 ? 1 : 2;
+      return { kind: "awaiting", item, attempt, phase: "main" };
     }
-    // 无答案记录却出现 2 次以上回答：写入侧未维护好不变量，宁可报错也不越过医学流程
+    // 回答次数多于提问次数：写入侧未维护好不变量，宁可报错也不越过医学流程
     throw new Error(`会话状态不一致：题目 ${item.question.id} 提问 ${asks} 次、回答 ${replies} 次但无答案记录`);
   }
 
@@ -188,20 +202,46 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
     if (step.kind !== "question") continue;
     const item = step.item;
     if (snapshot.answerStatus.get(item.question.id) !== "pending") continue;
+    // 画钟题交卷即落 pending（首问后直接 markPending，asks=1/replies=1），只等医生在
+    // CollectForm 确认计分（M9.6），无需也不应轮末复问——跳过让会话正常走到 finished，
+    // 计分缺口按 deferClinical 既定口径豁免出「部分计分」报告
+    // （A1 修复：此前复问轮只认 asks=2/asks=3 两种 pending 形态，asks=1 直接抛错卡死）。
+    if (item.question.answerType === "drawing") continue;
     const { asks, replies } = counts(snapshot, item.question.id);
-    if (asks === 2) {
+    // 复问发出前：asks=replies≥2（患者已答完全部提问仍 pending）→ 发轮末复问；
+    // asks≥4 来自复用撤回后的重新提问轮（A2），语义相同。
+    if (asks === replies && asks >= 2) {
       return {
         kind: "prompt",
         prompt: { kind: "recheck", item, attempt: 3, text: recheckText(item.question) },
       };
     }
-    if (asks === 3 && replies === 2) {
+    // 复问已发出、等待患者作答
+    if (asks === replies + 1 && asks >= 3) {
       return { kind: "awaiting", item, attempt: 3, phase: "recheck" };
     }
     throw new Error(`会话状态不一致：待确认题目 ${item.question.id} 提问 ${asks} 次、回答 ${replies} 次`);
   }
 
   return { kind: "finished" };
+}
+
+/**
+ * 按钮/图片作答的选项匹配（确定性输入，无需归一化）。
+ * 优先按 label 精确匹配：rules 投影的兼容分值（compatScore）会把 score=null 折叠成 0/1，
+ * 同分选项（如便秘筛查是/否、Bristol 7 图、IADL 同分档）按分值 find 必撞首项，属医学错误；
+ * label 缺失时回退按分值匹配（number 题分值唯一，数字面板只传分值）。
+ * 未命中返回 null，由调用方（service 层）抛业务冲突。
+ */
+export function matchButtonOption(
+  item: AskableQuestion,
+  label: string | undefined,
+  score: number | undefined
+): QuestionOption | null {
+  if (label !== undefined) {
+    return item.options.find((candidate) => candidate.label === label) ?? null;
+  }
+  return item.options.find((candidate) => candidate.score === score) ?? null;
 }
 
 /** 回答归一化后的落库动作 */

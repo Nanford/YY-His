@@ -25,13 +25,15 @@ interface Props {
   packages: readonly ScalePackage[];
   groups: readonly ScaleGroup[];
   followup: FollowupInfo | null;
+  /** 当前患者 id：病历智能评估时上送，供服务端取档案姓名做脱敏（不出网） */
+  patientId: string;
   action: (formData: FormData) => Promise<void>;
 }
 
 const CUSTOM_KEY = "custom";
 const EMR_KEY = "emr";
 
-export default function SessionCreateForm({ packages, groups, followup, action }: Props) {
+export default function SessionCreateForm({ packages, groups, followup, patientId, action }: Props) {
   // 选择模式：套餐 key / "custom" / "emr" / "followup"
   const [mode, setMode] = useState<string>(packages[0]?.key ?? CUSTOM_KEY);
   const [emrText, setEmrText] = useState("");
@@ -48,7 +50,7 @@ export default function SessionCreateForm({ packages, groups, followup, action }
       const res = await fetch("/api/doctor/emr-suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emrText }),
+        body: JSON.stringify({ emrText, patientId }),
       });
       const data = (await res.json()) as {
         scaleIds?: string[];

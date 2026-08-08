@@ -1,6 +1,7 @@
 /**
  * INPUT:  src/lib/dialogue/state-machine.ts、V2 规则数据（经 src/lib/rules 投影）与旁白（narrationsV2）
- * OUTPUT: 采集编排 + 追问状态机的单元测试（旁白时间线 → 提问 → 追问 → 待确认 → 轮末复问 → 待人工确认）
+ * OUTPUT: 采集编排 + 追问状态机的单元测试（旁白时间线 → 提问 → 追问 → 待确认 → 轮末复问 → 待人工确认；
+ *         画钟 pending 跳过复问等医生计分；复用回填撤回后按既有计数重新提问）
  * POS:    验证 AGENTS.md 硬约束 3 的完整流程、题目跳过规则
  *         （observerAssisted 计分条目——系统读取/绘图操作等——不问患者），
  *         以及 M9.2 采集编排（来源：V2/Demo_v2更新说明.docx §3）：总开场恒在最前、
@@ -82,6 +83,21 @@ class SessionSim {
     if (resolution.action === "markPending") this.answers.set(questionId, "pending");
     if (resolution.action === "markManual") this.answers.set(questionId, "manual");
     // clarify：不落答案，等待下一次 emitPrompt 发出追问
+  }
+
+  /** 画钟交卷（M9.6）：service 层不走 resolveReply，首答直接落 pending 等医生计分 */
+  submitDrawing(questionId: string): void {
+    this.replies.set(questionId, (this.replies.get(questionId) ?? 0) + 1);
+    this.answers.set(questionId, "pending");
+  }
+
+  /**
+   * 复用回填撤回（M9.3/M9.4）：医生改答源题使复用条件不再成立，
+   * 旧回填答案置 superseded——service loadContext 对 superseded 不计入快照，
+   * 故表现为"删除答案记录、提问/回答计数残留"
+   */
+  retract(questionId: string): void {
+    this.answers.delete(questionId);
   }
 
   status(questionId: string): AnswerStatus | undefined {
@@ -243,15 +259,136 @@ describe("resolveReply：归一化结果 → 落库动作", () => {
 });
 
 describe("异常防护", () => {
-  it("计数与答案记录不一致时报错，不越过医学流程", () => {
+  it("回答次数多于提问次数（写入侧不变量被破坏）时报错，不越过医学流程", () => {
     const questions = askableQuestions(["fall_3q"]);
     const snapshot: DialogueSnapshot = {
       answerStatus: new Map(),
-      doctorAskCount: new Map([["fall_3q_1", 2]]),
+      doctorAskCount: new Map([["fall_3q_1", 1]]),
       patientReplyCount: new Map([["fall_3q_1", 2]]),
       deliveredNarrationIds: new Set(),
     };
     expect(() => nextStep(asTimeline(questions), snapshot)).toThrow("会话状态不一致");
+  });
+
+  it("pending 题计数形态不可能（复问未发出却只答 1 次）时报错", () => {
+    const questions = askableQuestions(["fall_3q"]);
+    // fall_3q 全部落答案，fall_3q_1 为 pending 但计数 (2,1)：复问轮不认此形态
+    const snapshot: DialogueSnapshot = {
+      answerStatus: new Map<string, AnswerStatus>([
+        ["fall_3q_1", "pending"],
+        ["fall_3q_2", "confirmed"],
+        ["fall_3q_3", "confirmed"],
+      ]),
+      doctorAskCount: new Map([["fall_3q_1", 2]]),
+      patientReplyCount: new Map([["fall_3q_1", 1]]),
+      deliveredNarrationIds: new Set(),
+    };
+    expect(() => nextStep(asTimeline(questions), snapshot)).toThrow("会话状态不一致");
+  });
+});
+
+describe("A1 画钟题：交卷落 pending 后跳过轮末复问（M9.6 等医生 CollectForm 计分）", () => {
+  it("画钟 pending（asks=1/replies=1）不再抛错，会话正常走到 finished", () => {
+    const questions = askableQuestions(["minicog"]); // minicog_2 画钟 + minicog_3 回忆
+    expect(questions[0].question.id).toBe("minicog_2");
+    expect(questions[0].question.answerType).toBe("drawing");
+    const sim = SessionSim.fromQuestions(questions);
+
+    // 首问画钟 → 患者交卷：service 层直接落 pending（不走追问）
+    const first = sim.emitPrompt();
+    if (first.kind !== "prompt") throw new Error("应发出画钟首问");
+    expect(first.prompt.attempt).toBe(1);
+    sim.submitDrawing("minicog_2");
+    expect(sim.status("minicog_2")).toBe("pending");
+
+    // 主轮继续下一题，不因 asks=1 的 pending 抛「会话状态不一致」
+    const second = sim.emitPrompt();
+    if (second.kind !== "prompt") throw new Error("应继续下一题");
+    expect(second.prompt.item.question.id).toBe("minicog_3");
+    sim.reply("minicog_3", 1, MATCHED_YES);
+
+    // 复问轮跳过画钟 pending（只等医生计分，无需复问）→ finished
+    expect(sim.emitPrompt().kind).toBe("finished");
+    expect(sim.progress()).toEqual({ answered: 2, total: 2 });
+  });
+});
+
+describe("A2 复用回填撤回：有提问/回答计数但无有效答案 → 按既有计数重新提问", () => {
+  it("gad7_1 撤回后（asks=2/replies=2 无答案记录）重新首问，计数奇偶推导 attempt，走完完整降级链", () => {
+    const questions = askableQuestions(["gad7"]);
+    const sim = SessionSim.fromQuestions(questions);
+
+    // gad7_1 两次模糊 → pending（asks=2/replies=2）
+    sim.emitPrompt();
+    sim.reply("gad7_1", 1, UNCLEAR);
+    sim.emitPrompt();
+    sim.reply("gad7_1", 2, UNCLEAR);
+    expect(sim.status("gad7_1")).toBe("pending");
+
+    // 医生改 anxiety_2q_1 触发复用回填覆盖 gad7_1，又改回 → 回填撤回置 superseded
+    // （快照中不计入 superseded → 该题无有效答案但计数残留）
+    sim.retract("gad7_1");
+
+    // 主轮重新提问：按既有计数发起新一轮首问（attempt 1，口语版文案），不抛错
+    const reask = sim.emitPrompt();
+    if (reask.kind !== "prompt") throw new Error("应重新提问 gad7_1");
+    expect(reask.prompt.item.question.id).toBe("gad7_1");
+    expect(reask.prompt.kind).toBe("ask");
+    expect(reask.prompt.attempt).toBe(1);
+    expect(reask.prompt.text).toBe(questions[0].question.colloquialText);
+
+    // 提问已发出等待作答：asks=3/replies=2 → awaiting attempt 1（GET /state 重建路径）
+    const awaiting = nextStep(asTimeline(questions), sim.snapshot());
+    expect(awaiting).toMatchObject({ kind: "awaiting", attempt: 1, phase: "main" });
+
+    // 重新作答仍两次模糊 → 追问（asks=4）→ 再次 pending（asks=4/replies=4）
+    sim.reply("gad7_1", 1, UNCLEAR);
+    const clarify = sim.emitPrompt();
+    if (clarify.kind !== "prompt") throw new Error("应发出追问");
+    expect(clarify.prompt.kind).toBe("clarify");
+    expect(clarify.prompt.attempt).toBe(2);
+    sim.reply("gad7_1", 2, UNCLEAR);
+    expect(sim.status("gad7_1")).toBe("pending");
+
+    // 其余 6 题一次答清
+    for (let i = 1; i < questions.length; i++) {
+      const step = sim.emitPrompt();
+      if (step.kind !== "prompt") throw new Error("应发出首问");
+      expect(step.prompt.item.question.id).toBe(questions[i].question.id);
+      sim.reply(step.prompt.item.question.id, 1, MATCHED_YES);
+    }
+
+    // 复问轮对 asks=4 的 pending 仍发轮末复问；答清 → confirmed → finished
+    const recheck = sim.emitPrompt();
+    if (recheck.kind !== "prompt") throw new Error("应发出轮末复问");
+    expect(recheck.prompt.kind).toBe("recheck");
+    expect(recheck.prompt.attempt).toBe(3);
+    expect(recheck.prompt.item.question.id).toBe("gad7_1");
+    const recheckAwaiting = nextStep(asTimeline(questions), sim.snapshot());
+    expect(recheckAwaiting).toMatchObject({ kind: "awaiting", attempt: 3, phase: "recheck" });
+    sim.reply("gad7_1", 3, MATCHED_YES);
+    expect(sim.status("gad7_1")).toBe("confirmed");
+    expect(sim.emitPrompt().kind).toBe("finished");
+  });
+
+  it("撤回后重新提问一次答清 → confirmed，流程直接推进", () => {
+    const questions = askableQuestions(["gad7"]);
+    const sim = SessionSim.fromQuestions(questions);
+    sim.emitPrompt();
+    sim.reply("gad7_1", 1, UNCLEAR);
+    sim.emitPrompt();
+    sim.reply("gad7_1", 2, UNCLEAR);
+    sim.retract("gad7_1");
+
+    const reask = sim.emitPrompt();
+    if (reask.kind !== "prompt") throw new Error("应重新提问 gad7_1");
+    sim.reply("gad7_1", reask.prompt.attempt, MATCHED_YES);
+    expect(sim.status("gad7_1")).toBe("confirmed");
+
+    // 继续问 gad7_2，不回头不抛错
+    const next = sim.emitPrompt();
+    if (next.kind !== "prompt") throw new Error("应继续下一题");
+    expect(next.prompt.item.question.id).toBe("gad7_2");
   });
 });
 

@@ -42,6 +42,9 @@ interface AnswerInputProps {
   /** 本题播报已结束，语音模式下应自动开始听；每次挂载只消费一次 */
   autoStart: boolean;
   disabled: boolean;
+  /** 大按钮/图片选择：提交选中选项的完整 label（同分选项靠 label 区分，服务端按 label 精确匹配） */
+  onSubmitOption: (label: string) => void;
+  /** number 题数字面板：分值唯一，提交分值 */
   onSubmitButton: (score: number) => void;
   onSubmitText: (text: string) => void;
   onSubmitVoice: (answer: VoiceAnswer) => void;
@@ -59,13 +62,14 @@ export function AnswerInput(props: AnswerInputProps) {
   const [directVoice, setDirectVoice] = useState(props.mode === "voice");
   const voiceActive = props.mode === "voice" && props.asrEnabled && props.micStream !== null;
   const answerType = props.prompt.answerType;
-  // 数字/多选/图片/画钟题以专用控件为主，语音/文字仍作兜底（画钟除外）
+  // 数字/多选/图片/画钟题以专用控件为主；仅 number 题保留语音/文字兜底（分值唯一不会歧义）。
+  // 多选题不出语音/文字入口：归一化只返回单个选项会丢多选语义（图片/画钟题本就走专用控件）
   const specialType =
     answerType === "number" ||
     answerType === "multiChoice" ||
     answerType === "imageChoice" ||
     answerType === "drawing";
-  const showVoiceTextFallback = !specialType || answerType === "number" || answerType === "multiChoice";
+  const showVoiceTextFallback = !specialType || answerType === "number";
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -106,7 +110,7 @@ export function AnswerInput(props: AnswerInputProps) {
     <ImageChoicePanel
       prompt={props.prompt}
       disabled={props.disabled}
-      onSelect={props.onSubmitButton}
+      onSelect={props.onSubmitOption}
     />
   ) : answerType === "drawing" ? (
     <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
@@ -114,7 +118,7 @@ export function AnswerInput(props: AnswerInputProps) {
     <OptionButtons
       prompt={props.prompt}
       disabled={props.disabled}
-      onSelect={props.onSubmitButton}
+      onSelect={props.onSubmitOption}
       compact={voicePrimary}
     />
   );
@@ -186,7 +190,7 @@ export function AnswerInput(props: AnswerInputProps) {
   );
 }
 
-/** 大按钮快捷作答：选项即按钮；语音为主时 compact 略收高度，避免压过监听区 */
+/** 大按钮快捷作答：选项即按钮，提交完整 label（同分选项靠 label 区分）；语音为主时 compact 略收高度 */
 function OptionButtons({
   prompt,
   disabled,
@@ -195,7 +199,7 @@ function OptionButtons({
 }: {
   prompt: PatientPromptDto;
   disabled: boolean;
-  onSelect: (score: number) => void;
+  onSelect: (label: string) => void;
   /** 语音主视觉模式下作兜底，按钮略矮、字号略收 */
   compact?: boolean;
 }) {
@@ -213,7 +217,7 @@ function OptionButtons({
           key={option.label}
           type="button"
           disabled={disabled}
-          onClick={() => onSelect(option.score)}
+          onClick={() => onSelect(option.label)}
           className={[
             "patient-choice w-full justify-between text-left sm:justify-center sm:text-center",
             compact
@@ -345,7 +349,7 @@ function MultiChoicePanel({
   );
 }
 
-/** M9.6 图片选择（Bristol 等）：上方参照图 + 下方大按钮 */
+/** M9.6 图片选择（Bristol 等）：上方参照图 + 下方大按钮（按 label 提交） */
 function ImageChoicePanel({
   prompt,
   disabled,
@@ -353,7 +357,7 @@ function ImageChoicePanel({
 }: {
   prompt: PatientPromptDto;
   disabled: boolean;
-  onSelect: (score: number) => void;
+  onSelect: (label: string) => void;
 }) {
   return (
     <div className="space-y-4">

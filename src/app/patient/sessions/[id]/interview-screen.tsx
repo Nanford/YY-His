@@ -244,6 +244,11 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     setSubmitting(true);
     try {
       let stream: MediaStream | null = null;
+      if (chosenMode === "voice" && !state?.capabilities.asr) {
+        // ASR 不可用（密钥缺失/未开通）：静默降级手动模式，不申请麦克风、不出现语音入口，
+        // 与下方"语音授权被拒绝静默降级"同一口径
+        chosenMode = "manual";
+      }
       if (chosenMode === "voice") {
         try {
           stream = await requestMicStream();
@@ -567,24 +572,30 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                   <div className="mt-9 flex w-full flex-col items-center gap-4">
                     <button
                       type="button"
-                      aria-label="开始评估，数字医生会先讲解，之后用语音作答"
+                      aria-label={
+                        state.capabilities.asr
+                          ? "开始评估，数字医生会先讲解，之后用语音作答"
+                          : "开始评估，用按钮或文字作答"
+                      }
                       disabled={submitting}
-                      onClick={() => void handleStart("voice")}
+                      onClick={() => void handleStart(state.capabilities.asr ? "voice" : "manual")}
                       className="patient-primary-action w-full min-w-[280px] max-w-md justify-center text-2xl"
                     >
-                      <IconMicrophone size={30} stroke={1.8} aria-hidden="true" />
+                      {state.capabilities.asr && <IconMicrophone size={30} stroke={1.8} aria-hidden="true" />}
                       <span>开始评估</span>
                     </button>
-                    <button
-                      type="button"
-                      aria-label="不方便说话，改用按钮或文字作答"
-                      disabled={submitting}
-                      onClick={() => void handleStart("manual")}
-                      className="ui-button ui-button-quiet text-base"
-                    >
-                      <IconHandClick size={19} stroke={1.8} aria-hidden="true" />
-                      <span>不方便说话？改用按钮 / 文字作答</span>
-                    </button>
+                    {state.capabilities.asr && (
+                      <button
+                        type="button"
+                        aria-label="不方便说话，改用按钮或文字作答"
+                        disabled={submitting}
+                        onClick={() => void handleStart("manual")}
+                        className="ui-button ui-button-quiet text-base"
+                      >
+                        <IconHandClick size={19} stroke={1.8} aria-hidden="true" />
+                        <span>不方便说话？改用按钮 / 文字作答</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -708,6 +719,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                       micStream={micStream}
                       autoStart={readyForVoice}
                       disabled={submitting}
+                      onSubmitOption={(label) => void submitAnswer({ mode: "button", label })}
                       onSubmitButton={(score) => void submitAnswer({ mode: "button", score })}
                       onSubmitText={(text) => void submitAnswer({ mode: "text", utterance: text })}
                       onSubmitVoice={(answer: VoiceAnswer) =>
@@ -771,6 +783,14 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   );
 }
 
+/**
+ * 播放链代际登记：同一 audio 元素任意时刻只保留一条活跃播放链。
+ * 新一次 playAudio 先静默收尾旧链（旧 Promise 以 resolve 结束，外层 await 链不悬挂——
+ * 如自动播报中患者点「再听一遍」时置 readyForVoice 的那条链），旧链残留的
+ * onended/onerror/play() 回调凭代际 token 失效，不再触碰口型/speaking 状态。
+ */
+const playChains = new WeakMap<HTMLAudioElement, { generation: number; supersede: () => void }>();
+
 /** 播放一段 TTS 音频；播放期间置 speaking=true。失败（503/网络）时 reject 由调用方降级 */
 function playAudio(
   audioRef: React.RefObject<HTMLAudioElement | null>,
@@ -782,26 +802,36 @@ function playAudio(
   return new Promise((resolve, reject) => {
     const audio = audioRef.current ?? new Audio();
     audioRef.current = audio;
+    // 新链接管：先静默收尾旧链，再停掉当前播放（旧 play() 的 AbortError 回调会被代际判失效吞掉）
+    const prev = playChains.get(audio);
+    const generation = (prev?.generation ?? 0) + 1;
+    prev?.supersede();
+    audio.pause();
+    const isCurrent = () => playChains.get(audio)?.generation === generation;
+    const finish = (settle: () => void) => {
+      if (!isCurrent()) return; // 已被新链接管：静默退出，状态由新链负责
+      playChains.delete(audio);
+      stopLipSync(lipSyncRef.current, setMouthLevel);
+      setSpeaking(false);
+      settle();
+    };
+    playChains.set(audio, {
+      generation,
+      // 被新播放取代不属于失败：resolve 静默收尾（ttsBrokenRef 不应因此置位）
+      supersede: () => finish(() => resolve()),
+    });
     audio.src = src;
-    audio.onended = () => {
-      stopLipSync(lipSyncRef.current, setMouthLevel);
-      setSpeaking(false);
-      resolve();
-    };
-    audio.onerror = () => {
-      stopLipSync(lipSyncRef.current, setMouthLevel);
-      setSpeaking(false);
-      reject(new Error("音频播放失败"));
-    };
+    audio.onended = () => finish(() => resolve());
+    audio.onerror = () => finish(() => reject(new Error("音频播放失败")));
     setMouthLevel(0);
     setSpeaking(true);
     audio
       .play()
-      .then(() => void startLipSync(audio, lipSyncRef, setMouthLevel))
+      .then(() => {
+        if (isCurrent()) void startLipSync(audio, lipSyncRef, setMouthLevel);
+      })
       .catch((error: unknown) => {
-        stopLipSync(lipSyncRef.current, setMouthLevel);
-        setSpeaking(false);
-        reject(error instanceof Error ? error : new Error("音频播放失败"));
+        finish(() => reject(error instanceof Error ? error : new Error("音频播放失败")));
       });
   });
 }
@@ -875,11 +905,26 @@ function stopLipSync(runtime: LipSyncRuntime, setMouthLevel: (value: number) => 
   setMouthLevel(0);
 }
 
-/** 把一次作答转成对话记录里"患者说的话"：按钮取选项文案，语音/文字取原话 */
+/** 把一次作答转成对话记录里"患者说的话"：按钮取选项文案，语音/文字取原话，多选取拼接选项，画钟给固定回执 */
 function describeAnswer(prompt: PatientPromptDto, payload: Record<string, unknown>): string {
   if (payload.mode === "button") {
-    const opt = prompt.options.find((o) => o.score === payload.score);
+    // 按钮/图片作答按 label 精确匹配（同分选项靠 label 区分）；number 题只传分值，走分值兜底
+    const opt =
+      typeof payload.label === "string"
+        ? prompt.options.find((o) => o.label === payload.label)
+        : prompt.options.find((o) => o.score === payload.score);
     return opt?.label ?? "";
+  }
+  // 多选题（M9.6）：拼接所选项 label 作气泡（V2.0 §2.2 回答气泡即反馈）
+  if (payload.mode === "multi") {
+    const labels = Array.isArray(payload.labels)
+      ? payload.labels.filter((item): item is string => typeof item === "string")
+      : [];
+    return labels.length > 0 ? `已选：${labels.join("、")}` : "";
+  }
+  // 画钟题（绘图操作）：作品本身不进对话流，给固定回执气泡
+  if (payload.mode === "drawing") {
+    return "已提交画钟作品，待医生评分";
   }
   return typeof payload.utterance === "string" ? payload.utterance : "";
 }

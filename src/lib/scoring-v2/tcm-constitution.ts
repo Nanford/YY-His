@@ -4,6 +4,7 @@
  * POS:    V2 评分引擎判定器之一。
  *         来源：02 表「中医体质辨识」27 条判定规则；转化分公式（原始分合计−适用题数）/（适用题数×4）×100
  *         按国标推定（任务清单「待拍板」节已登记）；湿热质 A.6-3/A.6-4 性别互斥题按不适用剔出分母。
+ *         平和质负向题（A.1-2/A.1-3/A.1-4）按 6−原始分 反向计分，来源：国标 CCMQ 平和质口径（配置 reverseItemIds）。
  */
 import type { ScaleV2, TcmConstitutionJudgmentV2 } from "@/lib/rules/v2";
 import { excludedDetail, partitionMissingV2, resolveAnswerScore, tagResult } from "./common";
@@ -78,14 +79,18 @@ export function scoreTcmConstitution(
   }
 
   const t = judgment.thresholds;
-  /** 单体质原始分合计 / 适用题数 / 转化分 */
-  const statOf = (questionIds: string[]): { rawSum: number; n: number; score: number } => {
+  /**
+   * 单体质原始分合计 / 适用题数 / 转化分。
+   * reverseIds 内为负向题，按 6−原始分 反向计分（来源：国标 CCMQ 平和质负向题反向计分口径，
+   * 配置见 judgments-v2.json 平和质组 reverseItemIds）；偏颇体质题目均为正向症状描述，无需反向。
+   */
+  const statOf = (questionIds: string[], reverseIds?: ReadonlySet<string>): { rawSum: number; n: number; score: number } => {
     let rawSum = 0;
     let n = 0;
     for (const id of questionIds) {
       const s = scoreByItemId.get(id);
       if (s !== undefined) {
-        rawSum += s;
+        rawSum += reverseIds?.has(id) ? 6 - s : s;
         n++;
       }
     }
@@ -103,7 +108,8 @@ export function scoreTcmConstitution(
     return { key: b.key, rawSum, applicableCount: n, transformedScore: round1(score), tagCode };
   });
 
-  const b = statOf(judgment.balanced.questionIds);
+  // 平和质 A.1-2/A.1-3/A.1-4 为负向题，按 6−原始分 反向计分（来源：国标 CCMQ 平和质负向题反向计分口径）
+  const b = statOf(judgment.balanced.questionIds, new Set(judgment.balanced.reverseItemIds ?? []));
   const allBelow = (max: number): boolean => biasedScores.every((s) => lt(s, max));
   // 来源：02 表「平和质转化分≥60分且其他8种均＜30分=是；≥60且其他均＜40（不满足是）=基本是；否则=否」
   const balancedTag = ge(b.score, t.balancedMin) && allBelow(t.othersMaxForYes)

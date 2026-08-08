@@ -39,11 +39,20 @@ const KEYWORD_SCALE_HINTS: { keywords: string[]; scaleIds: string[] }[] = [
 
 const SCORABLE = new Set(SCORABLE_SCALE_IDS);
 
-/** 本地脱敏：身份证 15/18 位、手机号、常见住院号长数字串 → 占位，不把原文出网 */
-export function redactEmrText(text: string): string {
-  return text
+/**
+ * 本地脱敏：身份证 15/18 位、手机号、住院号等长数字串 → 占位，不把原文出网。
+ * patientName（可选）：病历自由文本常出现患者姓名，按档案姓名精确替换为占位
+ * （二字/三字姓名精确匹配，不做姓氏模糊匹配，防误伤"张大爷"这类称谓）。
+ * 8 位日期（如 20260808）不是直接身份信息，先替换为 [日期]，避免被长数字串规则误伤。
+ */
+export function redactEmrText(text: string, patientName?: string): string {
+  const name = patientName?.trim() ?? "";
+  const named = name.length >= 2 ? text.split(name).join("[姓名已脱敏]") : text;
+  return named
     .replace(/\b\d{17}[\dXx]\b/g, "[身份证号已脱敏]")
     .replace(/\b1[3-9]\d{9}\b/g, "[手机号已脱敏]")
+    // 来源：任务G 评审 —— \d{8,14} 会误伤 8 位日期，先识别合法日期（19xx/20xx + 有效月日）放行
+    .replace(/\b(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\b/g, "[日期]")
     .replace(/\b\d{8,14}\b/g, "[号码已脱敏]");
 }
 
@@ -58,7 +67,9 @@ export function suggestScalesByRules(emrText: string): EmrSuggestResult {
     }
   }
   // 无命中时给常规综合评估包核心子集，避免空推荐
-  if (hit.size === 0) {
+  // 先记录命中数：填默认量表后 hit.size 恒非 0，reason 不能再以 hit.size 判断（死分支修复）
+  const hitCount = hit.size;
+  if (hitCount === 0) {
     for (const id of ["frail", "fall_3q", "mnasf", "minicog", "depression_2q", "anxiety_2q"]) {
       if (SCORABLE.has(id)) hit.add(id);
     }
@@ -66,7 +77,7 @@ export function suggestScalesByRules(emrText: string): EmrSuggestResult {
   const scaleIds = SCORABLE_SCALE_IDS.filter((id) => hit.has(id));
   return {
     scaleIds,
-    reason: hit.size
+    reason: hitCount
       ? `根据病历关键词匹配到 ${scaleIds.length} 个量表（规则兜底）`
       : "未识别到明确线索，已给出常规筛查组合",
     method: "rules",
@@ -76,8 +87,12 @@ export function suggestScalesByRules(emrText: string): EmrSuggestResult {
 /**
  * 病历智能推荐量表。优先 DeepSeek；失败/无密钥回落规则。
  * 出网 payload 仅含 redactedText + 量表清单（id/name），字段名经 PII 白名单语义安全。
+ * patientName（可选）：病历自由文本中的患者姓名按值替换脱敏后再出网（硬约束 1）。
  */
-export async function suggestScalesFromEmr(emrText: string): Promise<EmrSuggestResult> {
+export async function suggestScalesFromEmr(
+  emrText: string,
+  patientName?: string
+): Promise<EmrSuggestResult> {
   const trimmed = emrText.trim();
   if (trimmed.length < 8) {
     return { scaleIds: [], reason: "病历内容过短，请粘贴更完整的病史摘要", method: "rules" };
@@ -89,7 +104,9 @@ export async function suggestScalesFromEmr(emrText: string): Promise<EmrSuggestR
     .filter((s) => SCORABLE.has(s.id))
     .map((s) => ({ id: s.id, title: s.name })); // 字段名避 name/patient 等敏感词
 
-  const redactedText = redactEmrText(trimmed).slice(0, 4000);
+  const redactedText = redactEmrText(trimmed, patientName).slice(0, 4000);
+  // 值级兜底：把档案姓名登记进 piiValues，脱敏漏网时过滤层拦截（走 catch → 规则兜底）
+  const piiValues = patientName && patientName.trim().length >= 2 ? [patientName.trim()] : [];
   const system = [
     "你是老年综合评估量表推荐助手。根据脱敏后的病历摘要，从给定量表清单中选出最合适的量表 id。",
     "只输出 JSON：{\"scaleIds\":string[],\"reason\":string}。",
@@ -122,6 +139,7 @@ export async function suggestScalesFromEmr(emrText: string): Promise<EmrSuggestR
         ],
       },
       signal: controller.signal,
+      guard: { piiValues },
     });
     clearTimeout(timer);
     if (!response.ok) return rules;

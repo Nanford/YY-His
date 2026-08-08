@@ -92,6 +92,8 @@ export interface TcmConstitutionJudgmentV2 {
   thresholds: TcmThresholdsV2;
   balanced: {
     questionIds: string[];
+    /** 负向题（按 6−原始分 反向计分，来源：国标 CCMQ 平和质负向题反向计分口径）；必须是 questionIds 子集 */
+    reverseItemIds?: string[];
     tagCodes: { yes: string; basically: string; no: string };
   };
   biased: {

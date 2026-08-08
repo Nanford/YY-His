@@ -4,7 +4,7 @@
  * POS:    M9.5：01 表「条目类型 = 系统读取」的计分条目不再问患者，由档案数据确定性推导。
  *         纯函数、无 IO，供 src/lib/assessment/finalize.ts 在评分前落库 Answer（source=system）。
  *         条目数据取 rules/v2 原生形状（ScaleItemV2.entryType 原文即「系统读取」，不经 V1 投影）。
- *         本期仅实现 4 个条目（规则出处均为 01 表条目 + 任务拍板口径，推定处已注明）：
+ *         推导器清单（规则出处均为 01 表条目 + 任务拍板口径，推定处已注明）：
  *           frail_4  现有诊断 ≥5 种 → 是（数据源：diagnoses 单源；01 表复用规则写"诊断清单"，
  *                    pastHistory/recentAcute 不计入——推定，待用户确认后可扩展）
  *           frail_5  体重下降 ≥5% → 是（推定规则：baseline = max(体重史全部有效值, 当前体重)）
@@ -13,7 +13,20 @@
  *           mnasf_6  优先 BMI 四档，BMI 算不出回退小腿围（左右取较细，缺则旧字段 calfCm）
  *           morse_2  当前诊断 >1 个 → 15 分档（M10.3b 新增；数据源 diagnoses 单源，与 frail_4 同口径；
  *                    01 表复用规则「从病历中的当前诊断清单读取；按各量表自己的规则分别计算疾病数」）
- *         morse_4（静脉输液）/morse_5（步态）/nrs2002_终筛3 等条目虽也可由档案推出，但口径未经用户逐条拍板，本期不做。
+ *           glim_1   过去 6 个月内体重下降＞5% → 是（数据源：weightHistory 的 m1/m2/m3/m6 与当前体重，
+ *                    取窗口内最大下降百分比；m12 超出「6 个月内」窗口，不计入）
+ *           glim_2   超过 6 个月体重下降＞10% → 是（数据源：weightHistory.m12 与当前体重，
+ *                    m1~m6 不在「超过 6 个月」口径内）
+ *           glim_3   低 BMI 界值（＜70 岁 BMI＜18.5 / ≥70 岁 BMI＜20）→ 符合（BMI 由身高体重算，
+ *                    BMI 或年龄缺一则不答）
+ *         明确不做的条目：
+ *           nrs2002_终筛1（逻辑计算）——定档需「进食量占平时比例」档位（50~75%/25~50%/＜25%），
+ *             档案无此数据源、初筛3 仅为是/否粒度，且本纯函数拿不到会话内其他题答案；体重史/BMI
+ *             只能给出下限（进食量可再抬档），按评分确定性红线不得按下限定档。唯一可确定性推出的
+ *             是重度档（BMI＜18.5 或 m1 下降＞5% 或 m3 下降＞15% 单独即 3 分封顶），但同量表终筛2
+ *             仍无推导器、终筛始终阻断，自动答终筛1 解除不了阻断反而留下半截数据，故本期不做，
+ *             维持医生代填 / deferClinical 豁免口径。
+ *           morse_4（静脉输液）/morse_5（步态）等条目虽也可由档案推出，但口径未经用户逐条拍板，本期不做。
  */
 
 import { scaleV2ById, type ScaleItemOptionV2, type ScaleItemV2 } from "@/lib/rules/v2";
@@ -201,6 +214,53 @@ const DERIVERS: Record<string, (patient: PatientLike) => Derivation> = {
     }
     return { score: 3, keyword: "≥31", rawText: `BMI 无法计算，按小腿围：${source}≥31cm` };
   },
+  // 来源：01 表 glim_1「是：过去6个月内体重下降＞5%」；选项 score=null，按关键字反查。
+  // 数据源：weightHistory 的 m1/m2/m3/m6 与当前体重，取窗口内最大下降百分比；
+  // m12 超出「6 个月内」窗口不计入（12 月前的体重无法证明下降发生在近 6 个月内）。
+  glim_1(patient) {
+    const current = positiveNumber(patient.weightKg);
+    if (current === null) return null;
+    const windowWeights = ["m1", "m2", "m3", "m6"]
+      .map((k) => weightAt(patient.weightHistory, k))
+      .filter((n): n is number => n !== null);
+    if (windowWeights.length === 0) return null;
+    const baseline = Math.max(...windowWeights);
+    const lossPct = ((baseline - current) / baseline) * 100;
+    const yes = lossPct > 5;
+    return {
+      score: Number.NaN,
+      keyword: yes ? "是" : "否",
+      rawText: `过去6个月内最大体重下降 ${round1(lossPct)}%（窗口内峰值 ${round1(baseline)}kg → 现在 ${round1(current)}kg，＞5% 判定为「是」）`,
+    };
+  },
+  // 来源：01 表 glim_2「是：超过6个月的体重下降＞10%」；选项 score=null，按关键字反查。
+  // 数据源：weightHistory.m12 与当前体重（体重史中唯一「超过 6 个月」的时点）。
+  glim_2(patient) {
+    const current = positiveNumber(patient.weightKg);
+    const m12 = weightAt(patient.weightHistory, "m12");
+    if (current === null || m12 === null) return null;
+    const lossPct = ((m12 - current) / m12) * 100;
+    const yes = lossPct > 10;
+    return {
+      score: Number.NaN,
+      keyword: yes ? "是" : "否",
+      rawText: `超过6个月体重下降 ${round1(lossPct)}%（12月前 ${round1(m12)}kg → 现在 ${round1(current)}kg，＞10% 判定为「是」）`,
+    };
+  },
+  // 来源：01 表 glim_3「符合低BMI界值：＜70岁且BMI＜18.5 kg/m²，或≥70岁且BMI＜20 kg/m²」；
+  // 复用当前 BMI（身高体重换算）与年龄，缺一则不答；选项 score=null，按关键字反查
+  glim_3(patient) {
+    const bmi = bmiOf(patient);
+    const age = positiveNumber(patient.age);
+    if (bmi === null || age === null) return null;
+    const threshold = age >= 70 ? 20 : 18.5;
+    const meet = bmi < threshold;
+    return {
+      score: Number.NaN,
+      keyword: meet ? "符合低BMI界值" : "不符合",
+      rawText: `年龄 ${age} 岁、BMI=${round1(bmi)}（界值 ${threshold} kg/m²，低于界值判定为「符合」）`,
+    };
+  },
   // 来源：01 表 NRS2002 初筛 1「BMI＜20.5？」；标准 NRS2002 初筛项；选项 score=null，按关键字反查
   "nrs2002_初筛1"(patient) {
     const bmi = bmiOf(patient);
@@ -282,7 +342,8 @@ const SYSTEM_DERIVABLE_ENTRY_TYPES: ReadonlySet<string> = new Set(["系统读取
 
 /**
  * 推导指定量表集合内全部可由档案数据直接推出的「系统读取/测量」条目答案。
- * - 只处理已有推导器的计分条目；逻辑计算类（mnasf_3/mnasf_5 等）需跨题综合，不在本函数覆盖。
+ * - 只处理已有推导器的计分条目；逻辑计算类（mnasf_3/mnasf_5/nrs2002_终筛1 等）需跨题综合或缺
+ *   数据源，不在本函数覆盖（终筛1 不做推导的具体理由见文件头注释）。
  * - 档案数据不足推不出的条目不产出（严格路径仍会阻断评分，由医生补档案或代填）。
  * - existing：已有 confirmed 人工答案的题目 id 集合，命中即跳过（系统读取不覆盖人工答案）。
  */
@@ -306,10 +367,11 @@ export function resolveSystemReadAnswers(
       out.push({
         questionId: item.id,
         optionLabel: option.label,
-        // 无分合成选项（测量结论）落库 score 用 0/1 哨兵：阳性类关键字→1，否则 0
+        // 无分合成选项（测量结论）落库 score 用 0/1 哨兵：阳性/符合类关键字→1，否则 0
+        // （^符合 锚定开头，避免 glim_3 否定关键字「不符合」误判为 1）
         score:
           option.score ??
-          (derived.keyword && /阳性|下降|是/.test(derived.keyword) ? 1 : 0),
+          (derived.keyword && /阳性|下降|是|^符合/.test(derived.keyword) ? 1 : 0),
         rawText: derived.rawText,
       });
     }

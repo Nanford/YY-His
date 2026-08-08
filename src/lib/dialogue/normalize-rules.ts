@@ -145,6 +145,33 @@ function parseOrdinal(text: string, optionCount: number): number | null {
   return index >= 1 && index <= optionCount ? index : null;
 }
 
+// ---------- 数字题（按口述数值精确反查 score 档位） ----------
+
+const CN_NUMERALS: Record<string, number> = {
+  零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10,
+};
+
+/** 解析数字题的口述数值：接受阿拉伯数字与 0～10 的中文数字（可带"分"后缀），其余返回 null */
+function parseSpokenValue(text: string): number | null {
+  const stripped = text.replace(/分$/, "");
+  if (/^\d+$/.test(stripped)) return Number(stripped);
+  if (stripped.length === 1 && stripped in CN_NUMERALS) return CN_NUMERALS[stripped];
+  return null;
+}
+
+/**
+ * 数字题（如 iciq_3 漏尿影响 0～10 分）按 score 精确反查选项。
+ * 不得落入 parseByOptionKeywords 的"第 N 项"序号解析——选项序号与分值并不一致
+ * （0 分档是第 1 项，答"3"会被错配到 score=2），解析不出或无匹配档位一律 unclear（禁止编造）。
+ */
+function parseByScoreValue(text: string, options: QuestionOption[]): NormalizationOutcome {
+  const value = parseSpokenValue(text);
+  if (value === null) return unclear("未能从回答中解析出数值");
+  const hits = options.filter((option) => option.score === value);
+  if (hits.length === 1) return matched(hits[0], `规则匹配：数值 ${value} 对应选项"${hits[0].label}"`);
+  return unclear(`数值 ${value} 无对应选项档位`);
+}
+
 // ---------- 选项关键词匹配（choice / likert5 通用） ----------
 
 /** 把选项文案拆成可识别关键词：按（）、/ 顿号分段，如"没有（根本不/从来没有）"→ 没有|根本不|从来没有 */
@@ -209,6 +236,10 @@ export function normalizeByRules(
   }
   if (question.answerType === "boolean") {
     return parseBoolean(text, options);
+  }
+  // 数字题走分值精确反查（见 parseByScoreValue），不走选项关键词/序号匹配
+  if (question.answerType === "number") {
+    return parseByScoreValue(text, options);
   }
   // likert5 与 choice 共用选项关键词 + 序号匹配（likert5 的五级频度词已包含在选项文案里）
   return parseByOptionKeywords(text, options);

@@ -12,7 +12,7 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { MULTI_CHOICE_SEP, optionsOf, scaleById, scaleByQuestionId, questionById } from "@/lib/rules";
 import { parseSessionScaleSelection } from "@/lib/assessment/scale-packages";
-import { buildInterventionV2, type PlanCandidateItemV2, type PlanCandidatesV2 } from "@/lib/recommend-v2";
+import { buildInterventionV2, FORBIDDEN_SCORE_V2, type PlanCandidateItemV2, type PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { applyPlanReview, type PlanReviewInput } from "@/lib/assessment/plan-review";
@@ -288,7 +288,10 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
   });
   const tagCodes = ((result?.tags ?? []) as unknown as AssessmentTag[]).map((tag) => tag.code);
 
-  const candidates = (plan.candidates as unknown as PlanCandidatesV2).items;
+  const candidatesSnapshot = plan.candidates as unknown as PlanCandidatesV2;
+  const candidates = candidatesSnapshot.items;
+  // 本患者被 -100 禁止的干预明细（随候选快照落库）：同类替换命中即硬拦截（禁忌红线）
+  const forbiddenList = candidatesSnapshot.forbidden ?? [];
   const inputs: Record<string, PlanReviewInput> = {};
   for (const candidate of candidates) {
     const action = textOrNull(formData, `action.${candidate.code}`) ?? "keep";
@@ -300,6 +303,17 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
     } else if (action === "replace") {
       const toCode = textOrNull(formData, `replaceWith.${candidate.code}`);
       if (!toCode) throw new Error(`未选择替换项：${candidate.code}`);
+      // 禁忌红线（来源：03 表 -100=禁止）：替换目标命中本患者快照 forbidden 即拒绝，禁止原因随错误透出
+      const banned = forbiddenList.find((f) => f.code === toCode);
+      if (banned) {
+        const reasons = banned.reasons
+          .filter((r) => r.score === FORBIDDEN_SCORE_V2)
+          .map((r) => r.tagName)
+          .join("、");
+        throw new Error(
+          `该干预对本患者为禁忌项（-100），不能替换入方案：${toCode} ${banned.name}（${reasons || "禁止原因未记录"}触发禁止）`
+        );
+      }
       const built = buildInterventionV2(toCode, tagCodes);
       if (!built) throw new Error(`替换项不存在：${toCode}`);
       if (built.category !== candidate.category) throw new Error(`只能在同类别内替换：${candidate.code}`);

@@ -3,8 +3,9 @@
  * OUTPUT: PII 出网过滤层的单元测试
  * POS:    合规红线的测试把关（AGENTS.md 硬约束 1：出网前必须经过字段过滤，且有单元测试）。
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { assertPiiSafe, PiiViolationError } from "@/lib/providers/pii-filter";
+import { normalizeByDeepSeek } from "@/lib/providers/deepseek";
 
 describe("PII 出网过滤：字段级拦截", () => {
   it("顶层出现禁用字段名 → 拦截", () => {
@@ -76,6 +77,81 @@ describe("PII 出网过滤：值级兜底拦截", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(PiiViolationError);
       expect((error as PiiViolationError).path).toBe("$.a[0].patientName");
+    }
+  });
+});
+
+describe("DeepSeek 归一化出网：患者姓名值级脱敏", () => {
+  const question = {
+    standardText: "过去4周您是否感到疲乏？",
+    colloquialText: "最近觉得累不累？",
+    options: [
+      { label: "是", score: 1 },
+      { label: "否", score: 0 },
+    ],
+    patientCode: "P20260714-X3F9",
+  };
+
+  function stubFetch(captured: { body: string }) {
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      captured.body = String(init?.body ?? "");
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  matched: true,
+                  optionLabel: "是",
+                  confidence: 0.9,
+                  reason: "命中",
+                }),
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+  }
+
+  it("口述自报档案姓名时，出网文本姓名被替换为「患者」", async () => {
+    const prevKey = process.env.DEEPSEEK_API_KEY;
+    process.env.DEEPSEEK_API_KEY = "test-key";
+    const captured = { body: "" };
+    stubFetch(captured);
+    try {
+      const outcome = await normalizeByDeepSeek({
+        ...question,
+        utterance: "我叫张桂芳，最近是有点累",
+        patientName: "张桂芳",
+      });
+      expect(outcome?.status).toBe("matched");
+      expect(captured.body).not.toContain("张桂芳");
+      expect(captured.body).toContain("患者");
+    } finally {
+      vi.unstubAllGlobals();
+      if (prevKey === undefined) delete process.env.DEEPSEEK_API_KEY;
+      else process.env.DEEPSEEK_API_KEY = prevKey;
+    }
+  });
+
+  it("不传 patientName 时口述原文出网（可选参数，不破坏既有调用方）", async () => {
+    const prevKey = process.env.DEEPSEEK_API_KEY;
+    process.env.DEEPSEEK_API_KEY = "test-key";
+    const captured = { body: "" };
+    stubFetch(captured);
+    try {
+      const outcome = await normalizeByDeepSeek({
+        ...question,
+        utterance: "最近是有点累",
+      });
+      expect(outcome?.status).toBe("matched");
+      expect(captured.body).toContain("最近是有点累");
+    } finally {
+      vi.unstubAllGlobals();
+      if (prevKey === undefined) delete process.env.DEEPSEEK_API_KEY;
+      else process.env.DEEPSEEK_API_KEY = prevKey;
     }
   });
 });

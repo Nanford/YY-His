@@ -11,7 +11,9 @@ const answerSchema = z.object({
   questionId: z.string().min(1).max(64),
   mode: z.enum(["voice", "text", "button", "multi", "drawing"]),
   utterance: z.string().max(2000).optional(),
-  /** 含 NRS/ICIQ 影响分 0～10 */
+  /** button 模式点选的选项 label（choice/imageChoice 按 label 精确匹配） */
+  label: z.string().min(1).max(200).optional(),
+  /** number 题数字面板分值（含 NRS/ICIQ 影响分 0～10） */
   score: z.number().int().min(0).max(10).optional(),
   labels: z.array(z.string().min(1).max(120)).max(12).optional(),
   drawingDataUrl: z.string().max(800_000).optional(),

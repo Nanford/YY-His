@@ -96,19 +96,20 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   await page.locator('input[name="weightM12"]').fill("55");
 
   const patientForm = page.locator("form").filter({ has: page.locator('input[name="name"]') });
-  await patientForm.getByRole("button", { name: "创建患者档案", exact: true }).click();
+  await patientForm.getByRole("button", { name: "保存档案并继续", exact: true }).click();
   await expect(page).toHaveURL(/\/doctor\/patients\/[^/?]+$/);
   await expect(page.getByRole("heading", { name: /E2E 全流程患者/ })).toBeVisible();
   await expect(page.getByText("BMI：20.2", { exact: true })).toBeVisible();
 
-  // 量表工具选择（docx §2）：默认常规综合评估包（8 量表），其余 4 预设套餐 + 自定义 +
-  // 病历智能评估占位禁用；直接以默认套餐提交
+  // 量表工具选择（docx §2）：默认常规综合评估包（8 量表），其余 4 预设套餐 + 自定义
+  // 共 6 个 name="package" 单选；病历智能评估为独立交互入口（不占 name="package"，
+  // 选中后由隐藏域按 custom + scale.* 口径提交）。直接以默认套餐提交
   const sessionForm = page.locator("form").filter({ has: page.locator('input[name="package"]') });
-  await expect(sessionForm.locator('input[name="package"]')).toHaveCount(7);
+  await expect(sessionForm.locator('input[name="package"]')).toHaveCount(6);
   await expect(sessionForm.locator('input[name="package"][value="routine"]')).toBeChecked();
   await expect(sessionForm.getByText("常规综合评估包", { exact: true })).toBeVisible();
   await expect(sessionForm.getByText("8 个量表", { exact: true })).toBeVisible();
-  await expect(sessionForm.locator('input[name="package"][value="emr"]')).toBeDisabled();
+  await expect(sessionForm.getByText("病历智能评估", { exact: true })).toBeVisible();
   await sessionForm.getByRole("button", { name: "创建评估会话", exact: true }).click();
   await expect(page).toHaveURL(/\/doctor\/sessions\/[^/?]+$/);
 
@@ -212,10 +213,13 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   for (const category of ["运动干预", "膳食营养", "中医食养", "就诊建议", "其他"]) {
     await expect(reviewSection.getByRole("heading", { name: category, exact: true })).toBeVisible();
   }
-  // V2 展示形态：运动/其他视频项素材未上线回退文字要点（YD01/YD02/QT12 共 3 项）；
-  // 膳食/中医食养图片素材待补齐（SS02/SS03/ZY01 共 3 项）；JZ/QT 文本项正文即文字卡（3 项）
-  await expect(reviewSection.getByText("视频教程待上线，请先参考下方动作要点", { exact: true })).toHaveCount(3);
-  await expect(reviewSection.getByText("该项图文教程素材待补齐（不以其他干预图片替代）", { exact: true })).toHaveCount(3);
+  // V2 展示形态：YD01/YD02 视频素材已就位（卡内 <video> 播放，共 2 项）；
+  // SS02/SS03 膳食图片已就位（可放大查看，共 2 项）；QT12 视频未上线回退文字要点（1 项）；
+  // ZY01 图片素材待补齐（1 项）；JZ/QT 文本项正文即文字卡（3 项）
+  await expect(reviewSection.locator("video")).toHaveCount(2);
+  await expect(reviewSection.getByRole("button", { name: /放大查看/ })).toHaveCount(2);
+  await expect(reviewSection.getByText("视频教程待上线，请先参考下方动作要点", { exact: true })).toHaveCount(1);
+  await expect(reviewSection.getByText("该项图文教程素材待补齐（不以其他干预图片替代）", { exact: true })).toHaveCount(1);
   await expect(reviewSection.getByText("老年综合诊疗建议 · 文字说明", { exact: true })).toBeVisible();
   await expect(reviewSection.getByText("照护者支持方案 · 文字说明", { exact: true })).toBeVisible();
   // 积分来源明细逐项下钻：9 项各有明细；JZ02 老年综合诊疗建议累加总分最高（32）
@@ -309,7 +313,7 @@ test("系统读取题缺失先阻断，代填后候选为空医生可确认空�
   await page.locator('select[name="gender"]').selectOption("女");
   await page.locator('input[name="age"]').fill("72");
   // 不填任何测量/补充档案：frail_4/frail_5 系统读取推不出，strict 路径应阻断并列出缺失
-  await page.getByRole("button", { name: "创建患者档案", exact: true }).click();
+  await page.getByRole("button", { name: "保存档案并继续", exact: true }).click();
   await expect(page).toHaveURL(/\/doctor\/patients\/[^/?]+$/);
 
   // 自定义组合：只勾选 FRAIL + 跌倒三问

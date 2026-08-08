@@ -5,9 +5,12 @@
 import { describe, expect, it } from "vitest";
 import {
   completedScaleIds,
+  scaleComparisons,
   scaleNeedsClinician,
   scaleScopes,
+  type ComparableTag,
   type SessionScaleInfo,
+  type SessionSnapshotInfo,
 } from "@/lib/assessment/supplementary";
 import { scales } from "@/lib/rules";
 
@@ -15,6 +18,20 @@ const t = (iso: string) => new Date(iso);
 
 function session(status: string, scaleIds: string[], startedAt = "2026-07-19T08:00:00Z"): SessionScaleInfo {
   return { status, scaleIds, startedAt: t(startedAt) };
+}
+
+/** 构造标签快照元素（score 默认为量表总分语义：同量表标签同分） */
+function tag(scaleId: string, code: string, score: number, name = code, level = "是"): ComparableTag {
+  return { code, tag: name, level, scaleId, score };
+}
+
+function snapshot(
+  status: string,
+  scaleIds: string[],
+  startedAt: string,
+  tags: ComparableTag[]
+): SessionSnapshotInfo {
+  return { status, scaleIds, startedAt: t(startedAt), tags };
 }
 
 describe("completedScaleIds", () => {
@@ -86,5 +103,134 @@ describe("scaleNeedsClinician", () => {
     for (const scale of scales) {
       expect(typeof scaleNeedsClinician(scale.id)).toBe("boolean");
     }
+  });
+});
+
+describe("scaleComparisons（随访对比，Demo_v2 步骤 2）", () => {
+  it("复评量表：标签新增/消失/保留与总分升降正确派生", () => {
+    // 上次 frail：标签 A（保留）+ B（本次消失），总分 2；本次：A + C（新增），总分 3
+    const others = [
+      snapshot("collected", ["frail"], "2026-07-18T08:00:00Z", [
+        tag("frail", "FRAIL_A", 2),
+        tag("frail", "FRAIL_B", 2),
+      ]),
+    ];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      {
+        scaleIds: ["frail"],
+        tags: [tag("frail", "FRAIL_A", 3), tag("frail", "FRAIL_C", 3)],
+      },
+      others
+    );
+    expect(result).toHaveLength(1);
+    const comparison = result[0];
+    expect(comparison.scaleId).toBe("frail");
+    expect(comparison.previousStartedAt).toEqual(t("2026-07-18T08:00:00Z"));
+    expect(comparison.previousScore).toBe(2);
+    expect(comparison.currentScore).toBe(3); // 2 → 3 升高
+    expect(comparison.added.map((c) => c.code)).toEqual(["FRAIL_C"]);
+    expect(comparison.removed.map((c) => c.code)).toEqual(["FRAIL_B"]);
+    expect(comparison.kept.map((c) => c.code)).toEqual(["FRAIL_A"]);
+  });
+
+  it("无历史会话 → 不产对比", () => {
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      { scaleIds: ["frail"], tags: [tag("frail", "FRAIL_A", 3)] },
+      []
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("非复评量表（本次量表无更早完成记录）→ 不产对比", () => {
+    const others = [
+      snapshot("collected", ["fall_3q"], "2026-07-18T08:00:00Z", [tag("fall_3q", "FALL_POS", 1)]),
+    ];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      { scaleIds: ["frail"], tags: [tag("frail", "FRAIL_A", 3)] },
+      others
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("更早但仍在采集中的会话不作为对比基准", () => {
+    const others = [
+      snapshot("in_progress", ["frail"], "2026-07-18T08:00:00Z", [tag("frail", "FRAIL_A", 2)]),
+    ];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      { scaleIds: ["frail"], tags: [tag("frail", "FRAIL_A", 3)] },
+      others
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("晚于本次发起的会话不作为对比基准", () => {
+    const others = [
+      snapshot("collected", ["frail"], "2026-07-20T08:00:00Z", [tag("frail", "FRAIL_A", 2)]),
+    ];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      { scaleIds: ["frail"], tags: [tag("frail", "FRAIL_A", 3)] },
+      others
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("多次复评取最近一次包含该量表的已出报告会话为基准", () => {
+    const others = [
+      snapshot("collected", ["frail"], "2026-07-15T08:00:00Z", [tag("frail", "FRAIL_B", 1)]),
+      snapshot("confirmed", ["frail"], "2026-07-18T08:00:00Z", [tag("frail", "FRAIL_A", 2)]),
+    ];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      { scaleIds: ["frail"], tags: [tag("frail", "FRAIL_A", 3)] },
+      others
+    );
+    expect(result).toHaveLength(1);
+    // 基准是 07-18 那次（A 保留），而非 07-15（那样 A 会被误判为新增）
+    expect(result[0].previousStartedAt).toEqual(t("2026-07-18T08:00:00Z"));
+    expect(result[0].kept.map((c) => c.code)).toEqual(["FRAIL_A"]);
+    expect(result[0].added).toEqual([]);
+  });
+
+  it("中医体质型多分标签（同量表标签得分不一致）→ 总分为 null，只比标签", () => {
+    const others = [
+      snapshot("collected", ["tcm_constitution"], "2026-07-18T08:00:00Z", [
+        tag("tcm_constitution", "TCM_QIXU", 42.5, "气虚质"),
+        tag("tcm_constitution", "TCM_XUEYU", 35.0, "血瘀质"),
+      ]),
+    ];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      {
+        scaleIds: ["tcm_constitution"],
+        tags: [tag("tcm_constitution", "TCM_QIXU", 45.0, "气虚质", "倾向是")],
+      },
+      others
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].previousScore).toBeNull();
+    expect(result[0].currentScore).toBeNull();
+    expect(result[0].removed.map((c) => c.code)).toEqual(["TCM_XUEYU"]);
+    expect(result[0].kept.map((c) => c.code)).toEqual(["TCM_QIXU"]);
+    expect(result[0].kept[0].level).toBe("倾向是"); // 级别取本次快照
+  });
+
+  it("两次均零标签的复评量表 → 有对比条目但集合变化为空", () => {
+    const others = [snapshot("collected", ["mnasf"], "2026-07-18T08:00:00Z", [])];
+    const result = scaleComparisons(
+      t("2026-07-19T08:00:00Z"),
+      { scaleIds: ["mnasf"], tags: [] },
+      others
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].previousScore).toBeNull();
+    expect(result[0].currentScore).toBeNull();
+    expect(result[0].added).toEqual([]);
+    expect(result[0].removed).toEqual([]);
+    expect(result[0].kept).toEqual([]);
   });
 });

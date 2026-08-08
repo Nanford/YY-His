@@ -27,6 +27,11 @@ export interface DeepSeekNormalizeInput {
   utterance: string;
   /** 患者唯一编号，出网允许的唯一患者标识 */
   patientCode: string;
+  /**
+   * 患者档案姓名（可选）。患者口述可能自报姓名（"我叫张桂芳"），出网前做值级替换脱敏。
+   * 只做二字/三字姓名的精确替换，不做姓氏模糊匹配（"张大爷"这类称谓不算姓名本体，防误伤）。
+   */
+  patientName?: string;
 }
 
 /*
@@ -98,11 +103,19 @@ export async function normalizeByDeepSeek(
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) return null;
 
+  // 值级脱敏（AGENTS.md 硬约束 1）：患者自报姓名是合法场景，替换为「患者」再出网，
+  // 不 throw 打断流程；替换后仍把姓名登记进 piiValues 做值级兜底扫描，万一漏网由过滤层
+  // 拦截抛错，走下方 catch → null → 规则兜底，采集链路不中断。
+  const patientName = input.patientName?.trim() ?? "";
+  const safeUtterance =
+    patientName.length >= 2 ? input.utterance.split(patientName).join("患者") : input.utterance;
+  const piiValues = patientName.length >= 2 ? [patientName] : [];
+
   const userPayload = {
     question: input.standardText,
     questionAsSpoken: input.colloquialText,
     options: input.options.map((option) => option.label),
-    patientReply: input.utterance,
+    patientReply: safeUtterance,
   };
 
   try {
@@ -121,6 +134,7 @@ export async function normalizeByDeepSeek(
         user: input.patientCode,
       },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      guard: { piiValues },
     });
     if (!response.ok) return null;
 

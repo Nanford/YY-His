@@ -1,6 +1,6 @@
 /**
  * INPUT:  评估标签快照（AssessmentResult）、候选/最终干预方案（InterventionPlan）、
- *         评估范围标识与历史报告/补充评估派生信息（V2.0 §3）
+ *         评估范围标识与历史报告/补充评估派生信息（V2.0 §3）、复评量表随访对比（Demo_v2 步骤 2）
  * OUTPUT: PatientReport —— 患者端大屏的评估报告与干预方案展示（问答完成后立即可见）
  * POS:    产品口径（2026-07-14 已与用户确认）：评估内容是确定性计算，问答完成即生成报告，
  *         不需要医生先审核评估结果；干预方案候选医生仍会另行审核调整（保留 InterventionPlan
@@ -25,7 +25,7 @@ import {
 } from "@tabler/icons-react";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
-import type { ScaleScope } from "@/lib/assessment/supplementary";
+import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
 import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 import { createSupplementarySession } from "@/lib/actions/patient";
@@ -79,6 +79,8 @@ interface PatientReportProps {
   tags: readonly AssessmentTag[];
   /** 部分计分的量表（快照 AssessmentResult.deferred；老快照无此字段时页面传 []） */
   deferredScales: readonly DeferredScale[];
+  /** 复评量表与上次报告的对比（服务端按同患者历史快照派生；纯新增评估传 []） */
+  comparisons: readonly ScaleComparison[];
   planStatus: "draft" | "confirmed";
   plan: readonly PlanCandidateItemV2[];
   confirmedAt: Date | null;
@@ -94,6 +96,7 @@ export function PatientReport({
   reportScales,
   tags,
   deferredScales,
+  comparisons,
   planStatus,
   plan,
   confirmedAt,
@@ -150,8 +153,15 @@ export function PatientReport({
             <span>勾选的项目已经评估过了；如需重新评估，请医生在工作台为您发起。</span>
           </div>
         )}
+        {error === "not_reported" && (
+          <div className="ui-alert ui-alert-danger text-lg" role="alert">
+            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>上次评估尚未出报告，暂不能发起补充评估，请稍后再试或请联系医生。</span>
+          </div>
+        )}
 
         <TagsSection tags={tags} deferredScales={deferredScales} />
+        {comparisons.length > 0 && <ComparisonSection comparisons={comparisons} />}
         <PlanSection planStatus={planStatus} plan={plan} confirmedAt={confirmedAt} />
 
         {remainingScales.length > 0 && (
@@ -258,6 +268,75 @@ function HistorySection({ historyReports }: { historyReports: HistoryReportEntry
   );
 }
 
+/**
+ * 随访对比（Demo_v2 步骤 2）：复评量表与同患者上次已出报告会话的对比——
+ * 标签集合变化（新增/消失/保留）与总分升降。总分箭头只表方向不定好坏
+ * （不同量表高分含义相反，如 FRAIL 高=差、MNA-SF 高=好），避免误导。
+ */
+function ComparisonSection({ comparisons }: { comparisons: readonly ScaleComparison[] }) {
+  return (
+    <section className="patient-panel px-6 py-7 md:px-8">
+      <span className="ui-badge">
+        <IconHistory size={16} stroke={1.8} aria-hidden="true" />
+        随访对比
+      </span>
+      <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">与上次评估对比</h2>
+      <div className="mt-5 space-y-4">
+        {comparisons.map((comparison) => (
+          <ComparisonCard key={comparison.scaleId} comparison={comparison} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** 单个复评量表的对比卡片 */
+function ComparisonCard({ comparison }: { comparison: ScaleComparison }) {
+  const scaleName = scales.find((s) => s.id === comparison.scaleId)?.name ?? comparison.scaleId;
+  const { previousScore, currentScore } = comparison;
+  const delta = previousScore !== null && currentScore !== null ? currentScore - previousScore : null;
+  const tagLabel = (change: TagChange) => `${change.tag}${LEVEL_LABEL[change.level] ?? ""}`;
+  return (
+    <article className="ui-panel-subtle px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-xl font-bold text-[var(--ink)]">{scaleName}</h3>
+        <span className="text-base text-[var(--ink-muted)]">
+          上次评估：{comparison.previousStartedAt.toLocaleDateString("zh-CN")}
+        </span>
+      </div>
+      {delta !== null && (
+        <p className="mt-2 text-lg font-bold text-[var(--ink)]">
+          总分 {previousScore} → {currentScore}
+          <span className="ml-2 text-base font-semibold text-[var(--ink-muted)]">
+            {delta > 0 ? "▲ 升高" : delta < 0 ? "▼ 下降" : "— 持平"}
+          </span>
+        </p>
+      )}
+      {comparison.added.length === 0 && comparison.removed.length === 0 && comparison.kept.length === 0 ? (
+        <p className="mt-2 text-base text-[var(--ink-muted)]">两次评估均未产生需要标注的结论。</p>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {comparison.added.map((change) => (
+            <span key={`add-${change.code}`} className="ui-badge ui-badge-warning">
+              新增 · {tagLabel(change)}
+            </span>
+          ))}
+          {comparison.removed.map((change) => (
+            <span key={`rm-${change.code}`} className="ui-badge">
+              消失 · {tagLabel(change)}
+            </span>
+          ))}
+          {comparison.kept.map((change) => (
+            <span key={`keep-${change.code}`} className="ui-badge ui-badge-success">
+              仍有 · {tagLabel(change)}
+            </span>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
 function PatientReportTopbar() {
   return (
     <header className="patient-topbar border-b border-[var(--line)]">
@@ -321,6 +400,20 @@ function TagsSection({
   // 有异常的量表组置顶
   groups.sort((a, b) => Number(b.hasAbnormal) - Number(a.hasAbnormal));
 
+  // 全豁免量表（计分项目全为医生检查题、deferClinical 下零标签）：没有标签组可展示，
+  // 若按"没有发现问题"口径呈现属于误导，须如实说明这些量表本次暂无结论。
+  const taggedScaleIds = new Set(tags.map((tag) => tag.scaleId));
+  const silentDeferred = deferredScales.filter((d) => !taggedScaleIds.has(d.scaleId));
+  const silentNote = silentDeferred.length > 0 && (
+    <div className="ui-alert ui-alert-warning mt-6" role="note">
+      <IconAlertTriangle size={21} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <p>
+        {silentDeferred.map((d) => `「${d.scaleName}」`).join("、")}
+        的计分项目均需医护测量/查看后评定，本次暂无结论，不计入上面的「无异常」范围。
+      </p>
+    </div>
+  );
+
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -350,10 +443,14 @@ function TagsSection({
       )}
 
       {tags.length === 0 ? (
-        <div className="ui-alert mt-6">
-          <IconCheck size={21} stroke={2} aria-hidden="true" />
-          <p>本次评估没有发现需要关注的问题，请继续保持良好的生活习惯。</p>
-        </div>
+        silentNote ? (
+          silentNote
+        ) : (
+          <div className="ui-alert mt-6">
+            <IconCheck size={21} stroke={2} aria-hidden="true" />
+            <p>本次评估没有发现需要关注的问题，请继续保持良好的生活习惯。</p>
+          </div>
+        )
       ) : (
         <div className="mt-6 space-y-5">
           {groups.map((group) => (
@@ -382,6 +479,7 @@ function TagsSection({
               </div>
             </div>
           ))}
+          {silentNote}
         </div>
       )}
     </section>

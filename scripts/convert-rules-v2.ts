@@ -8,7 +8,9 @@
  * OUTPUT: data/scales-v2.json（采集编排：narrations + scales/items，选项尽力解析，原文全保留）
  *         data/result-tags.json（190 标签：编码/中文名/所属量表/判定规则/占位标记）
  *         data/intervention-scoring-v2.json（编码索引稀疏矩阵，仅存非零分；未出现的对视为 0）
- *         data/interventions-v2.json（60 项干预：编码/名称/正文/展示形式/素材 URL/素材可用性）
+ *         data/interventions-v2.json（60 项干预：编码/名称/正文/展示形式/素材 URL/素材可用性；
+ *           素材检测顺序：public/interventions/ 下 V2 编码命名文件优先，缺失时按 MEDIA_V1_SOURCE
+ *           表把内容明确对应的 V1 素材复制为 V2 编码命名；检测到的素材 mediaSrc 附内容哈希 ?v=）
  *         public/interventions/bristol-stool.png（palette 量化压缩，目标 <600KB）+ bristol-stool.webp
  * POS:    V2 规则数据层的唯一生成与校验入口。医学规则变更只能改 V2/ 源文件后重跑本脚本
  *         （npm run convert-rules-v2）；校验失败即退出非零码，禁止产出不完整数据。
@@ -22,6 +24,7 @@
 import * as XLSX from "xlsx";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 import sharp from "sharp";
 import { EDUCATION_BANDS } from "../src/lib/scoring-v2/education";
 
@@ -60,6 +63,11 @@ function cell(v: unknown): string {
 /** 可空字符串：空 → null */
 function nullable(v: string): string | null {
   return v === "" ? null : v;
+}
+
+/** 文件内容 md5 前 8 位，作为静态素材缓存版本号：内容不变则 URL 不变，可安全 immutable 长缓存（对齐 scripts/convert-rules.ts） */
+function contentHash(file: string): string {
+  return crypto.createHash("md5").update(fs.readFileSync(file)).digest("hex").slice(0, 8);
 }
 
 // ============================================================================
@@ -462,6 +470,55 @@ const MATCH_CATEGORY_LABEL: Record<string, string> = {
 
 const MEDIA_TYPE_BY_DISPLAY: Record<string, string> = { 视频: "video", 图片: "image", 文本: "text" };
 
+/**
+ * V1/V2.0 素材 → V2 编码映射（2026-08-08 人工核查，来源：data/intervention-scoring.json 的
+ * M/D/C 干预名称与正文 vs V2/04_干预方案信息表.xlsx 的 YD/SS/ZY 名称与正文，图片另逐张目检确认）。
+ * 仅收录名称与正文明确对应的项；对应不上的一律不映射（保持 mediaAvailable=false，前端显示「素材待补齐」）。
+ * 值为 public/interventions/ 下的相对路径；复制不移动，V1 文件退役不删。
+ *   运动视频：M01 扶椅坐站→YD02、M02 坐位伸膝→YD03、M03 扶椅提踵→YD04、M07 墙壁俯卧撑→YD09、
+ *             M09 脚跟对脚尖站立→YD06、M11 原地踏步（扶椅交替抬腿）→YD05、M12 步行训练→YD01
+ *   膳食图片：D03 优质蛋白加餐→SS02、D05 少量多餐→SS03、D10 口服营养补充→SS04
+ *   食养图片：C08 百合莲子羹→ZY02、C05 赤小豆冬瓜汤→ZY10
+ */
+const MEDIA_V1_SOURCE: Record<string, string> = {
+  YD01: "videos/M12.mp4",
+  YD02: "videos/M01.mp4",
+  YD03: "videos/M02.mp4",
+  YD04: "videos/M03.mp4",
+  YD05: "videos/M11.mp4",
+  YD06: "videos/M09.mp4",
+  YD09: "videos/M07.mp4",
+  SS02: "D03.png",
+  SS03: "D05.png",
+  SS04: "D10.png",
+  ZY02: "C08.png",
+  ZY10: "C05.png",
+};
+
+/**
+ * 定位干预素材文件：V2 编码命名文件优先；缺失时按 MEDIA_V1_SOURCE 把 V1 素材复制为 V2 编码命名
+ * （图片同步复制 .webp 派生）。返回 public/interventions/ 下的相对路径，无素材返回 null。
+ */
+function resolveMediaFile(code: string, mediaType: string): string | null {
+  if (mediaType === "text") return null;
+  const rel = mediaType === "video" ? `videos/${code}.mp4` : `${code}.png`;
+  const target = path.join(PUBLIC_INTERVENTIONS_DIR, rel);
+  if (fs.existsSync(target)) return rel;
+  const v1Rel = MEDIA_V1_SOURCE[code];
+  if (!v1Rel) return null;
+  const v1File = path.join(PUBLIC_INTERVENTIONS_DIR, v1Rel);
+  if (!fs.existsSync(v1File)) {
+    console.warn(`⚠ ${code} 映射的 V1 素材 ${v1Rel} 不存在，保持 mediaAvailable=false`);
+    return null;
+  }
+  fs.copyFileSync(v1File, target);
+  const v1Webp = v1File.replace(/\.png$/, ".webp");
+  if (mediaType === "image" && fs.existsSync(v1Webp)) {
+    fs.copyFileSync(v1Webp, target.replace(/\.png$/, ".webp"));
+  }
+  return rel;
+}
+
 interface Intervention {
   code: string;
   name: string;
@@ -497,13 +554,18 @@ function buildInterventionsV2(): { json: unknown; interventions: Intervention[] 
     if (!mediaType) fail(`04 表行 ${row}：未知展示形式「${display}」`);
     if (!name || !content) fail(`04 表行 ${row}：名称/具体内容有空值`);
     const prefix = code.slice(0, 2);
-    // mediaSrc：video → videos/<编码>.mp4；image → <编码>.png；text → null
-    const mediaSrc =
+    // mediaSrc：video → videos/<编码>.mp4；image → <编码>.png；text → null。
+    // 素材缺失时仍指向约定路径（mediaAvailable=false，前端回退「素材待补齐」）；
+    // 素材文件检测含 V1→V2 映射复制（见 resolveMediaFile）；检测到的素材附内容哈希 ?v=，
+    // 配合 next.config.ts 对 /interventions/* 的 immutable 长缓存（内容变则 URL 变）。
+    const mediaFile = resolveMediaFile(code, mediaType);
+    const baseSrc =
       mediaType === "video" ? `/interventions/videos/${code}.mp4`
       : mediaType === "image" ? `/interventions/${code}.png`
       : null;
-    const mediaAvailable =
-      mediaSrc !== null && fs.existsSync(path.join(PUBLIC_INTERVENTIONS_DIR, mediaSrc.replace("/interventions/", "")));
+    const mediaSrc =
+      mediaFile !== null ? `${baseSrc}?v=${contentHash(path.join(PUBLIC_INTERVENTIONS_DIR, mediaFile))}` : baseSrc;
+    const mediaAvailable = mediaFile !== null;
     interventions.push({
       code,
       name,
@@ -736,7 +798,7 @@ interface JudgmentEntry {
   positiveTagCode?: string;
   negativeTagCode?: string;
   thresholds?: Record<string, number>;
-  balanced?: { questionIds: string[]; tagCodes: Record<string, string> };
+  balanced?: { questionIds: string[]; reverseItemIds?: string[]; tagCodes: Record<string, string> };
   biased?: { key: string; questionIds: string[]; tagCodes: Record<string, string> }[];
   educationThresholds?: Record<string, number>;
   normalTagCode?: string;
@@ -872,6 +934,12 @@ function validateJudgmentsV2(scales: Scale[], tags: ResultTag[]): number {
       if (!(t.othersMaxForYes < t.othersMaxForBasically)) fail(`judgments-v2：量表 ${scaleId} 平和阈值 othersMaxForYes 必须 < othersMaxForBasically`);
       const balanced = judgment.balanced;
       if (!balanced || balanced.questionIds.length !== 4) fail(`judgments-v2：量表 ${scaleId} 平和质必须恰 4 题`);
+      // 平和质负向题反向计分声明（来源：国标 CCMQ）：必须全部落在平和质组 questionIds 内
+      for (const id of balanced.reverseItemIds ?? []) {
+        if (!balanced.questionIds.includes(id)) {
+          fail(`judgments-v2：量表 ${scaleId} 平和质 reverseItemIds「${id}」不在 questionIds 内`);
+        }
+      }
       for (const code of Object.values(balanced.tagCodes)) checkTag(scaleId, code, "平和质标签");
       const biased = judgment.biased ?? [];
       if (biased.length !== 8) fail(`judgments-v2：量表 ${scaleId} 偏颇体质必须恰 8 组`);

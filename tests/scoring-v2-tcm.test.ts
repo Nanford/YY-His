@@ -1,9 +1,11 @@
 /**
- * INPUT:  data/judgments-v2.json（tcmConstitutionV2 判定配置）、data/scales-v2.json（题库）
+ * INPUT:  data/judgments-v2.json（tcmConstitutionV2 判定配置，含平和质 reverseItemIds）、data/scales-v2.json（题库）
  * OUTPUT: 中医体质判定用例：转化分精确边界（3 题体质 sum=8→41.7 是 / 7→33.3 倾向 / 6→25 否）、
- *         平和质 62.5 是 / 其他 30–39 基本是 / 56.25 否、湿热质性别互斥 N/A 剔除分母、
- *         多体质同时命中全部保留、偏颇"是"与平和"否"并存、缺失阻断
- * POS:    V2 评分引擎回归保险（来源：02 表中医体质 27 条判定规则；转化分公式按国标推定）。
+ *         平和质负向题反向计分（健康画像 100 是 / 62.5 是 / 其他 30–39 基本是 / 56.25 否 / 症状重反降 25 否）、
+ *         湿热质性别互斥 N/A 剔除分母、多体质同时命中全部保留、偏颇"是"与平和"否"并存、缺失阻断
+ * POS:    V2 评分引擎回归保险（来源：02 表中医体质 27 条判定规则；转化分公式按国标推定；
+ *         平和质 A.1-2/A.1-3/A.1-4 负向题按 6−原始分 反向计分，来源：国标 CCMQ 口径；
+ *         偏颇 8 质题目经题干逐条核对均为正向症状描述，无需反向）。
  */
 import { describe, expect, it } from "vitest";
 import { scoreScaleV2 } from "@/lib/scoring-v2";
@@ -14,12 +16,16 @@ const constitutionOf = (r: ReturnType<typeof scoreScaleV2>, key: string) =>
   r.constitutions!.find((c) => c.key === key)!;
 
 describe("中医体质辨识（27 计分题转化分版）", () => {
-  it("全部答 1 分 → 9 体质转化分全 0，每体质必落一档否", () => {
+  it("全部答 1 分 → 偏颇 8 质转化分全 0 判否；平和质负向题反向后 75 → 是", () => {
     const r = scoreScaleV2("tcm_constitution", tcmAnswers());
     expect(r.ok).toBe(true);
     expect(r.totalScore).toBeNull();
     expect(r.tags).toHaveLength(9);
-    expect(tagCodes(r)).toContain("TCM_BALANCED_NO");
+    // A.1-1 原始 1 + 负向题反向 3×(6−1)=15 → 原始分 16 → (16−4)/16×100=75 ≥60 且其他 8 质全 0 <30
+    const balanced = constitutionOf(r, "balanced");
+    expect(balanced.rawSum).toBe(16);
+    expect(balanced.transformedScore).toBe(75);
+    expect(tagCodes(r)).toContain("TCM_BALANCED_YES");
     for (const key of ["qi_deficiency", "yang_deficiency", "yin_deficiency", "phlegm_dampness", "damp_heat", "blood_stasis", "qi_stagnation", "special_constitution"]) {
       expect(constitutionOf(r, key).transformedScore).toBe(0);
       expect(constitutionOf(r, key).tagCode).toMatch(/_NO$/);
@@ -46,33 +52,55 @@ describe("中医体质辨识（27 计分题转化分版）", () => {
     });
   });
 
-  describe("平和质判定（依赖其他 8 种转化分）", () => {
-    const balancedHigh = {
-      "tcm_constitution_A.1-1": 5, "tcm_constitution_A.1-2": 3,
-      "tcm_constitution_A.1-3": 3, "tcm_constitution_A.1-4": 3,
-    };
-    it("原始分 14 → 转化分 62.5 ≥60 且其他 8 质均 <30 → 是", () => {
-      const r = scoreScaleV2("tcm_constitution", tcmAnswers(balancedHigh));
+  describe("平和质判定（负向题 A.1-2/A.1-3/A.1-4 按 6−原始分 反向计分，来源：国标 CCMQ；依赖其他 8 种转化分）", () => {
+    it("健康画像（A.1-1 答 5、负向题答 1）→ 原始分 20 → 转化分 100 → 是", () => {
+      const r = scoreScaleV2("tcm_constitution", tcmAnswers({ "tcm_constitution_A.1-1": 5 }));
       const c = constitutionOf(r, "balanced");
-      expect(c.rawSum).toBe(14);
+      expect(c.rawSum).toBe(20); // 5 + 3×(6−1)
+      expect(c.transformedScore).toBe(100);
+      expect(c.tagCode).toBe("TCM_BALANCED_YES");
+      // 共享题未反向计入偏颇质：气虚原始 3 → 转化分 0
+      expect(constitutionOf(r, "qi_deficiency").transformedScore).toBe(0);
+    });
+    it("负向题症状重（各 5 分）→ 反向后原始分 8 → 转化分 25 → 否（症状多不再误判平和）", () => {
+      const r = scoreScaleV2("tcm_constitution", tcmAnswers({
+        "tcm_constitution_A.1-1": 5, "tcm_constitution_A.1-2": 5,
+        "tcm_constitution_A.1-3": 5, "tcm_constitution_A.1-4": 5,
+      }));
+      const c = constitutionOf(r, "balanced");
+      expect(c.rawSum).toBe(8); // 5 + 3×(6−5)
+      expect(c.transformedScore).toBe(25);
+      expect(c.tagCode).toBe("TCM_BALANCED_NO");
+      // 同一回答在偏颇质方向正常累加：气虚原始 5+1+1=7 → 33.3 倾向是
+      expect(constitutionOf(r, "qi_deficiency").tagCode).toBe("TCM_QI_DEFICIENCY_TENDENCY");
+    });
+    it("阈值边界：原始分 14 → 转化分 62.5 ≥60 且其他 8 质均 <30 → 是", () => {
+      const r = scoreScaleV2("tcm_constitution", tcmAnswers({
+        "tcm_constitution_A.1-1": 2, "tcm_constitution_A.1-2": 2,
+        "tcm_constitution_A.1-3": 2, "tcm_constitution_A.1-4": 2,
+      }));
+      const c = constitutionOf(r, "balanced");
+      expect(c.rawSum).toBe(14); // 2 + 3×(6−2)
       expect(c.transformedScore).toBe(62.5);
       expect(c.tagCode).toBe("TCM_BALANCED_YES");
-      // 共享题带来的其他体质转化分仍 <30（气虚/阳虚/气郁各 5 分原始 → 16.7）
-      expect(constitutionOf(r, "qi_deficiency").transformedScore).toBe(16.7);
+      // 共享题带来的其他体质转化分仍 <30（气虚原始 2+1+1=4 → (4−3)/12×100≈8.3）
+      expect(constitutionOf(r, "qi_deficiency").transformedScore).toBe(8.3);
     });
-    it("转化分 62.5 但气虚 33.3 落在 30–39 → 基本是", () => {
+    it("转化分 ≥60 但气虚 33.3 落在 30–39 → 基本是", () => {
       const r = scoreScaleV2("tcm_constitution", tcmAnswers({
-        ...balancedHigh,
-        "tcm_constitution_A.2-2": 2, "tcm_constitution_A.2-3": 2,
+        "tcm_constitution_A.1-1": 5, "tcm_constitution_A.1-2": 2,
+        "tcm_constitution_A.2-2": 3, "tcm_constitution_A.2-3": 2,
       }));
+      // 平和质原始 5+(6−2)+5+5=19 → 93.75 ≥60；气虚原始 2+3+2=7 → 33.3 落在 30–39
       expect(constitutionOf(r, "balanced").tagCode).toBe("TCM_BALANCED_BASICALLY");
       expect(constitutionOf(r, "qi_deficiency").tagCode).toBe("TCM_QI_DEFICIENCY_TENDENCY");
     });
-    it("原始分 13 → 转化分 56.25 <60 → 否", () => {
+    it("阈值边界：原始分 13 → 转化分 56.25 <60 → 否", () => {
       const r = scoreScaleV2("tcm_constitution", tcmAnswers({
-        "tcm_constitution_A.1-1": 5, "tcm_constitution_A.1-2": 3,
-        "tcm_constitution_A.1-3": 3, "tcm_constitution_A.1-4": 2,
+        "tcm_constitution_A.1-1": 1, "tcm_constitution_A.1-2": 2,
+        "tcm_constitution_A.1-3": 2, "tcm_constitution_A.1-4": 2,
       }));
+      expect(constitutionOf(r, "balanced").rawSum).toBe(13); // 1 + 3×(6−2)
       expect(constitutionOf(r, "balanced").transformedScore).toBe(56.3);
       expect(constitutionOf(r, "balanced").tagCode).toBe("TCM_BALANCED_NO");
     });

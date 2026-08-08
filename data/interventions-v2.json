@@ -1,6 +1,6 @@
 {
   "generatedFrom": "V2/04_干预方案信息表.xlsx",
-  "generatedAt": "2026-08-07T10:09:50.183Z",
+  "generatedAt": "2026-08-08T02:23:42.886Z",
   "interventions": [
     {
       "code": "YD01",
@@ -9,8 +9,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：提高耐力与步行能力。动作：选择平整安全的地面，抬头看前方，自然摆臂，按平时能接受的速度步行。开始时每次5～10分钟，逐渐增加到15～30分钟；每周5天。注意：穿防滑鞋；出现胸闷、头晕、明显气促或疼痛加重时立即停止。",
-      "mediaSrc": "/interventions/videos/YD01.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD01.mp4?v=91fe2f77",
+      "mediaAvailable": true
     },
     {
       "code": "YD02",
@@ -19,8 +19,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：增强下肢力量、改善起立和转移动作。动作：选择稳固有靠背的椅子，坐在椅子前1/2处，双脚分开与肩同宽，身体微向前倾，扶椅扶手或椅背站起，再慢慢坐下。每次5～10下，每天1～2组。注意：站立不稳时需有人在旁保护。",
-      "mediaSrc": "/interventions/videos/YD02.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD02.mp4?v=5a8c4a58",
+      "mediaAvailable": true
     },
     {
       "code": "YD03",
@@ -29,8 +29,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：增强大腿前侧力量。动作：坐在稳固椅子上，背部坐正，一侧小腿慢慢伸直，与地面尽量平行，停2～3秒后放下，再换另一侧。每侧8～10次，每天1～2组。注意：动作缓慢，不要猛踢。",
-      "mediaSrc": "/interventions/videos/YD03.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD03.mp4?v=65922114",
+      "mediaAvailable": true
     },
     {
       "code": "YD04",
@@ -39,8 +39,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：增强小腿力量和踝关节稳定。动作：双手扶住稳固椅背，双脚与肩同宽，慢慢抬起脚后跟，用前脚掌站立，停2秒后缓慢放下。每次8～12下，每天1～2组。注意：全程扶稳，防止后仰。",
-      "mediaSrc": "/interventions/videos/YD04.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD04.mp4?v=7a2753ca",
+      "mediaAvailable": true
     },
     {
       "code": "YD05",
@@ -49,8 +49,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：改善步行前准备能力和下肢协调。动作：扶住稳固椅背，身体站稳，左右交替抬起膝盖，抬到自己舒服的高度即可，再放下。左右各10次，每天1～2组。注意：动作均匀，不要耸肩和屏气。",
-      "mediaSrc": "/interventions/videos/YD05.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD05.mp4?v=29bceff2",
+      "mediaAvailable": true
     },
     {
       "code": "YD06",
@@ -59,8 +59,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：改善静态平衡。动作：站在稳固支撑物旁，一只脚放在另一只脚前方，脚跟接近前脚脚尖，双眼看前方，尽量保持10秒；完成后左右脚前后互换。每侧练习3～5次。注意：旁边必须有支撑物。",
-      "mediaSrc": "/interventions/videos/YD06.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD06.mp4?v=150e071b",
+      "mediaAvailable": true
     },
     {
       "code": "YD07",
@@ -89,8 +89,8 @@
       "display": "视频",
       "mediaType": "video",
       "content": "目标：增强上肢和躯干力量。动作：面对墙壁站立，双手扶墙与肩同宽，身体向墙靠近后再推回原位，像在墙上做俯卧撑。每次8～12下，每天1组。注意：保持身体成一直线，避免憋气。",
-      "mediaSrc": "/interventions/videos/YD09.mp4",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/videos/YD09.mp4?v=4d82e291",
+      "mediaAvailable": true
     },
     {
       "code": "YD10",
@@ -119,8 +119,8 @@
       "display": "图片",
       "mediaType": "image",
       "content": "核心建议：在原有饮食基础上增加优质蛋白食物。可每天安排：鸡蛋1个、牛奶300毫升左右、鱼/虾/瘦肉1～2掌心量、豆腐或豆制品1份。目标：改善蛋白质摄入不足，帮助维持肌肉和体力。",
-      "mediaSrc": "/interventions/SS02.png",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/SS02.png?v=7f13cdbe",
+      "mediaAvailable": true
     },
     {
       "code": "SS03",
@@ -129,8 +129,8 @@
       "display": "图片",
       "mediaType": "image",
       "content": "核心建议：食量小或体重下降时，不勉强一次吃很多，可改成3餐+2～3次加餐。加餐可选牛奶、酸奶、鸡蛋羹、豆浆、肉末粥、营养饼干等。目标：提高总能量和蛋白质摄入。",
-      "mediaSrc": "/interventions/SS03.png",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/SS03.png?v=35389a52",
+      "mediaAvailable": true
     },
     {
       "code": "SS04",
@@ -139,8 +139,8 @@
       "display": "图片",
       "mediaType": "image",
       "content": "核心建议：当日常吃饭明显不够时，可在医生或营养师指导下使用口服营养补充制剂。一般可作为两餐之间加餐使用，每次1瓶或按专业建议服用。目标：补充能量、蛋白质和微量营养素。",
-      "mediaSrc": "/interventions/SS04.png",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/SS04.png?v=e5f7bd90",
+      "mediaAvailable": true
     },
     {
       "code": "SS05",
@@ -219,8 +219,8 @@
       "display": "图片",
       "mediaType": "image",
       "content": "功效方向：养心安神。原料：百合20克、莲子15克、冰糖少量。做法：百合、莲子加水煮熟，做成羹，口味可微甜。食用建议：每周2～4次，晚间或下午食用。适合睡眠不安、心烦者。",
-      "mediaSrc": "/interventions/ZY02.png",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/ZY02.png?v=a8545e6a",
+      "mediaAvailable": true
     },
     {
       "code": "ZY03",
@@ -299,8 +299,8 @@
       "display": "图片",
       "mediaType": "image",
       "content": "功效方向：利水消肿。原料：赤小豆20克、冬瓜150克。做法：赤小豆煮至半熟后加入冬瓜，继续煮熟调味。食用建议：每周2～3次。适合水湿偏盛、下肢浮肿者。",
-      "mediaSrc": "/interventions/ZY10.png",
-      "mediaAvailable": false
+      "mediaSrc": "/interventions/ZY10.png?v=daecc645",
+      "mediaAvailable": true
     },
     {
       "code": "JZ01",

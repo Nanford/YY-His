@@ -1,10 +1,12 @@
 /**
- * INPUT:  患者端报告页、医生端建档页面、独立 E2E SQLite 数据库
+ * INPUT:  患者端自助建档页与报告页、独立 E2E SQLite 数据库
  * OUTPUT: 补充评估与历史记录（需求更新说明 V2.0 §3）的端到端验收结果
  * POS:    覆盖：报告可识别评估范围（新增标识）→ 患者对未完成量表发起补充评估
  *         （独立新会话、复用既有档案）→ 既有报告不被覆盖且经历史入口仍可访问
  *         （cookie 已切换到新会话，同患者历史报告互访放行）。
- *         V2 装机后口径：医生端发起评估改套餐单选 + 自定义组合（本用例自定义 frail+fall_3q）；
+ *         2026-08-08 口径：createSupplementarySession 增加归属校验（本机 cookie 须与
+ *         源会话同患者，且源会话已出报告）——医生代建档的大屏路径没有 cookie 会被拒，
+ *         本用例走患者自助建档（默认勾 frail+fall_3q，建档即写入 cookie）满足新口径；
  *         补充评估候选为 42 个可评分量表（M10.3b-2 由 25 扩至 42）中尚未完成的 40 个。
  */
 import { expect, test } from "@playwright/test";
@@ -37,25 +39,19 @@ async function readSession(sessionId: string): Promise<{ status: string; scaleId
 test("报告页可识别评估范围，患者可发起补充评估且历史报告不被覆盖", async ({ page }) => {
   test.setTimeout(180_000);
 
-  // ---------- 医生：建档 + 自定义组合只勾选 FRAIL、跌倒三问 ----------
-  await page.goto("/doctor/patients/new");
+  // ---------- 患者：自助建档（默认勾 FRAIL+跌倒三问），registerPatient 写入本机会话 cookie ----------
+  // 归属校验新口径：本机 cookie 与源会话同患者才能发起补充评估，自助建档路径天然满足
+  await page.goto("/patient/register");
   await page.locator('input[name="name"]').fill("E2E 补充评估患者");
-  await page.locator('select[name="gender"]').selectOption("男");
+  // 性别选项渲染为大按钮样式的 label（内部 radio 视觉隐藏），点击 label 才是真实用户操作
+  await page.getByText("男", { exact: true }).click();
   await page.locator('input[name="age"]').fill("80");
-  await page.getByRole("button", { name: "创建患者档案", exact: true }).click();
-  await expect(page).toHaveURL(/\/doctor\/patients\/[^/?]+$/);
-
-  const sessionForm = page.locator("form").filter({ has: page.locator('input[name="package"]') });
-  await sessionForm.locator('input[name="package"][value="custom"]').check();
-  await sessionForm.locator('input[name="scale.frail"]').check();
-  await sessionForm.locator('input[name="scale.fall_3q"]').check();
-  await sessionForm.getByRole("button", { name: "创建评估会话", exact: true }).click();
-  await expect(page).toHaveURL(/\/doctor\/sessions\/[^/?]+$/);
+  await page.getByRole("button", { name: "开始评估", exact: true }).click();
+  await expect(page).toHaveURL(/\/patient\/sessions\/[^/?]+$/);
   const firstSessionId = new URL(page.url()).pathname.split("/").at(-1);
   if (!firstSessionId) throw new Error("无法从会话页面 URL 读取会话编号");
 
   // ---------- 患者：答完（量表按 01 表顺序归一化，先 fall_3q 3 题后 frail 3 题，旁白自动推进），生成报告 ----------
-  await page.goto(`/patient/sessions/${firstSessionId}`);
   await page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" }).click();
   await page.getByRole("button", { name: "开始回答健康问题" }).click();
   for (let i = 0; i < 3; i++) {

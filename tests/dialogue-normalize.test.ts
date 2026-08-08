@@ -116,6 +116,32 @@ describe("choice 题（MNA-SF）", () => {
   });
 });
 
+describe("数字题（iciq_3，0～10 分按 score 反查）", () => {
+  const { question, options } = fixture("iciq_3");
+
+  it.each([
+    ["3", 3],
+    ["0", 0],
+    ["10", 10],
+    ["三分", 3],
+    ["五", 5],
+    ["十分", 10],
+  ])("%s → %d 分（口述数值精确反查 score，不按选项序号）", (utterance, score) => {
+    const outcome = normalizeByRules(question, options, utterance);
+    expect(outcome.status).toBe("matched");
+    if (outcome.status === "matched") expect(outcome.score).toBe(score);
+  });
+
+  it("序号式表达不按「第 N 项」解析：选3 → unclear（3 分档是第 4 项，序号解析会错配 score=2）", () => {
+    expect(normalizeByRules(question, options, "选3").status).toBe("unclear");
+    expect(normalizeByRules(question, options, "第三个").status).toBe("unclear");
+  });
+
+  it.each(["还行吧", "有一点影响", "11", "十二"])("%s → unclear（解析不出数值或无匹配档位，不硬猜）", (utterance) => {
+    expect(normalizeByRules(question, options, utterance).status).toBe("unclear");
+  });
+});
+
 describe("通用保守策略", () => {
   const { question, options } = fixture("frail_1");
 

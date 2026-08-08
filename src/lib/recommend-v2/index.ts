@@ -219,7 +219,8 @@ export function toPlanCandidates(result: RecommendationResultV2): PlanCandidates
 /**
  * 为任意干预编码构造完整候选对象——供医生"同类替换"：计算该项对本次标签集的
  * 积分与来源明细（total/contributions 与 recommendV2 输出同口径；被 -100 禁止的项
- * 也照常返回，由调用方自行决定是否允许替换，页面层应配合 forbidden 明细提示）。
+ * 也照常返回以便展示积分明细，但替换入口须拦截：服务端 confirmPlan 对命中会话快照
+ * forbidden 的替换目标硬拦截拒绝，页面层 plan-review 下拉同步禁用并标注「本患者禁止」）。
  * 返回 null 表示编码不存在（调用方需拒绝该替换）。
  */
 export function buildInterventionV2(code: string, tagCodes: string[]): RecommendedItemV2 | null {

@@ -47,7 +47,7 @@ test("患者自助答完 FRAIL+跌倒后自动生成报告，医生端候选方�
   await page.locator('input[name="name"]').fill("E2E 患者自助流程");
   await page.locator('select[name="gender"]').selectOption("女");
   await page.locator('input[name="age"]').fill("76");
-  await page.getByRole("button", { name: "创建患者档案", exact: true }).click();
+  await page.getByRole("button", { name: "保存档案并继续", exact: true }).click();
   await expect(page).toHaveURL(/\/doctor\/patients\/[^/?]+$/);
 
   const sessionForm = page.locator("form").filter({ has: page.locator('input[name="package"]') });
@@ -111,8 +111,10 @@ test("患者自助答完 FRAIL+跌倒后自动生成报告，医生端候选方�
   ]) {
     await expect(page.getByRole("heading", { name: intervention, exact: true })).toBeVisible();
   }
-  // 展示形态：视频项回退文字要点（YD 两项）；文本类干预为文字卡（JZ 两项）
-  await expect(page.getByText("视频教程待上线，请先参考下方动作要点", { exact: true })).toHaveCount(2);
+  // 展示形态：YD02/YD06 视频素材已就位（卡内 <video> 播放，2 项）；SS02/SS03 膳食图片已就位
+  // （可放大查看，2 项）；文本类干预为文字卡（JZ 两项）
+  await expect(page.locator("video")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: /放大查看/ })).toHaveCount(2);
   await expect(page.getByText("老年综合诊疗建议 · 文字说明", { exact: true })).toBeVisible();
   // 未确认的问询开始入口不应再出现（报告态与问询态互斥）
   await expect(page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" })).toHaveCount(0);
