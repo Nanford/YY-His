@@ -23,7 +23,7 @@ import {
   IconShieldCheck,
   IconStethoscope,
 } from "@tabler/icons-react";
-import type { AssessmentTag } from "@/lib/assessment/report-types";
+import { isAttentionTag, type AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
 import { scales, scoringCategories } from "@/lib/rules";
@@ -36,6 +36,7 @@ const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
 
 const LEVEL_LABEL: Record<string, string> = {
   是: "",
+  否: "（否）",
   倾向是: "（倾向）",
   基本是: "（基本符合）",
 };
@@ -361,18 +362,6 @@ function PatientReportTopbar() {
   );
 }
 
-/** M11.2：异常标签优先（风险/阳性/依赖等）；阴性/正常后置 */
-function isAbnormalTag(tag: AssessmentTag): boolean {
-  if (tag.level === "倾向是" || tag.level === "基本是") return true;
-  const text = `${tag.tag}${tag.code}`;
-  if (/阴性|正常|无依赖|良好|未提示|NONE|NORMAL|NEGATIVE|GOOD|NO_|_NONE|_NORMAL/.test(text)) {
-    return false;
-  }
-  return /阳性|风险|重度|高|差|障碍|依赖|衰弱|营养不良|谵妄|失禁|疼痛|下降|受损|阳性|PRESENT|RISK|SEVERE|POOR|POSITIVE|DECLINE|IMPAIR/.test(
-    text
-  );
-}
-
 function TagsSection({
   tags,
   deferredScales,
@@ -389,8 +378,8 @@ function TagsSection({
   }
   const groups = [...byScale.entries()].map(([scaleId, scaleTags]) => {
     const ordered = [...scaleTags].sort((a, b) => {
-      const aa = isAbnormalTag(a) ? 0 : 1;
-      const bb = isAbnormalTag(b) ? 0 : 1;
+      const aa = isAttentionTag(a) ? 0 : 1;
+      const bb = isAttentionTag(b) ? 0 : 1;
       if (aa !== bb) return aa - bb;
       return a.tag.localeCompare(b.tag, "zh-CN");
     });
@@ -398,7 +387,7 @@ function TagsSection({
       scaleId,
       scaleName: scales.find((s) => s.id === scaleId)?.name ?? scaleId,
       tags: ordered,
-      hasAbnormal: ordered.some(isAbnormalTag),
+      hasAbnormal: ordered.some(isAttentionTag),
     };
   });
   // 有异常的量表组置顶
@@ -464,7 +453,7 @@ function TagsSection({
               </p>
               <div className="flex flex-wrap gap-3">
                 {group.tags.map((tag) => {
-                  const abnormal = isAbnormalTag(tag);
+                  const abnormal = isAttentionTag(tag);
                   return (
                     <span
                       key={`${tag.scaleId}-${tag.tag}-${tag.code}`}

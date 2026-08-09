@@ -52,6 +52,8 @@ interface AnswerInputProps {
   onSubmitMulti: (labels: string[]) => void;
   /** M9.6 画钟交卷 */
   onSubmitDrawing: (dataUrl: string) => void;
+  /** 操作指令完成确认：只记录“已完成”，不向患者暴露正确/错误评分选项。 */
+  onSubmitAcknowledge: () => void;
   onNotice: (message: string) => void;
 }
 
@@ -62,14 +64,15 @@ export function AnswerInput(props: AnswerInputProps) {
   const [directVoice, setDirectVoice] = useState(props.mode === "voice");
   const voiceActive = props.mode === "voice" && props.asrEnabled && props.micStream !== null;
   const answerType = props.prompt.answerType;
-  // 数字/多选/图片/画钟题以专用控件为主；仅 number 题保留语音/文字兜底（分值唯一不会歧义）。
+  // 数字/多选/图片/画钟/操作确认题以专用控件为主；number 与自由文本题保留语音/文字兜底。
   // 多选题不出语音/文字入口：归一化只返回单个选项会丢多选语义（图片/画钟题本就走专用控件）
-  const specialType =
+  const showVoiceTextFallback =
     answerType === "number" ||
-    answerType === "multiChoice" ||
-    answerType === "imageChoice" ||
-    answerType === "drawing";
-  const showVoiceTextFallback = !specialType || answerType === "number";
+    answerType === "freeText" ||
+    (answerType !== "multiChoice" &&
+      answerType !== "imageChoice" &&
+      answerType !== "drawing" &&
+      answerType !== "acknowledge");
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -114,6 +117,16 @@ export function AnswerInput(props: AnswerInputProps) {
     />
   ) : answerType === "drawing" ? (
     <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
+  ) : answerType === "acknowledge" ? (
+    <AcknowledgementPanel disabled={props.disabled} onSubmit={props.onSubmitAcknowledge} />
+  ) : answerType === "freeText" ? (
+    <TextPanel
+      disabled={props.disabled}
+      onSubmit={(text) => {
+        props.onSubmitText(text);
+        setTextOpen(false);
+      }}
+    />
   ) : (
     <OptionButtons
       prompt={props.prompt}
@@ -142,7 +155,7 @@ export function AnswerInput(props: AnswerInputProps) {
 
       {specialOrOptions}
 
-      {textOpen && !pendingVoice && showVoiceTextFallback && (
+      {textOpen && !pendingVoice && showVoiceTextFallback && answerType !== "freeText" && (
         <TextPanel
           disabled={props.disabled}
           onSubmit={(text) => {
@@ -164,7 +177,8 @@ export function AnswerInput(props: AnswerInputProps) {
               onNotice={props.onNotice}
             />
           )}
-          <button
+          {answerType !== "freeText" && (
+            <button
             type="button"
             onClick={() => setTextOpen((open) => !open)}
             disabled={props.disabled}
@@ -172,7 +186,8 @@ export function AnswerInput(props: AnswerInputProps) {
           >
             <IconKeyboard size={20} stroke={1.8} aria-hidden="true" />
             <span>文字输入</span>
-          </button>
+            </button>
+          )}
           {voiceActive && (
             <label className="ui-choice min-h-[48px] rounded-[14px] px-3.5 text-sm sm:text-base">
               <input
@@ -469,6 +484,32 @@ function DrawingPanel({
           <span>提交画作</span>
         </button>
       </div>
+    </div>
+  );
+}
+
+/** 操作指令只让患者确认“已经完成”，正确性由医护依据机构标准判定。 */
+function AcknowledgementPanel({
+  disabled,
+  onSubmit,
+}: {
+  disabled: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="patient-panel space-y-4 p-6 text-center">
+      <p className="text-lg leading-7 text-[var(--ink-muted)]">
+        完成刚才的操作后，点击下面按钮继续；是否完成正确由医护确认。
+      </p>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onSubmit}
+        className="ui-button ui-button-primary ui-button-lg"
+      >
+        <IconCheck size={22} stroke={2} aria-hidden="true" />
+        <span>我已完成，请继续</span>
+      </button>
     </div>
   );
 }

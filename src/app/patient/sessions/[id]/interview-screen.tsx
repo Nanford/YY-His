@@ -90,8 +90,10 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   const advancingRef = useRef(false);
   /** 报告自动跳转去重（2026-08-08：答完直接出报告，免点按钮）；跳转前短延迟让完成提示可见 */
   const reportJumpedRef = useRef(false);
+  /** 每次播报分配代次；重播、状态切换会使旧播放链失效，旧链不得再推进新步骤。 */
+  const playbackGenerationRef = useRef(0);
   /** applyState（稳定 useCallback）经此 ref 调用推进函数，避免 useCallback 依赖循环 */
-  const advanceRef = useRef<() => void>(() => {});
+  const advanceRef = useRef<(stepId: string) => void>(() => {});
 
   // 离开页面时停止 TTS 与口型采样，释放 AudioContext，避免后台继续占用音频资源。
   useEffect(() => {
@@ -124,6 +126,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
   const playSpeaks = useCallback(
     async (texts: string[], ttsEnabled: boolean) => {
+      const generation = ++playbackGenerationRef.current;
       for (const [index, text] of texts.entries()) {
         // 链路埋点（V2.0 §2.1）：每轮播报起播第一条记一次"下一题播报开始"
         if (index === 0) logTiming("speak_start");
@@ -137,12 +140,14 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
             setSpeaking,
             setMouthLevel
           );
+          if (generation !== playbackGenerationRef.current) return false;
         } catch {
           ttsBrokenRef.current = true; // 降级为纯字幕，流程继续
           setSpeaking(false);
           setMouthLevel(0);
         }
       }
+      return generation === playbackGenerationRef.current;
     },
     []
   );
@@ -158,12 +163,17 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
   const applyState = useCallback(
     (next: PatientDialogueStateDto, options: { autoplay: boolean }) => {
+      // 新状态到达即终止上一状态的播放推进资格；即使旧 audio promise 稍后完成也只能静默退出。
+      playbackGenerationRef.current += 1;
+      supersedeAudio(audioRef.current);
+      setSpeaking(false);
+      setMouthLevel(0);
       setState(next);
       setReadyForVoice(false);
       setReadyForConsent(false);
       setConsentHint(false);
       // 2026-08-08 设计口径：不再累积聊天记录，主区只展示当前这一条问题/旁白（CurrentPrompt）
-      const fallbackSubtitle = next.prompt?.text ?? next.narration?.text ?? "";
+      const fallbackSubtitle = next.prompt?.text ?? next.narration?.text ?? next.instruction?.text ?? "";
       if (next.speak.length === 0) {
         setSubtitle(fallbackSubtitle);
         if (next.phase === "in_question") setReadyForVoice(true);
@@ -172,11 +182,16 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
         return;
       }
       if (options.autoplay) {
-        void playSpeaks(next.speak, next.capabilities.tts).then(() => {
+        const stepId = next.narration?.id ?? next.instruction?.questionId;
+        void playSpeaks(next.speak, next.capabilities.tts).then((completed) => {
+          if (!completed) return;
           if (next.phase === "in_question") setReadyForVoice(true);
           if (next.phase === "intro") setReadyForConsent(true);
           // 旁白不需作答：播报完自动请求下一步（M9.2，参照"题目播报完自动开始听"的机制）
-          if (next.phase === "narration") advanceRef.current();
+          // 旁白/采集指令不需作答：播报完自动请求下一步（M9.2，参照"题目播报完自动开始听"的机制）
+          if ((next.phase === "narration" || next.phase === "instruction") && stepId) {
+            advanceRef.current(stepId);
+          }
           // 答完全部问题：结束语播完自动跳转评估报告（2026-08-08 口径：答完直接出报告）
           if (next.phase === "finished") jumpToReport();
         });
@@ -389,12 +404,16 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
   // 旁白播报完成（自动链）或患者点「继续」（刷新后无手势自动播放被禁的兜底）后推进：
   // 服务端写 system 轮次标记已播报，返回下一旁白/下一题/收尾状态。advancingRef 防重复推进。
-  const advanceFromNarration = async () => {
+  const advanceFromNarration = async (expectedStepId: string) => {
     if (advancingRef.current) return;
     advancingRef.current = true;
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/patient/sessions/${sessionId}/advance`, { method: "POST" });
+      const response = await fetch(`/api/patient/sessions/${sessionId}/advance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepId: expectedStepId }),
+      });
       const dto = (await response.json()) as PatientDialogueStateDto & { error?: string };
       if (!response.ok) {
         setNotice(dto.error ?? "推进失败，请点「继续」重试");
@@ -412,18 +431,35 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
   // applyState 是稳定 useCallback，经 ref 拿到最新的推进闭包，避免依赖循环
   useEffect(() => {
-    advanceRef.current = () => void advanceFromNarration();
+    advanceRef.current = (stepId) => void advanceFromNarration(stepId);
   });
 
-  // 「继续」按钮：重播当前旁白后推进（正常自动链下播报结束会自动推进，此按钮是刷新/兜底入口）
+  /** 患者主动继续：立即结束当前播报并按当前步骤 ID 推进，不要求把长旁白重新听一遍。 */
+  const skipCurrentPlaybackAndAdvance = async (stepId: string) => {
+    playbackGenerationRef.current += 1;
+    supersedeAudio(audioRef.current);
+    setSpeaking(false);
+    setMouthLevel(0);
+    await advanceFromNarration(stepId);
+  };
+
+  // 「继续」按钮：正常自动链下无需点击；刷新、听清后想提前继续时作为显式兜底。
   const handleNarrationContinue = async () => {
     if (!state?.narration || submitting) return;
-    await playSpeaks([state.narration.text], state.capabilities.tts);
-    await advanceFromNarration();
+    await skipCurrentPlaybackAndAdvance(state.narration.id);
+  };
+
+  const handleInstructionContinue = async () => {
+    if (!state?.instruction || submitting) return;
+    await skipCurrentPlaybackAndAdvance(state.instruction.questionId);
   };
 
   const replayNarration = () => {
     if (state?.narration) void playSpeaks([state.narration.text], state.capabilities.tts);
+  };
+
+  const replayInstruction = () => {
+    if (state?.instruction) void playSpeaks([state.instruction.text], state.capabilities.tts);
   };
 
   const replay = () => {
@@ -485,7 +521,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                   {speaking
                     ? state.phase === "intro"
                       ? "正在为您讲解…"
-                      : state.phase === "narration"
+                      : state.phase === "narration" || state.phase === "instruction"
                         ? "正在为您说明…"
                         : "正在为您播报问题…"
                     : voiceReady
@@ -616,6 +652,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     <div className="flex items-center justify-between gap-3">
                       <button
                         type="button"
+                        disabled={submitting || speaking}
                         onClick={replayNarration}
                         className="ui-button ui-button-quiet px-0 text-base underline decoration-dotted underline-offset-4"
                       >
@@ -627,6 +664,39 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         aria-label="继续，听数字医生往下讲"
                         disabled={submitting}
                         onClick={() => void handleNarrationContinue()}
+                        className="patient-primary-action"
+                      >
+                        <span>继续</span>
+                        <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {state.phase === "instruction" && state.instruction && (
+                <>
+                  {/* 量表采集指令：例如 Mini-Cog 记忆词；不显示计分选项，播报完成后自动推进。
+                      2026-08-08 设计口径：与旁白一致，主区只展示当前这一条，不累积聊天记录。 */}
+                  <div className="patient-interview-log flex flex-col items-center justify-center">
+                    <CurrentPrompt text={state.instruction.text} badge="采集提示" speaking={speaking} />
+                  </div>
+                  <div className="patient-interview-answer">
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        disabled={submitting || speaking}
+                        onClick={replayInstruction}
+                        className="ui-button ui-button-quiet px-0 text-base underline decoration-dotted underline-offset-4"
+                      >
+                        <IconVolume size={20} stroke={1.8} aria-hidden="true" />
+                        <span>再听一遍</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="继续，听数字医生往下讲"
+                        disabled={submitting}
+                        onClick={() => void handleInstructionContinue()}
                         className="patient-primary-action"
                       >
                         <span>继续</span>
@@ -705,6 +775,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                       onSubmitDrawing={(drawingDataUrl) =>
                         void submitAnswer({ mode: "drawing", drawingDataUrl })
                       }
+                      onSubmitAcknowledge={() => void submitAnswer({ mode: "acknowledge" })}
                       onNotice={setNotice}
                     />
                   </div>
@@ -762,6 +833,13 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
  * onended/onerror/play() 回调凭代际 token 失效，不再触碰口型/speaking 状态。
  */
 const playChains = new WeakMap<HTMLAudioElement, { generation: number; supersede: () => void }>();
+
+/** 状态切换时以“被新链取代”语义收尾，确保旧 Promise 正常 resolve 且不会误判为 TTS 故障。 */
+function supersedeAudio(audio: HTMLAudioElement | null): void {
+  if (!audio) return;
+  playChains.get(audio)?.supersede();
+  audio.pause();
+}
 
 /** 播放一段 TTS 音频；播放期间置 speaking=true。失败（503/网络）时 reject 由调用方降级 */
 function playAudio(
@@ -885,7 +963,7 @@ function resolutionNotice(resolution: SubmitAnswerResult["resolution"]): string 
     case "confirm":
       return null; // 气泡即反馈，不再插入"已记录"提示
     case "markPending":
-      return "这道题先记下来，稍后我再和您确认一次。";
+      return "这道题已记录，需医护判定后计分。";
     case "markManual":
       return "这道题会请医生帮您确认，我们继续。";
     case "clarify":

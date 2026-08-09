@@ -26,6 +26,31 @@ export interface QuestionOption {
 }
 
 /**
+ * 采集执行角色。patient_and_clinician 表示患者完成动作/回答，医护负责确认计分。
+ * 来源：V2/01_评估采集规则表.xlsx 条目类型与患者自助 deferClinical 口径。
+ */
+export type CollectionRole = "patient" | "system" | "clinician" | "patient_and_clinician";
+
+/** 采集交互形式；unknown 只用于题库未配置的条目，禁止按猜测进入患者端。 */
+export type InteractionMode =
+  | "question"
+  | "instruction"
+  | "drawing"
+  | "picture"
+  | "system_read"
+  | "logic"
+  | "observation"
+  | "verification"
+  | "measurement"
+  | "unknown";
+
+/** 患者端是否需要提交一个响应；none 表示只播报/展示后自动推进。 */
+export type PatientResponseMode = "none" | "options" | "free_text" | "acknowledge" | "drawing";
+
+/** 计分责任状态；configuration_missing 是显式配置缺失，不是默认答案。 */
+export type JudgmentMode = "patient_answer" | "system" | "clinician" | "configuration_missing" | "not_scored";
+
+/**
  * 作答题型（M9.6 扩展）：
  * - boolean/choice/likert5：大按钮单选（既有）
  * - number：数字输入（ICIQ 影响分 0～10、便秘每周次数等）
@@ -60,11 +85,22 @@ export interface ScaleQuestion {
   /** imageChoice 参照图（public 路径） */
   imageSrc?: string;
   /** 需医生/系统侧处理的计分条目（系统读取/逻辑计算/操作测试/医护观察等）：
-   *  患者端不提问，走医生端代填；缺失时按 deferClinical 口径豁免计分。
-   *  例外：绘图操作（M9.6 患者可画，医生确认计分）仍向患者提问。 */
+   *  旧字段保留给医生端/历史调用方；患者端是否进入时间线以采集语义字段为准。 */
   observerAssisted?: boolean;
   /** V2 条目类型原文（系统读取/逻辑计算/正式问题…），代填界面展示用 */
   entryType?: string;
+  /** 执行角色：不要再用 entryType 反推患者端是否静默跳过。 */
+  collectionRole: CollectionRole;
+  /** 交互形式：问题、指令、绘图、图片识别或系统/医护处理。 */
+  interactionMode: InteractionMode;
+  /** 是否属于当前判定配置引用的计分条目；与是否进入患者时间线独立。 */
+  isScored: boolean;
+  /** 是否应进入患者采集时间线；未计分的记忆指令也可以为 true。 */
+  inTimeline: boolean;
+  /** 患者端响应形式；none 表示仅播报/展示，不生成答案。 */
+  patientResponseMode: PatientResponseMode;
+  /** 计分由谁负责；MMSE 等需外部标准答案的题目明确标为 clinician。 */
+  judgmentMode: JudgmentMode;
 }
 
 /** 多选答案 label 连接符（存储于 Answer.optionLabel，判定时拆分） */
@@ -146,11 +182,171 @@ function detectAnswerType(item: ScaleItemV2): AnswerType {
   return "choice";
 }
 
-function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
+interface CollectionSemantics {
+  collectionRole: CollectionRole;
+  interactionMode: InteractionMode;
+  inTimeline: boolean;
+  patientResponseMode: PatientResponseMode;
+  judgmentMode: JudgmentMode;
+}
+
+/**
+ * 识别“选项本身就是正确性判断”的题目。
+ * 这些选项是医护评分工具语义，不是患者可自评的答案；MMSE 全量使用机构/医护判定。
+ */
+function needsClinicianJudgment(scaleId: string, item: ScaleItemV2): boolean {
+  if (scaleId === "mmse") return true;
+  return (item.options ?? []).some((option) =>
+    /回答正确|回答错误|正确复述|错误或未复述|正确完成|错误或未完成|未正确执行|其他答案|未说出|完整准确|正确复制/.test(
+      option.label
+    )
+  );
+}
+
+/**
+ * V2 采集语义映射。
+ * 重要边界：已知的患者可执行非正式条目进入时间线；只有明确的系统/医护条目才静默不问；
+ * 未知条目类型进入 configuration_missing，避免用默认答案掩盖题库配置缺口。
+ */
+function semanticsOf(scaleId: string, item: ScaleItemV2, isScored: boolean): CollectionSemantics {
+  const clinicianJudgment = needsClinicianJudgment(scaleId, item);
+  const missingConfiguration = isScored && item.options === null;
+  const judgmentMode: JudgmentMode = missingConfiguration
+    ? "configuration_missing"
+    : clinicianJudgment
+      ? "clinician"
+      : isScored
+        ? "patient_answer"
+        : "not_scored";
+
+  // 01 表将部分中医复用行写成“正式问题”，但复用规则明确“不重复提问”；
+  // 这类行只承担变量映射，答案由 reuse 注册表回填，不能再次进入患者时间线。
+  if (!isScored && item.reuseRule?.includes("不重复提问")) {
+    return {
+      collectionRole: "system",
+      interactionMode: "system_read",
+      inTimeline: false,
+      patientResponseMode: "none",
+      judgmentMode: "not_scored",
+    };
+  }
+
+  switch (item.entryType) {
+    case "正式问题":
+      return {
+        collectionRole: clinicianJudgment ? "patient_and_clinician" : "patient",
+        interactionMode: "question",
+        inTimeline: true,
+        // 便秘病程等非计分开放题没有标准选项，只采集原话并确认已记录，不交给 LLM 猜选项。
+        patientResponseMode: clinicianJudgment || item.options === null ? "free_text" : "options",
+        judgmentMode,
+      };
+    case "记忆指令":
+      return {
+        collectionRole: isScored ? "patient_and_clinician" : "patient",
+        interactionMode: "instruction",
+        inTimeline: true,
+        patientResponseMode: isScored ? "free_text" : "none",
+        judgmentMode,
+      };
+    case "绘图操作":
+      return {
+        collectionRole: "patient_and_clinician",
+        interactionMode: "drawing",
+        inTimeline: true,
+        patientResponseMode: "drawing",
+        judgmentMode: "clinician",
+      };
+    case "图片识别":
+      return {
+        collectionRole: "patient_and_clinician",
+        interactionMode: "picture",
+        inTimeline: true,
+        patientResponseMode: "free_text",
+        judgmentMode: "clinician",
+      };
+    case "操作指令":
+      return {
+        collectionRole: "patient_and_clinician",
+        interactionMode: "instruction",
+        inTimeline: true,
+        patientResponseMode: "acknowledge",
+        judgmentMode: "clinician",
+      };
+    case "系统读取":
+      return {
+        collectionRole: "system",
+        interactionMode: "system_read",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "system",
+      };
+    case "逻辑计算":
+      return {
+        collectionRole: "system",
+        interactionMode: "logic",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "system",
+      };
+    case "操作测试":
+      return {
+        collectionRole: "clinician",
+        interactionMode: "observation",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "clinician",
+      };
+    case "医护观察":
+      return {
+        collectionRole: "clinician",
+        interactionMode: "observation",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "clinician",
+      };
+    case "医护核对":
+      return {
+        collectionRole: "clinician",
+        interactionMode: "verification",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "clinician",
+      };
+    case "医护评估":
+      return {
+        collectionRole: "clinician",
+        interactionMode: "observation",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "clinician",
+      };
+    case "设备/人工测量":
+      return {
+        collectionRole: "clinician",
+        interactionMode: "measurement",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "clinician",
+      };
+    default:
+      return {
+        collectionRole: "clinician",
+        interactionMode: "unknown",
+        inTimeline: false,
+        patientResponseMode: "none",
+        judgmentMode: "configuration_missing",
+      };
+  }
+}
+
+function toScaleQuestion(item: ScaleItemV2, scaleId: string, isScored: boolean): ScaleQuestion {
   const options = (item.options ?? []).map((o) => ({ label: o.label, score: compatScore(o.label, o.score) }));
   const answerType = detectAnswerType(item);
   const scored = (item.options ?? []).map((o) => o.score).filter((s): s is number => s !== null);
-  // 绘图操作向患者提问（画钟）；其余非正式问题仍走医生代填
+  const semantics = semanticsOf(scaleId, item, isScored);
+  // 兼容旧的医生端/补充评估派生口径：绘图操作虽需医护判定，但不等同于“需医生协助才能开始采集”。
+  // 患者端不再读取该历史字段，改用下方显式采集语义决定是否入时间线及如何交互。
   const observerAssisted = item.entryType !== "正式问题" && item.entryType !== "绘图操作";
   return {
     id: item.id,
@@ -166,6 +362,8 @@ function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
     imageSrc: answerType === "imageChoice" ? "/interventions/bristol-stool.webp" : undefined,
     observerAssisted,
     entryType: item.entryType,
+    ...semantics,
+    isScored,
   };
 }
 
@@ -174,7 +372,7 @@ function toScale(scale: ScaleV2): Scale {
   // 计分条目：有 options 的一律投影；绘图题 options 可解析时纳入
   const questions = scale.items
     .filter((item) => scoredIds.has(item.id) && item.options !== null)
-    .map(toScaleQuestion);
+    .map((item) => toScaleQuestion(item, scale.id, true));
   const hasClinical = questions.some((q) => q.observerAssisted);
   return {
     id: scale.id,
@@ -184,6 +382,27 @@ function toScale(scale: ScaleV2): Scale {
       : undefined,
     questions,
   };
+}
+
+/**
+ * 全量采集条目索引：与 Scale.questions（旧的“可代填计分题”视图）分开，
+ * 允许无分的 Mini-Cog 记忆指令进入患者时间线，同时不改变医生端既有题目集合。
+ */
+export const collectionItemsByScale: ReadonlyMap<string, ScaleQuestion[]> = new Map(
+  scalesV2.map((scale) => {
+    const scoredIds = scoredItemIdsOf(scale.id);
+    return [
+      scale.id,
+      scale.items.map((item) => toScaleQuestion(item, scale.id, scoredIds.has(item.id))),
+    ] as const;
+  })
+);
+
+/** 取量表全量采集条目；未知量表仍直接报错，保持旧入口的失败语义。 */
+export function collectionItemsOf(scaleId: string): ScaleQuestion[] {
+  const items = collectionItemsByScale.get(scaleId);
+  if (!items) throw new Error(`未知量表：${scaleId}`);
+  return items;
 }
 
 /** 可评分量表（已配判定的量表，M10.3b-2 起 42 个），顺序保持 01 表文档顺序 */

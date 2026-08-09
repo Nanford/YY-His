@@ -88,15 +88,21 @@ test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘�
   // 自助入口按 01 表文档顺序归一化：minicog（行52）→ constipation_1q（行157）→ constipation_symptom（行158）
   expect(JSON.parse(created?.scaleIds ?? "[]")).toEqual(["minicog", "constipation_1q", "constipation_symptom"]);
 
-  // ---------- 患者：手动模式走完全程（共 10 题：画钟 1 + 回忆 1 + 便秘一问 1 + 症状表 7） ----------
+  // ---------- 患者：手动模式走完全程（共 12 题：画钟 1 + 回忆 1 + 便秘一问 1 + 病程原话 2 + 症状表 7） ----------
   // 总开场/分类过渡/工具说明旁白播报完自动推进，无需逐条点击
   await page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" }).click();
   await page.getByRole("button", { name: "开始回答健康问题" }).click();
 
+  // Mini-Cog 的三个记忆词必须先独立播报，再进入画钟题；手动模式可主动继续。
+  await expect(page.getByText(/苹果、钥匙、汽车/).last()).toBeVisible({ timeout: 120_000 });
+  const continueInstruction = page.getByRole("button", { name: "继续，听数字医生往下讲" });
+  await expect(continueInstruction).toBeEnabled();
+  await continueInstruction.click();
+
   // 第 1 题 minicog_2（绘图操作）：画板上画一笔后交卷——此前此处交卷即触发会话卡死 500
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("第 1 / 10 题", { exact: true })).toBeVisible();
+  await expect(page.getByText("第 1 / 12 题", { exact: true })).toBeVisible();
   const box = await canvas.boundingBox();
   if (!box) throw new Error("画钟画布不可见");
   await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 2 - 60);
@@ -106,25 +112,35 @@ test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘�
   await page.getByRole("button", { name: "提交画作", exact: true }).click();
 
   // 第 2 题 minicog_3：回忆 3 个词（3 分）；画钟题落 pending 等医生计分，不再轮末复问
-  await expect(page.getByText("第 2 / 10 题", { exact: true })).toBeVisible();
+  await expect(page.getByText("第 2 / 12 题", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "回忆3个词（3分）", exact: true }).click();
 
   // 第 3 题 constipation_1q_1：点「没有便秘困扰」——label 匹配修复的回归点，不得记成筛查阳性
-  await expect(page.getByText("第 3 / 10 题", { exact: true })).toBeVisible();
+  await expect(page.getByText("第 3 / 12 题", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "没有便秘困扰（筛查阴性）", exact: true }).click();
 
-  // 第 4 题 constipation_symptom_3（数字题）：数字面板默认 0，直接确认
-  await expect(page.getByText("第 4 / 10 题", { exact: true })).toBeVisible();
+  // 第 4～5 题为不计分的便秘病程开放题，保留患者原话并明确标记为不计分。
+  for (const [index, answer] of [
+    [4, "大约半年前开始"],
+    [5, "断断续续，累计约三个月"],
+  ] as const) {
+    await expect(page.getByText(`第 ${index} / 12 题`, { exact: true })).toBeVisible();
+    await page.getByPlaceholder("请输入您的回答…").fill(answer);
+    await page.getByRole("button", { name: "提交", exact: true }).click();
+  }
+
+  // 第 6 题 constipation_symptom_3（数字题）：数字面板默认 0，直接确认
+  await expect(page.getByText("第 6 / 12 题", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "确认 0 分", exact: true }).click();
 
-  // 第 5～9 题 constipation_symptom_4～8：全部答「否」
-  for (let index = 5; index <= 9; index++) {
-    await expect(page.getByText(`第 ${index} / 10 题`, { exact: true })).toBeVisible();
+  // 第 7～11 题 constipation_symptom_4～8：全部答「否」
+  for (let index = 7; index <= 11; index++) {
+    await expect(page.getByText(`第 ${index} / 12 题`, { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "否", exact: true }).click();
   }
 
-  // 第 10 题 constipation_symptom_9（Bristol 图片选择）：选 4 型「腊肠样或蛇状，光滑而柔软」
-  await expect(page.getByText("第 10 / 10 题", { exact: true })).toBeVisible();
+  // 第 12 题 constipation_symptom_9（Bristol 图片选择）：选 4 型「腊肠样或蛇状，光滑而柔软」
+  await expect(page.getByText("第 12 / 12 题", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "腊肠样或蛇状，光滑而柔软", exact: true }).click();
 
   // ---------- 交卷后会话正常结束并自动出报告（画钟卡死修复的直接回归） ----------

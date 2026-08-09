@@ -6,7 +6,12 @@
  *         操作人、时间、调整原因和调整前后内容」。V2 干预正文为图片/标准动作文字，不再自由改写正文，
  *         "调整"收敛为"在同类别中替换为其他干预项"（替换项由调用方解析并计算积分）。
  */
-import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
+import {
+  FORBIDDEN_SCORE_V2,
+  MAX_PER_CATEGORY_V2,
+  type PlanCandidateItemV2,
+} from "@/lib/recommend-v2";
+import { scoringCategories } from "@/lib/rules";
 
 export interface PlanReviewInput {
   action: "keep" | "remove" | "replace";
@@ -35,10 +40,35 @@ export interface PlanReviewResult {
   decisions: PlanDecision[];
 }
 
+const CATEGORY_LABELS = new Set(scoringCategories.map((category) => category.label));
+
+function assertPlanItemShape(item: PlanCandidateItemV2, source: string): void {
+  if (!item.code || !item.category || !item.categoryLabel) {
+    throw new Error(source + "包含不完整的干预项");
+  }
+  if (!CATEGORY_LABELS.has(item.categoryLabel)) {
+    throw new Error(source + "包含未知干预类别：" + item.categoryLabel);
+  }
+}
+
+function assertPlanItemSafe(item: PlanCandidateItemV2, source: string): void {
+  assertPlanItemShape(item, source);
+  if (item.contributions.some((contribution) => contribution.score === FORBIDDEN_SCORE_V2)) {
+    throw new Error(source + "包含本患者 -100 禁忌项：" + item.code);
+  }
+}
+
+function assertReason(action: PlanReviewInput["action"], code: string, note: string): void {
+  if (note.length > 500) throw new Error("审核说明过长：" + code);
+  if ((action === "remove" || action === "replace") && note.length === 0) {
+    throw new Error((action === "remove" ? "删除" : "替换") + "必须填写明确审核理由：" + code);
+  }
+}
+
 /**
  * 依据医生逐项输入形成最终方案与决策留痕。
  * 每个候选映射为 0 或 1 个最终项（删除→0；保留/同类替换→1），因此候选已满足
- * "每类 1-2 项"（V2：5 大类各至多 2 项）时，最终方案自然不突破上限。
+ * "每类 1-2 项"（V2：每类普通项至多 2 项；100 强制项不占普通名额）时，最终方案自然不突破上限。
  */
 export function applyPlanReview(
   candidates: readonly PlanCandidateItemV2[],
@@ -49,22 +79,58 @@ export function applyPlanReview(
   const finalPlan: PlanCandidateItemV2[] = [];
   const decisions: PlanDecision[] = [];
   const at = now.toISOString();
+  const candidateCodes = new Set<string>();
+  const finalCodes = new Set<string>();
+  const ordinaryCountByCategory = new Map<string, number>();
+
+  for (const candidate of candidates) {
+    assertPlanItemShape(candidate, "候选方案");
+    if (candidateCodes.has(candidate.code)) {
+      throw new Error("候选方案编码重复：" + candidate.code);
+    }
+    candidateCodes.add(candidate.code);
+  }
+
+  const appendFinalItem = (item: PlanCandidateItemV2): void => {
+    assertPlanItemSafe(item, "最终方案");
+    if (finalCodes.has(item.code)) {
+      throw new Error("最终干预编码重复：" + item.code);
+    }
+    if (!item.forced) {
+      const nextCount = (ordinaryCountByCategory.get(item.categoryLabel) ?? 0) + 1;
+      if (nextCount > MAX_PER_CATEGORY_V2) {
+        throw new Error("最终方案每类普通干预最多 " + MAX_PER_CATEGORY_V2 + " 项：" + item.categoryLabel);
+      }
+      ordinaryCountByCategory.set(item.categoryLabel, nextCount);
+    }
+    finalCodes.add(item.code);
+    finalPlan.push(item);
+  };
 
   for (const candidate of candidates) {
     const input = inputs[candidate.code] ?? { action: "keep" };
     const note = input.note?.trim() ?? "";
+    if (input.action !== "keep" && input.action !== "remove" && input.action !== "replace") {
+      throw new Error("审核动作无效：" + candidate.code);
+    }
+    assertReason(input.action, candidate.code, note);
 
     if (input.action === "remove") {
       decisions.push({ code: candidate.code, action: "remove", note: note || "医生从候选方案中删除", operator, at });
       continue;
     }
 
-    if (input.action === "replace" && input.replacement && input.replacement.code !== candidate.code) {
+    if (input.action === "replace") {
+      if (!input.replacement) throw new Error("未提供替换项：" + candidate.code);
+      if (input.replacement.code === candidate.code) throw new Error("替换项不能与原项相同：" + candidate.code);
       // 同类替换：新项类别必须与原项一致（跨类替换会破坏"每类 1-2 项"约束）
-      if (input.replacement.category !== candidate.category) {
+      if (
+        input.replacement.category !== candidate.category ||
+        input.replacement.categoryLabel !== candidate.categoryLabel
+      ) {
         throw new Error(`同类替换要求同一类别：${candidate.category} ≠ ${input.replacement.category}`);
       }
-      finalPlan.push(input.replacement);
+      appendFinalItem(input.replacement);
       decisions.push({
         code: candidate.code,
         action: "replace",
@@ -77,8 +143,8 @@ export function applyPlanReview(
       continue;
     }
 
-    // 默认保留（含 action=replace 但未提供有效替换项的情形）
-    finalPlan.push(candidate);
+    // 强制项是否可删除尚未形成最终策略；此处不额外限制，统一按医生提交动作留痕。
+    appendFinalItem(candidate);
     decisions.push({ code: candidate.code, action: "keep", note, operator, at });
   }
 

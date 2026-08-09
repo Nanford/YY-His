@@ -4,11 +4,12 @@
  * POS:    评估结果下钻组件（M11.2 对齐患者报告：按量表分组 + 异常标签置顶）
  */
 import { IconChevronDown, IconClipboardData } from "@tabler/icons-react";
-import type { AssessmentTag } from "@/lib/assessment/report-types";
+import { isAttentionTag, type AssessmentTag, type TagLevel } from "@/lib/assessment/report-types";
 import { scaleById } from "@/lib/rules";
 
-const LEVEL_CLS: Record<string, string> = {
+const LEVEL_CLS: Record<TagLevel, string> = {
   是: "ui-badge ui-badge-success",
+  否: "ui-badge",
   倾向是: "ui-badge ui-badge-warning",
   基本是: "ui-badge ui-badge-warning",
 };
@@ -17,18 +18,6 @@ export interface ResultViewProps {
   tags: readonly AssessmentTag[];
   /** 题目 id → 医生确认后的标准选项文本。 */
   answerLabels?: Readonly<Record<string, string>>;
-}
-
-/** 与患者报告 isAbnormalTag 同口径：风险/阳性类置顶 */
-function isAbnormalTag(tag: AssessmentTag): boolean {
-  if (tag.level === "倾向是" || tag.level === "基本是") return true;
-  const text = `${tag.tag}${tag.code}`;
-  if (/阴性|正常|无依赖|良好|未提示|NONE|NORMAL|NEGATIVE|GOOD|NO_|_NONE|_NORMAL/.test(text)) {
-    return false;
-  }
-  return /阳性|风险|重度|高|差|障碍|依赖|衰弱|营养不良|谵妄|失禁|疼痛|下降|受损|PRESENT|RISK|SEVERE|POOR|POSITIVE|DECLINE|IMPAIR/.test(
-    text
-  );
 }
 
 export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
@@ -40,8 +29,8 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
   }
   const groups = [...byScale.entries()].map(([scaleId, scaleTags]) => {
     const ordered = [...scaleTags].sort((a, b) => {
-      const aa = isAbnormalTag(a) ? 0 : 1;
-      const bb = isAbnormalTag(b) ? 0 : 1;
+      const aa = isAttentionTag(a) ? 0 : 1;
+      const bb = isAttentionTag(b) ? 0 : 1;
       if (aa !== bb) return aa - bb;
       return a.tag.localeCompare(b.tag, "zh-CN");
     });
@@ -49,7 +38,7 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
       scaleId,
       scaleName: scaleById.get(scaleId)?.name ?? scaleId,
       tags: ordered,
-      hasAbnormal: ordered.some(isAbnormalTag),
+      hasAbnormal: ordered.some(isAttentionTag),
     };
   });
   groups.sort((a, b) => Number(b.hasAbnormal) - Number(a.hasAbnormal));
@@ -88,7 +77,7 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
                 </p>
                 <div className="grid gap-3 lg:grid-cols-2">
                   {group.tags.map((tag) => {
-                    const abnormal = isAbnormalTag(tag);
+                    const abnormal = isAttentionTag(tag);
                     return (
                       <details
                         key={`${tag.scaleId}-${tag.code}`}

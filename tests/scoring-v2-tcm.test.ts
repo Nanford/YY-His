@@ -36,6 +36,40 @@ describe("中医体质辨识（27 计分题转化分版）", () => {
     expect(r.details.filter((d) => d.excluded)).toHaveLength(3);
   });
 
+  it("平和质反向题明细保留原始分、有效分和反向标记", () => {
+    const r = scoreScaleV2("tcm_constitution", tcmAnswers({
+      "tcm_constitution_A.1-2": 2,
+      "tcm_constitution_A.1-3": 3,
+      "tcm_constitution_A.1-4": 5,
+    }));
+    const details = new Map(r.details.map((detail) => [detail.itemId, detail]));
+
+    expect(details.get("tcm_constitution_A.1-1")).toMatchObject({
+      score: 1,
+      rawScore: 1,
+      effectiveScore: 1,
+      reversed: false,
+    });
+    expect(details.get("tcm_constitution_A.1-2")).toMatchObject({
+      score: 2,
+      rawScore: 2,
+      effectiveScore: 4,
+      reversed: true,
+    });
+    expect(details.get("tcm_constitution_A.1-3")).toMatchObject({
+      score: 3,
+      rawScore: 3,
+      effectiveScore: 3,
+      reversed: true,
+    });
+    expect(details.get("tcm_constitution_A.1-4")).toMatchObject({
+      score: 5,
+      rawScore: 5,
+      effectiveScore: 1,
+      reversed: true,
+    });
+  });
+
   describe("偏颇体质转化分精确边界（3 题体质：气虚）", () => {
     it.each([
       [{ "tcm_constitution_A.1-2": 3, "tcm_constitution_A.2-2": 3, "tcm_constitution_A.2-3": 2 }, 8, 41.7, "TCM_QI_DEFICIENCY_YES"],

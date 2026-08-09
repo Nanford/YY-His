@@ -24,10 +24,16 @@ export interface ItemScoreDetail {
   text: string;
   /** 命中的选项 label；na/未答/不计分条目为 null（na 经选项命中时保留该 label 以便追溯） */
   answerLabel: string | null;
-  /** 该题得分；未答/豁免/不适用/不计分为 null */
+  /** 该题原有得分字段；未答/豁免/不适用/不计分为 null。反向计分题另存 rawScore/effectiveScore。 */
   score: number | null;
   /** true = 不参与计分：N/A 不适用，或本来就不计分的条目（如 Mini-Cog 第 1 题记忆指令、中医纯复用行） */
   excluded: boolean;
+  /** 患者/医生给出的原始分值；当前仅反向计分题由评分器显式填充。 */
+  rawScore?: number;
+  /** 参与判定的有效分值；当前仅反向计分题由评分器显式填充。 */
+  effectiveScore?: number;
+  /** 是否按规则反向计分；当前仅反向计分题由评分器显式填充。 */
+  reversed?: boolean;
 }
 
 /** 中医体质单体质计分明细（来源：02 表转化分判定规则；转化分保留 1 位小数） */

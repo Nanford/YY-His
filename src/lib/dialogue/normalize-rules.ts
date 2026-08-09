@@ -6,7 +6,7 @@
  */
 import type { QuestionOption, ScaleQuestion } from "@/lib/rules";
 
-export type NormalizationMethod = "rules" | "llm";
+export type NormalizationMethod = "rules" | "llm" | "clinical";
 
 export type NormalizationOutcome =
   | {

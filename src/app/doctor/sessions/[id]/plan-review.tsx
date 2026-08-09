@@ -35,16 +35,40 @@ const REPLACE_OPTIONS: Record<string, { code: string; name: string }[]> = Object
   ])
 );
 
+function sourceFileName(mediaSrc: string | null): string | null {
+  if (!mediaSrc) return null;
+  const pathPart = mediaSrc.split(/[?#]/, 1)[0];
+  const fileName = pathPart.split("/").pop();
+  if (!fileName) return null;
+  try {
+    return decodeURIComponent(fileName);
+  } catch {
+    return fileName;
+  }
+}
+
 /** 对外复用纯逻辑层的审核决定类型，避免页面与服务端契约漂移。 */
 export type PlanDecision = ReviewPlanDecision;
 
 /** 单个候选项的媒体教程（视频/图片/文本），素材缺失如实标注"素材待补齐" */
 function MediaBlock({ item }: { item: PlanCandidateItemV2 }) {
   if (item.mediaType === "text") return <InterventionText name={item.name} content={item.content} />;
-  return item.mediaType === "video" ? (
+  const fileName = sourceFileName(item.mediaSrc);
+  const media = item.mediaType === "video" ? (
     <InterventionVideo src={item.mediaSrc ?? ""} available={item.mediaAvailable} text={item.content} />
   ) : (
-    <InterventionImage src={item.mediaSrc ?? ""} available={item.mediaAvailable} name={item.name} sourceFile={null} />
+    <InterventionImage
+      src={item.mediaSrc ?? ""}
+      available={item.mediaAvailable}
+      name={item.name}
+      sourceFile={fileName}
+    />
+  );
+  return (
+    <div className="space-y-2">
+      {media}
+      {fileName && <p className="text-xs text-[var(--ink-faint,#6b82a4)]">素材源文件：{fileName}</p>}
+    </div>
   );
 }
 
@@ -159,7 +183,7 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
 
           <label className="ui-field">
             <span className="ui-label">调整原因 / 审核备注</span>
-            <input type="text" name={`note.${item.code}`} placeholder="删除或替换请填写原因（选填）" className="ui-input" />
+            <input type="text" name={`note.${item.code}`} placeholder="删除或替换必须填写明确审核理由；保留可不填" className="ui-input" />
           </label>
         </fieldset>
       ) : (

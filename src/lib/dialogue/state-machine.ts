@@ -8,7 +8,12 @@
  *         轮末换说法复问 → 待人工确认（AGENTS.md 硬约束 3）。
  *         状态完全由 DialogueTurn/Answer 派生，不引入额外持久化状态字段。
  */
-import { optionsOf, scaleById, type QuestionOption, type ScaleQuestion } from "@/lib/rules";
+import {
+  collectionItemsOf,
+  scaleById,
+  type QuestionOption,
+  type ScaleQuestion,
+} from "@/lib/rules";
 import { narrationsV2, scalesV2, type NarrationV2 } from "@/lib/rules/v2";
 import { clarifyText, recheckText } from "./prompts";
 import type { NormalizationOutcome } from "./normalize-rules";
@@ -21,22 +26,29 @@ export interface AskableQuestion {
   options: QuestionOption[];
 }
 
+/** 患者端可见选项；医护判定题的“正确/错误”选项永不下发。 */
+export function patientOptionsOf(question: ScaleQuestion): QuestionOption[] {
+  if (question.judgmentMode === "clinician" || question.judgmentMode === "configuration_missing") return [];
+  return question.options ?? [];
+}
+
+function collectionItem(scaleId: string, question: ScaleQuestion): AskableQuestion {
+  const scale = scaleById.get(scaleId);
+  if (!scale) throw new Error(`会话包含未知量表：${scaleId}`);
+  return { question, scaleId, scaleName: scale.name, options: patientOptionsOf(question) };
+}
+
 /**
  * 计算患者端问询题目清单（保持量表勾选顺序与题目原始顺序）。
- * 跳过规则（来源：V2/01_评估采集规则表.xlsx 条目类型）：
- * - observerAssisted 计分条目（条目类型 ≠ 正式问题：系统读取/逻辑计算/操作测试/绘图操作等）：
- *   不向患者提问，系统读取自动作答（M9.5）或走医生端代填；缺失时按 deferClinical 口径豁免。
+ * 规则：只把明确需要患者响应且已配置进时间线的条目作为 askable；
+ * 旁白/记忆指令等无响应条目由 buildTimeline 单独编排，系统读取/医护条目不进入患者时间线。
  */
 export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[] {
   const items: AskableQuestion[] = [];
   for (const scaleId of scaleIds) {
-    const scale = scaleById.get(scaleId);
-    if (!scale) throw new Error(`会话包含未知量表：${scaleId}`);
-    for (const question of scale.questions) {
-      // observerAssisted（V2：条目类型 ≠ 正式问题的计分条目，如系统读取/逻辑计算/操作测试）：
-      // 禁止向患者提问，走医生端代填；缺失时按 deferClinical 口径豁免计分
-      if (question.observerAssisted) continue;
-      items.push({ question, scaleId: scale.id, scaleName: scale.name, options: optionsOf(scale, question) });
+    for (const question of collectionItemsOf(scaleId)) {
+      if (!question.inTimeline || question.patientResponseMode === "none") continue;
+      items.push(collectionItem(scaleId, question));
     }
   }
   return items;
@@ -47,6 +59,7 @@ export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[]
 /** 采集编排步骤：旁白（只播报、不需作答）或正式提问 */
 export type TimelineStep =
   | { kind: "narration"; narration: NarrationV2 }
+  | { kind: "instruction"; item: AskableQuestion }
   | { kind: "question"; item: AskableQuestion };
 
 /** 01 表各量表首个条目的行号（用于给 scaleId 为空的分类过渡找"紧邻其后的量表"锚点） */
@@ -75,7 +88,6 @@ function narrationAnchorScaleId(narration: NarrationV2): string | null {
  * 来源：V2/Demo_v2更新说明.docx §3 —— 按预设顺序播放开场白、分类过渡句和必要的工具说明。
  */
 export function buildTimeline(scaleIds: readonly string[]): TimelineStep[] {
-  const questions = askableQuestions(scaleIds); // 复用题目过滤与未知量表校验
   const steps: TimelineStep[] = [];
   for (const narration of narrationsV2) {
     if (narration.entryType === "总开场" && narration.text.trim()) {
@@ -94,8 +106,13 @@ export function buildTimeline(scaleIds: readonly string[]): TimelineStep[] {
     for (const narration of anchored) {
       steps.push({ kind: "narration", narration });
     }
-    for (const item of questions) {
-      if (item.scaleId === scaleId) steps.push({ kind: "question", item });
+    for (const question of collectionItemsOf(scaleId)) {
+      if (!question.inTimeline) continue;
+      const item = collectionItem(scaleId, question);
+      steps.push({
+        kind: question.patientResponseMode === "none" ? "instruction" : "question",
+        item,
+      });
     }
   }
   return steps;
@@ -113,6 +130,9 @@ export interface DialogueSnapshot {
   patientReplyCount: ReadonlyMap<string, number>;
   /** 已播报旁白 id 集合（播报时写入 role=system、questionId=旁白 id 的轮次，由此派生） */
   deliveredNarrationIds: ReadonlySet<string>;
+  /** 已播报采集指令 id 集合（同样以 system 轮次留痕，避免刷新后重复播报） */
+  /** 可选以兼容旧测试/调用方未带该字段的快照；服务端加载时始终提供。 */
+  deliveredInstructionIds?: ReadonlySet<string>;
 }
 
 /** 提问尝试序号：1=首问（口语版） 2=追问 3=轮末换说法复问 */
@@ -131,6 +151,8 @@ export type DialogueStep =
   | { kind: "prompt"; prompt: DialoguePrompt }
   /** 遇到未播报的旁白（调用方播报并写 system 轮次后即完成，不需患者作答） */
   | { kind: "narration"; narration: NarrationV2 }
+  /** 需要患者看到/听到但无需提交答案的采集指令（如 Mini-Cog 记忆指令） */
+  | { kind: "instruction"; item: AskableQuestion }
   /** 提问已发出，等待患者作答（页面刷新/查询状态时命中此分支） */
   | { kind: "awaiting"; item: AskableQuestion; attempt: AskAttempt; phase: "main" | "recheck" }
   /** 全部题目均已有结论（confirmed / manual），问询结束 */
@@ -157,6 +179,12 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
     if (step.kind === "narration") {
       if (!snapshot.deliveredNarrationIds.has(step.narration.id)) {
         return { kind: "narration", narration: step.narration };
+      }
+      continue;
+    }
+    if (step.kind === "instruction") {
+      if (!snapshot.deliveredInstructionIds?.has(step.item.question.id)) {
+        return { kind: "instruction", item: step.item };
       }
       continue;
     }
@@ -206,7 +234,15 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
     // CollectForm 确认计分（M9.6），无需也不应轮末复问——跳过让会话正常走到 finished，
     // 计分缺口按 deferClinical 既定口径豁免出「部分计分」报告
     // （A1 修复：此前复问轮只认 asks=2/asks=3 两种 pending 形态，asks=1 直接抛错卡死）。
-    if (item.question.answerType === "drawing") continue;
+    if (
+      item.question.answerType === "drawing" ||
+      item.question.judgmentMode === "clinician" ||
+      item.question.judgmentMode === "configuration_missing"
+    ) {
+      // 医护判定题已经完整保留患者原话/操作结果；重复追问不会产生可用于确定性评分的新答案。
+      // 直接结束患者采集并进入医护补录，避免一次回答后落入复问状态机不变量错误。
+      continue;
+    }
     const { asks, replies } = counts(snapshot, item.question.id);
     // 复问发出前：asks=replies≥2（患者已答完全部提问仍 pending）→ 发轮末复问；
     // asks≥4 来自复用撤回后的重新提问轮（A2），语义相同。

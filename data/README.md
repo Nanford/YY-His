@@ -1,8 +1,8 @@
 # data/ — 结构化医学规则（程序运行时依据）
 
-**这个目录是干什么的**：存放程序运行使用的结构化规则数据，是 `docs/source/` 医学源文件的机器可读形态。
+**这个目录是干什么的**：存放程序运行使用的结构化规则数据。V2 运行时数据来自 `V2/` 只读医学源；`docs/source/` 仅保留 V1/V2.0 历史源。
 
-**依赖**：`docs/source/` 四份只读源文件；`scripts/convert-rules.ts` 转换与校验脚本。
+**依赖**：`V2/` 四张规则表、更新说明与配图；`scripts/convert-rules-v2.ts` 负责转换与校验。
 
 **产出**：评分引擎、推荐引擎、对话引擎的全部规则输入。
 
@@ -12,7 +12,7 @@
 | `tag-mapping.json` | 评估标签-干预标签知识图谱映射表_Demo.xlsx | `npm run convert-rules` 自动生成，**禁止手改** |
 | `interventions.json` | 干预标签_Demo.xlsx | `npm run convert-rules` 自动生成，**禁止手改** |
 
-**医学规则变更的唯一路径**：改 `docs/source/` 源文件 → 重跑 `npm run convert-rules`（scales.json 同步手工更新）→ 跑 `npm test`。
+上表为历史兼容数据，不再作为 V2 运行时权威来源。
 
 ## V2 迭代数据（V2/ 源文件 → `npm run convert-rules-v2`）
 
@@ -28,6 +28,6 @@ V2 迭代的规则源文件在 `V2/`（只读，禁止修改），由 `scripts/c
 
 另产出 `public/interventions/bristol-stool.png`（V2/figure 1.png palette 量化压缩，<600KB）+ `bristol-stool.webp`（便秘症状评估表第 9 题展示素材）。
 
-## V1/V2.0 历史数据（待退役）
+## V1/V2.0 历史数据（已退役保留）
 
-`tag-mapping.json`、`interventions.json`、`intervention-scoring.json` 为 V1/V2.0 历史数据，**M8 推荐引擎切换到 V2 数据后退役**（标记不删，保留可追溯）。
+`tag-mapping.json`、`interventions.json`、`intervention-scoring.json` 为 V1/V2.0 历史数据。V2 运行时已切换到 `scales-v2.json`、`judgments-v2.json`、`result-tags.json`、`intervention-scoring-v2.json` 与 `interventions-v2.json`；历史文件不删除，仅用于追溯。

@@ -131,6 +131,22 @@ describe("askableQuestions：患者端题目清单", () => {
     expect(ids).toEqual(["fall_3q_1", "fall_3q_2", "fall_3q_3", "frail_1", "frail_2", "frail_3"]);
   });
 
+  it("非计分开放题使用自由文本，明确不重复提问的复用行不进入患者时间线", () => {
+    const constipation = askableQuestions(["constipation_symptom"]);
+    expect(constipation.find((item) => item.question.id === "constipation_symptom_1")?.question).toMatchObject({
+      patientResponseMode: "free_text",
+      judgmentMode: "not_scored",
+    });
+
+    const tcmTimeline = buildTimeline(["tcm_constitution"]);
+    const timelineIds = tcmTimeline
+      .filter((step) => step.kind === "question" || step.kind === "instruction")
+      .map((step) => step.item.question.id);
+    expect(timelineIds).not.toContain("tcm_constitution_A.2-1");
+    expect(timelineIds).not.toContain("tcm_constitution_A.3-3");
+    expect(timelineIds).not.toContain("tcm_constitution_A.8-1");
+  });
+
   it("未知量表直接报错", () => {
     expect(() => askableQuestions(["unknown"])).toThrow("未知量表");
   });
@@ -311,6 +327,16 @@ describe("A1 画钟题：交卷落 pending 后跳过轮末复问（M9.6 等医�
     expect(sim.emitPrompt().kind).toBe("finished");
     expect(sim.progress()).toEqual({ answered: 2, total: 2 });
   });
+
+  it("医护判定题记录患者响应后不进入无意义的轮末复问", () => {
+    const item = askableQuestions(["mmse"])[0];
+    expect(item.question.judgmentMode).toBe("clinician");
+    const sim = SessionSim.fromQuestions([item]);
+    const first = sim.emitPrompt();
+    if (first.kind !== "prompt") throw new Error("应发出医护判定题首问");
+    sim.submitDrawing(item.question.id); // 模拟 service 将患者原话落为 pending
+    expect(sim.emitPrompt()).toEqual({ kind: "finished" });
+  });
 });
 
 describe("A2 复用回填撤回：有提问/回答计数但无有效答案 → 按既有计数重新提问", () => {
@@ -399,8 +425,9 @@ describe("buildTimeline：采集编排时间线（M9.2，来源：V2/Demo_v2更�
     expect(timeline[0]).toMatchObject({ kind: "narration", narration: { id: "narr_3", entryType: "总开场" } });
     expect(timeline[1]).toMatchObject({ kind: "narration", narration: { id: "narr_50", entryType: "分类过渡" } });
     expect(timeline[2]).toMatchObject({ kind: "narration", narration: { id: "narr_51", entryType: "工具说明" } });
-    // 旁白之后是该量表首题（M9.6：minicog_2 画钟向患者提问）
-    expect(timeline[3]).toMatchObject({ kind: "question", item: { question: { id: "minicog_2" } } });
+    // 旁白之后先播报 Mini-Cog 记忆指令，再进入画钟题；指令必须出现在患者时间线。
+    expect(timeline[3]).toMatchObject({ kind: "instruction", item: { question: { id: "minicog_1" } } });
+    expect(timeline[4]).toMatchObject({ kind: "question", item: { question: { id: "minicog_2" } } });
   });
 
   it("只纳入勾选量表锚定的旁白，未勾选量表的旁白不播", () => {

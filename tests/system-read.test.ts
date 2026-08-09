@@ -1,14 +1,18 @@
 /**
  * INPUT:  src/lib/assessment/system-read.ts（M9.5 系统读取推导）、data/scales-v2.json（选项 label 事实来源）
- * OUTPUT: 8 个「系统读取」条目（frail_4/frail_5/mnasf_2/mnasf_6/morse_2/glim_1/glim_2/glim_3）
- *         的推导规则用例：BMI 四档边界、小腿围回退、体重史 5%/3kg/10% 边界、GLIM 年龄分层
- *         低 BMI 界值、诊断数阈值、缺数据不答、产出 label 在规则数据该条目 options 中精确可查、
- *         existing 集合跳过已有 confirmed 答案
+ * OUTPUT: 已实现系统读取/设备测量条目的推导规则，以及 V2/01 表全量覆盖分类校验。
+ *         覆盖三类：已实现、需医护/设备、待口径；缺乏明确医学口径的 FRAIL/NRS2002 条目不自动作答。
  * POS:    系统读取自动作答的回归保险（确定性红线：label 必须命中规则数据，分值边界锁死）。
  */
 import { describe, expect, it } from "vitest";
 import { scalesV2 } from "@/lib/rules/v2";
-import { resolveSystemReadAnswers, type PatientLike, type SystemReadAnswer } from "@/lib/assessment/system-read";
+import {
+  resolveSystemReadAnswers,
+  SYSTEM_READ_COVERAGE,
+  validateSystemReadCoverage,
+  type PatientLike,
+  type SystemReadAnswer,
+} from "@/lib/assessment/system-read";
 
 const ALL_SCALES = ["frail", "mnasf"] as const;
 
@@ -28,6 +32,31 @@ function optionLabels(questionId: string): string[] {
   }
   throw new Error(`测试数据异常：找不到条目 ${questionId} 的选项`);
 }
+
+describe("SYSTEM_READ_COVERAGE：V2/01 表覆盖与分类", () => {
+  it("每个系统读取/设备测量条目均有且只有一个注册项，且规则字段一致", () => {
+    const validation = validateSystemReadCoverage();
+    expect(validation.ok, JSON.stringify(validation)).toBe(true);
+    expect(new Set(SYSTEM_READ_COVERAGE.map((entry) => entry.questionId)).size).toBe(SYSTEM_READ_COVERAGE.length);
+    expect(SYSTEM_READ_COVERAGE.some((entry) => entry.status === "implemented")).toBe(true);
+    expect(SYSTEM_READ_COVERAGE.some((entry) => entry.status === "needsClinicalOrDevice")).toBe(true);
+    expect(SYSTEM_READ_COVERAGE.some((entry) => entry.status === "pendingDefinition")).toBe(true);
+  });
+
+  it("未拍板条目不因存在同名字段而自动作答", () => {
+    const patient: PatientLike = {
+      age: 75,
+      heightCm: 160,
+      weightKg: 45,
+      weightHistory: { m1: 48, m3: 50, m6: 52, m12: 56 },
+      diagnoses: ["高血压", "糖尿病", "冠心病", "慢阻肺", "白内障"],
+    };
+    const answers = resolveSystemReadAnswers(patient, ["frail", "nrs2002", "morse", "glim"]);
+    expect(answers.map((answer) => answer.questionId)).not.toEqual(
+      expect.arrayContaining(["frail_4", "frail_5", "nrs2002_初筛1", "nrs2002_初筛2", "nrs2002_初筛4", "glim_6"])
+    );
+  });
+});
 
 describe("mnasf_6：BMI 四档（优先按 BMI）", () => {
   // 身高 100cm 时 BMI 数值 == 体重数值，便于直接写边界
@@ -73,28 +102,9 @@ describe("mnasf_6：BMI 算不出时回退小腿围", () => {
   });
 });
 
-describe("frail_5：体重下降 ≥5% → 是（峰值口径）", () => {
-  it("下降 4.9% → 否（0分）", () => {
-    const answer = byQuestion(resolve({ weightKg: 95.1, weightHistory: { m3: 100 } }), "frail_5");
-    expect(answer!.score).toBe(0);
-    expect(answer!.optionLabel).toBe("否（0分）");
-  });
-
-  it("下降 5.0% → 是（1分）", () => {
-    const answer = byQuestion(resolve({ weightKg: 95, weightHistory: { m3: 100 } }), "frail_5");
-    expect(answer!.score).toBe(1);
-    expect(answer!.optionLabel).toBe("是（1分）");
-  });
-
-  it("峰值取体重史与当前的最大值（当前最重 → 下降 0% → 否）", () => {
-    const answer = byQuestion(resolve({ weightKg: 72, weightHistory: { m1: 70, m6: 68 } }), "frail_5");
-    expect(answer!.score).toBe(0);
-  });
-
-  it("weightHistory 为空/缺失 → 不答", () => {
-    expect(byQuestion(resolve({ weightKg: 66, weightHistory: {} }), "frail_5")).toBeUndefined();
-    expect(byQuestion(resolve({ weightKg: 66 }), "frail_5")).toBeUndefined();
-    expect(byQuestion(resolve({ weightHistory: { m3: 70 } }), "frail_5")).toBeUndefined();
+describe("frail_5：规则未明确，不自动推导", () => {
+  it("即使已有体重史，也保留给医护补录/待口径处理", () => {
+    expect(byQuestion(resolve({ weightKg: 95, weightHistory: { m3: 100 } }), "frail_5")).toBeUndefined();
   });
 });
 
@@ -129,25 +139,11 @@ describe("mnasf_2：近 3 个月体重下降四档", () => {
   });
 });
 
-describe("frail_4：现有诊断 ≥5 种 → 是", () => {
-  it("4 种 → 否（0分）", () => {
-    const answer = byQuestion(resolve({ diagnoses: ["高血压", "糖尿病", "冠心病", "骨质疏松"] }), "frail_4");
-    expect(answer!.score).toBe(0);
-    expect(answer!.optionLabel).toBe("否（0分）");
-    expect(answer!.rawText).toContain("4 种");
-  });
-
-  it("5 种 → 是（1分）", () => {
-    const answer = byQuestion(
-      resolve({ diagnoses: ["高血压", "糖尿病", "冠心病", "骨质疏松", "慢阻肺"] }),
-      "frail_4"
-    );
-    expect(answer!.score).toBe(1);
-    expect(answer!.optionLabel).toBe("是（1分）");
-  });
-
-  it("diagnoses 缺失 → 不答", () => {
-    expect(byQuestion(resolve({}), "frail_4")).toBeUndefined();
+describe("frail_4：规则未明确，不自动推导", () => {
+  it("即使已有诊断清单，也不套用未在 01 表写明的疾病数阈值", () => {
+    expect(
+      byQuestion(resolve({ diagnoses: ["高血压", "糖尿病", "冠心病", "骨质疏松", "慢阻肺"] }), "frail_4")
+    ).toBeUndefined();
   });
 });
 
@@ -195,7 +191,10 @@ describe("glim_1/glim_2/glim_3：GLIM 体重史与低 BMI 界值（01 表「系�
     });
 
     it("恰降 5%（100→95）→ 否（01 表口径为＞5%，等于不算）", () => {
-      const answer = byQuestion(resolveGlim({ weightKg: 95, weightHistory: { m6: 100 } }), "glim_1");
+      const answer = byQuestion(
+        resolveGlim({ weightKg: 95, weightHistory: { m1: 100, m2: 100, m3: 100, m6: 100 } }),
+        "glim_1"
+      );
       expect(answer!.optionLabel).toBe("否");
       expect(answer!.score).toBe(0);
     });
@@ -322,7 +321,7 @@ describe("通用行为", () => {
     const answers = resolve(fullPatient, new Set(["frail_4", "mnasf_6"]));
     expect(byQuestion(answers, "frail_4")).toBeUndefined();
     expect(byQuestion(answers, "mnasf_6")).toBeUndefined();
-    expect(byQuestion(answers, "frail_5")).toBeDefined();
+    expect(byQuestion(answers, "frail_5")).toBeUndefined();
     expect(byQuestion(answers, "mnasf_2")).toBeDefined();
   });
 

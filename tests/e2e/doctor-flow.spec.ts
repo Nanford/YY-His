@@ -3,7 +3,8 @@
  * OUTPUT: 新建患者到医生确认最终干预方案的端到端验收结果
  * POS:    M2 无语音完整流程回归（V2 装机后口径）：常规综合评估包（8 量表）全量代填 →
  *         16 个评估标签 → 5 大类积分候选（9 项）→ 保留/删除/同类替换审核留痕；
- *         系统读取题（frail_4/frail_5/mnasf_2/mnasf_6）由档案数据在 finalize 时自动作答；
+ *         阈值明确的系统读取题（mnasf_2/mnasf_6）由档案数据在 finalize 时自动作答；
+ *         frail_4/frail_5 因 01 表未给出判定阈值，由医生按临床判断补录；
  *         ADL 重度依赖触发 YD07 禁止推荐明细。期望值由 tmp/e2e-golden-v2.ts 探针实算复核。
  *         （来源：V2/Demo_v2更新说明.docx §2 量表工具选择、03 表积分矩阵、M9.5 系统读取）
  */
@@ -47,7 +48,7 @@ const expectedTags = [
   "抑郁两问筛查阴性",
   "焦虑两问筛查阴性",
   "气虚质",
-  "平和质：否",
+  "平和质",
 ];
 const expectedInterventions = [
   "扶椅坐站训练",
@@ -145,9 +146,10 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   };
   for (const [questionId, label] of Object.entries(iadlZero)) await pickLabel(page, questionId, label);
 
-  // FRAIL 1+1+1=3 分 → 衰弱；frail_4/frail_5 为系统读取题，此处刻意不填，
-  // 由 finalize 按档案（2 种诊断、体重平稳）自动作答为「否（0分）」
+  // FRAIL 1+1+1=3 分 → 衰弱；frail_4/frail_5 虽标为系统读取，
+  // 但 01 表未给出疾病数、体重下降的明确判定阈值，医生端按临床判断补录，避免系统擅自推定。
   for (const questionId of ["frail_1", "frail_2", "frail_3"]) await pickLabel(page, questionId, "是（1分）");
+  for (const questionId of ["frail_4", "frail_5"]) await pickLabel(page, questionId, "否（0分）");
 
   // MNA-SF：手工 0+1+0+1=2 分；mnasf_2/mnasf_6 系统读取（体重没有下降 3 分、BMI 20.2 → 1 分），
   // 总分 6 ≤ 11 → 营养不良风险
@@ -194,11 +196,11 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   await expect(frailDetail.getByRole("columnheader", { name: "标准答案", exact: true })).toBeVisible();
   await expect(frailDetail.locator("tbody tr").first().locator("td").nth(2)).toHaveText("是（1分）");
 
-  // 系统读取留痕：frail_4/frail_5/mnasf_2/mnasf_6 由档案自动作答，来源徽章「系统读取」
+  // 系统读取留痕：只有规则阈值明确的 mnasf_2/mnasf_6 由档案自动作答。
   const traceSectionFirst = page
     .getByRole("heading", { name: "答案与采集追溯", exact: true })
     .locator("xpath=ancestor::section[1]");
-  await expect(traceSectionFirst.getByText("系统读取", { exact: true })).toHaveCount(4);
+  await expect(traceSectionFirst.getByText("系统读取", { exact: true })).toHaveCount(2);
 
   // ---------- 候选干预方案审核：5 大类 9 项，积分明细逐项下钻 ----------
   const reviewSection = page
@@ -285,8 +287,8 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   const answerEdits = editedAnswer.getByText("原因：医生代填或修改标准答案", { exact: true });
   await expect(answerEdits).toHaveCount(2); // 标准答案文本与标准分值分别留痕
   await expect(answerEdits.first()).toBeVisible();
-  // frail_1 修改 1 道；另 4 道系统读取题在表单回提交时被医生原值再确认（来源 system→doctor 留痕）
-  await expect(traceSection.getByText("5 道已修改", { exact: true })).toBeVisible();
+  // frail_1 修改 1 道；mnasf_2/mnasf_6 两道系统读取题在表单回提交时由医生原值再确认。
+  await expect(traceSection.getByText("3 道已修改", { exact: true })).toBeVisible();
 
   // 重评后旧快照仍在，但当前结果与待确认方案各只能有一条。
   const resultVersions = await readVersionStatuses("AssessmentResult", sessionId);

@@ -5,7 +5,12 @@
  *         不实现任何医学规则；评分仍由医生端 finalize 时调用评分引擎完成。
  */
 import { prisma } from "@/lib/db";
-import { scaleById } from "@/lib/rules";
+import {
+  scaleById,
+  type CollectionRole,
+  type InteractionMode,
+  type JudgmentMode,
+} from "@/lib/rules";
 import type { Prisma } from "@/generated/prisma/client";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { acquireFinalizingLock, scoreAndSnapshot, type FinalizeOutcome } from "@/lib/assessment/finalize";
@@ -37,7 +42,16 @@ export interface PatientPromptDto {
   attempt: AskAttempt;
   /** 播报/字幕文案（预生成模板拼装） */
   text: string;
-  answerType: "boolean" | "choice" | "likert5" | "number" | "multiChoice" | "imageChoice" | "drawing";
+  answerType:
+    | "boolean"
+    | "choice"
+    | "likert5"
+    | "number"
+    | "multiChoice"
+    | "imageChoice"
+    | "drawing"
+    | "freeText"
+    | "acknowledge";
   options: { label: string; score: number }[];
   /** number 题合法分值范围 */
   numberMin?: number;
@@ -47,6 +61,11 @@ export interface PatientPromptDto {
   scaleName: string;
   questionNo: string;
   title: string;
+  collectionRole: CollectionRole;
+  interactionMode: InteractionMode;
+  isScored: boolean;
+  inTimeline: boolean;
+  judgmentMode: JudgmentMode;
 }
 
 /** 采集编排旁白（M9.2：总开场/分类过渡/工具说明，只播报不需作答） */
@@ -59,6 +78,19 @@ export interface PatientNarrationDto {
   text: string;
 }
 
+/** 患者端采集指令（如 Mini-Cog 记忆指令）：进入时间线并播报，但不生成答案。 */
+export interface PatientInstructionDto {
+  questionId: string;
+  text: string;
+  scaleName: string;
+  questionNo: string;
+  collectionRole: CollectionRole;
+  interactionMode: InteractionMode;
+  isScored: boolean;
+  inTimeline: boolean;
+  judgmentMode: JudgmentMode;
+}
+
 export interface PatientDialogueStateDto {
   sessionId: string;
   /**
@@ -66,13 +98,22 @@ export interface PatientDialogueStateDto {
    * intro：已播报讲解开场白、正在等患者口头确认"开始"，第一题尚未发出（已问候但无题目轮次）。
    * narration：正在播放采集编排旁白（M9.2 总开场/分类过渡/工具说明），只播报不需作答，
    *           播完前端自动调 /advance 推进（旁白轮次由 /advance 写入）。
+   * instruction：正在播放量表采集指令（如 Mini-Cog 记忆词），与旁白一样留痕并自动推进。
    * in_question：问询进行中。
    * awaiting_doctor：问答已全部答完，但评估暂未生成（存在普通问答题"待人工确认"未补录），需医生协助后才能生成报告。
    * （测量/观察类医生题缺口不再进入此态——Demo 口径 deferClinical 豁免其计分，直接出部分计分报告。）
    * finished：本次提交刚好完成评分并生成报告——仅作为触发前端跳转去看报告的一次性信号，不会被 GET /state 重复返回。
    * locked：会话已不在 in_progress（通常因为报告已生成，应改为渲染报告页；此值仅作兜底）。
    */
-  phase: "not_started" | "intro" | "narration" | "in_question" | "awaiting_doctor" | "finished" | "locked";
+  phase:
+    | "not_started"
+    | "intro"
+    | "narration"
+    | "instruction"
+    | "in_question"
+    | "awaiting_doctor"
+    | "finished"
+    | "locked";
   scaleNames: string[];
   capabilities: VoiceCapabilities;
   progress: { answered: number; total: number };
@@ -80,6 +121,8 @@ export interface PatientDialogueStateDto {
   prompt: PatientPromptDto | null;
   /** 当前待播报的旁白；仅 narration 阶段非 null */
   narration: PatientNarrationDto | null;
+  /** 当前待播报的采集指令；仅 instruction 阶段非 null */
+  instruction: PatientInstructionDto | null;
   /** 本次需要依序播报的文案（开场白/旁白/下一题/结束语）；刷新时为当前题或当前旁白的重播文案 */
   speak: string[];
 }
@@ -88,9 +131,9 @@ export interface SubmitAnswerInput {
   questionId: string;
   /**
    * 输入模式：
-   * voice/text/button 既有；multi=多选；drawing=画钟交卷（先落 pending 等医生计分）
+   * voice/text/button 既有；multi=多选；drawing=画钟交卷；acknowledge=完成操作确认（不自评分）
    */
-  mode: "voice" | "text" | "button" | "multi" | "drawing";
+  mode: "voice" | "text" | "button" | "multi" | "drawing" | "acknowledge";
   /** voice/text 模式的原始回答文本（语音为 ASR 转写） */
   utterance?: string;
   /** button 模式点选的选项 label（完整字符串，按 label 精确匹配选项，同分选项不歧义） */
@@ -162,6 +205,17 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
   const doctorAskCount = new Map<string, number>();
   const patientReplyCount = new Map<string, number>();
   const deliveredNarrationIds = new Set<string>();
+  const deliveredInstructionIds = new Set<string>();
+  const narrationIds = new Set(
+    timeline
+      .filter((step): step is Extract<TimelineStep, { kind: "narration" }> => step.kind === "narration")
+      .map((step) => step.narration.id)
+  );
+  const instructionIds = new Set(
+    timeline
+      .filter((step): step is Extract<TimelineStep, { kind: "instruction" }> => step.kind === "instruction")
+      .map((step) => step.item.question.id)
+  );
   for (const turn of session.turns) {
     if (!turn.questionId) continue;
     if (turn.role === "doctor") {
@@ -169,8 +223,9 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
     } else if (turn.role === "patient") {
       patientReplyCount.set(turn.questionId, (patientReplyCount.get(turn.questionId) ?? 0) + 1);
     } else if (turn.role === "system") {
-      // 旁白播报完成标记（M9.2）：system 轮次的 questionId 即旁白 id，刷新重放不重复播报
-      deliveredNarrationIds.add(turn.questionId);
+      // 旁白/采集指令均用 system 轮次留痕；按当前时间线区分，兼容既有旁白记录。
+      if (narrationIds.has(turn.questionId)) deliveredNarrationIds.add(turn.questionId);
+      if (instructionIds.has(turn.questionId)) deliveredInstructionIds.add(turn.questionId);
     }
   }
 
@@ -185,13 +240,19 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
     },
     questions,
     timeline,
-    snapshot: { answerStatus, doctorAskCount, patientReplyCount, deliveredNarrationIds },
+    snapshot: {
+      answerStatus,
+      doctorAskCount,
+      patientReplyCount,
+      deliveredNarrationIds,
+      deliveredInstructionIds,
+    },
     started: session.turns.some((turn) => turn.role === "doctor"),
   };
 }
 
 function promptDto(step: DialogueStep): PatientPromptDto | null {
-  if (step.kind === "finished" || step.kind === "narration") return null;
+  if (step.kind === "finished" || step.kind === "narration" || step.kind === "instruction") return null;
   // awaiting 时按 attempt 重建话术：模板是确定性的，与写入 turns 的播报文本一致
   const item = step.kind === "prompt" ? step.prompt.item : step.item;
   const attempt = step.kind === "prompt" ? step.prompt.attempt : step.attempt;
@@ -202,12 +263,18 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
       : attempt === 2
         ? clarifyText(item.question, item.options)
         : recheckText(item.question);
+  const answerType =
+    item.question.patientResponseMode === "free_text"
+      ? "freeText"
+      : item.question.patientResponseMode === "acknowledge"
+        ? "acknowledge"
+        : item.question.answerType;
   return {
     questionId: item.question.id,
     kind,
     attempt,
     text,
-    answerType: item.question.answerType,
+    answerType,
     options: item.options,
     numberMin: item.question.numberMin,
     numberMax: item.question.numberMax,
@@ -215,11 +282,30 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
     scaleName: item.scaleName,
     questionNo: item.question.no,
     title: item.question.title,
+    collectionRole: item.question.collectionRole,
+    interactionMode: item.question.interactionMode,
+    isScored: item.question.isScored,
+    inTimeline: item.question.inTimeline,
+    judgmentMode: item.question.judgmentMode,
   };
 }
 
 function narrationDto(narration: NarrationV2): PatientNarrationDto {
   return { id: narration.id, entryType: narration.entryType, text: narration.text };
+}
+
+function instructionDto(item: AskableQuestion): PatientInstructionDto {
+  return {
+    questionId: item.question.id,
+    text: item.question.standardText,
+    scaleName: item.scaleName,
+    questionNo: item.question.no,
+    collectionRole: item.question.collectionRole,
+    interactionMode: item.question.interactionMode,
+    isScored: item.question.isScored,
+    inTimeline: item.question.inTimeline,
+    judgmentMode: item.question.judgmentMode,
+  };
 }
 
 /**
@@ -240,7 +326,26 @@ function narrationState(
     progress: progressOf(context.questions, context.snapshot),
     prompt: null,
     narration: narrationDto(narration),
+    instruction: null,
     speak: [narration.text],
+  };
+}
+
+function instructionState(
+  context: LoadedContext,
+  scaleNames: string[],
+  item: AskableQuestion
+): PatientDialogueStateDto {
+  return {
+    sessionId: context.session.id,
+    phase: "instruction",
+    scaleNames,
+    capabilities: voiceCapabilities(),
+    progress: progressOf(context.questions, context.snapshot),
+    prompt: null,
+    narration: null,
+    instruction: instructionDto(item),
+    speak: [item.question.standardText],
   };
 }
 
@@ -253,10 +358,10 @@ function buildState(
   const progress = progressOf(context.questions, context.snapshot);
   const base = { sessionId: context.session.id, scaleNames, capabilities, progress };
   if (context.session.status !== "in_progress") {
-    return { ...base, phase: "locked", prompt: null, narration: null, speak: [] };
+    return { ...base, phase: "locked", prompt: null, narration: null, instruction: null, speak: [] };
   }
   if (!context.started) {
-    return { ...base, phase: "not_started", prompt: null, narration: null, speak: [] };
+    return { ...base, phase: "not_started", prompt: null, narration: null, instruction: null, speak: [] };
   }
   const step = nextStep(context.timeline, context.snapshot);
   // 已问候但还没发出任何题目、也没播任何旁白（无带 questionId 的 doctor/system 轮次）＝讲解+确认阶段：
@@ -264,20 +369,38 @@ function buildState(
   // 仅当确实还有内容可播（step 非 finished）时才停在 intro；若医生已代填全部（finished）则照常收尾。
   const questionsBegun = context.snapshot.doctorAskCount.size > 0;
   const narrationsBegun = context.snapshot.deliveredNarrationIds.size > 0;
-  if (!questionsBegun && !narrationsBegun && step.kind !== "finished") {
-    return { ...base, phase: "intro", prompt: null, narration: null, speak };
+  const instructionsBegun = (context.snapshot.deliveredInstructionIds?.size ?? 0) > 0;
+  if (!questionsBegun && !narrationsBegun && !instructionsBegun && step.kind !== "finished") {
+    return { ...base, phase: "intro", prompt: null, narration: null, instruction: null, speak };
   }
   if (step.kind === "narration") {
     // 旁白步骤：只播报不需作答；system 轮次由 /advance 在播报完成后写入
-    return { ...base, phase: "narration", prompt: null, narration: narrationDto(step.narration), speak };
+    return {
+      ...base,
+      phase: "narration",
+      prompt: null,
+      narration: narrationDto(step.narration),
+      instruction: null,
+      speak,
+    };
+  }
+  if (step.kind === "instruction") {
+    return {
+      ...base,
+      phase: "instruction",
+      prompt: null,
+      narration: null,
+      instruction: instructionDto(step.item),
+      speak,
+    };
   }
   if (step.kind === "finished") {
     // 到达这里时 session 仍是 in_progress：说明问答已问完，但评分未成功
     // （存在普通问答题"待人工确认"未补录；测量/观察类医生题已按 deferClinical 豁免不阻断），
     // 需医生协助补录后才能生成报告。
-    return { ...base, phase: "awaiting_doctor", prompt: null, narration: null, speak };
+    return { ...base, phase: "awaiting_doctor", prompt: null, narration: null, instruction: null, speak };
   }
-  return { ...base, phase: "in_question", prompt: promptDto(step), narration: null, speak };
+  return { ...base, phase: "in_question", prompt: promptDto(step), narration: null, instruction: null, speak };
 }
 
 /** 刚完成评分快照生成时的一次性响应：告知前端跳转去看报告，不通过 buildState 派生。 */
@@ -294,6 +417,7 @@ function reportReadyState(
     progress: progressOf(context.questions, context.snapshot),
     prompt: null,
     narration: null,
+    instruction: null,
     speak,
   };
 }
@@ -302,6 +426,7 @@ function reportReadyState(
 function withReplaySpeak(state: PatientDialogueStateDto): PatientDialogueStateDto {
   if (state.phase === "intro") return { ...state, speak: [OPENING_TEXT] };
   if (state.phase === "narration" && state.narration) return { ...state, speak: [state.narration.text] };
+  if (state.phase === "instruction" && state.instruction) return { ...state, speak: [state.instruction.text] };
   if (state.phase === "in_question" && state.prompt) return { ...state, speak: [state.prompt.text] };
   return state;
 }
@@ -369,7 +494,7 @@ export async function startPatientDialogue(sessionId: string): Promise<PatientDi
       data: { sessionId, role: "doctor", questionId: null, text: OPENING_TEXT },
     });
     const step = nextStep(context.timeline, context.snapshot);
-    if (step.kind === "prompt" || step.kind === "narration") {
+    if (step.kind === "prompt" || step.kind === "narration" || step.kind === "instruction") {
       // 讲解播完进入 intro：不写旁白/第一题轮次，等患者确认后由 beginPatientQuestions 推进。
       // M9.2 取舍：OPENING_TEXT 保留作"征求开始"的确认触发器（含"说一声开始"指令与 VAD 确认监听），
       // 01 表总开场旁白（narr_3）在患者确认后作为第一条编排旁白播报，两者文案不重复
@@ -411,7 +536,11 @@ export async function beginPatientQuestions(sessionId: string): Promise<PatientD
     // M9.3/M9.4：推进前同步复用回填（覆盖医生预先代填焦虑两问等场景），回填题随即跳过
     await applyReuseAnswers(tx, context);
     // 已经在答题或旁白链中（有题目/旁白轮次）→ 幂等返回当前状态
-    if (context.snapshot.doctorAskCount.size > 0 || context.snapshot.deliveredNarrationIds.size > 0) {
+    if (
+      context.snapshot.doctorAskCount.size > 0 ||
+      context.snapshot.deliveredNarrationIds.size > 0 ||
+      (context.snapshot.deliveredInstructionIds?.size ?? 0) > 0
+    ) {
       return withReplaySpeak(buildState(context, scaleNames, []));
     }
     const step = nextStep(context.timeline, context.snapshot);
@@ -420,6 +549,10 @@ export async function beginPatientQuestions(sessionId: string): Promise<PatientD
       // 前端播完自动调 /advance 推进到下一旁白或第一题。
       // 注意必须走 narrationState 直构：首条旁白前无任何题目/旁白轮次，buildState 会误判回 intro。
       return narrationState(context, scaleNames, step.narration);
+    }
+    if (step.kind === "instruction") {
+      // Mini-Cog 记忆指令等不生成答案，但必须作为患者时间线步骤播报/展示。
+      return instructionState(context, scaleNames, step.item);
     }
     if (step.kind === "prompt") {
       await tx.dialogueTurn.create({
@@ -453,7 +586,10 @@ function bumpCount(map: ReadonlyMap<string, number>, questionId: string): void {
  * 下一旁白（不写轮次，等再次 /advance）/ 下一题（写 doctor 轮次）/ 全部完成（结束语 + 自动生成报告）。
  * 旁白轮次只在本函数写入，保证一条旁白恰好落库一次。
  */
-export async function advancePatientNarration(sessionId: string): Promise<PatientDialogueStateDto> {
+export async function advancePatientNarration(
+  sessionId: string,
+  expectedStepId: string
+): Promise<PatientDialogueStateDto> {
   return prisma.$transaction(async (tx) => {
     const context = await loadContext(tx, sessionId);
     if (context.session.status !== "in_progress") {
@@ -466,20 +602,34 @@ export async function advancePatientNarration(sessionId: string): Promise<Patien
     // M9.3/M9.4：推进前同步复用回填（旁白推进也可能紧接被回填跳过的题目）
     await applyReuseAnswers(tx, context);
     const step = nextStep(context.timeline, context.snapshot);
-    if (step.kind !== "narration") {
+    if (step.kind !== "narration" && step.kind !== "instruction") {
       // 旁白已推进过（如前端重复调用/刷新后重放）：幂等返回当前状态
       return withReplaySpeak(buildState(context, scaleNames, []));
     }
 
     // 标记当前旁白已播报（system 轮次，刷新重放不再重复播报）
+    const stepId = step.kind === "narration" ? step.narration.id : step.item.question.id;
+    // 前端必须声明刚刚实际播完的步骤。旧播放链、重复点击或跨标签页请求即使晚到，
+    // 也不能把服务端已经切换到的新旁白/指令误标为已播报并直接跳过。
+    if (expectedStepId !== stepId) {
+      throw new DialogueConflictError("当前播报步骤已变化，请按页面提示继续");
+    }
+    const stepText = step.kind === "narration" ? step.narration.text : step.item.question.standardText;
     await tx.dialogueTurn.create({
-      data: { sessionId, role: "system", questionId: step.narration.id, text: step.narration.text },
+      data: { sessionId, role: "system", questionId: stepId, text: stepText },
     });
-    (context.snapshot.deliveredNarrationIds as Set<string>).add(step.narration.id);
+    if (step.kind === "narration") {
+      (context.snapshot.deliveredNarrationIds as Set<string>).add(stepId);
+    } else {
+      (context.snapshot.deliveredInstructionIds as Set<string>).add(stepId);
+    }
 
     const following = nextStep(context.timeline, context.snapshot);
     if (following.kind === "narration") {
       return buildState(context, scaleNames, [following.narration.text]);
+    }
+    if (following.kind === "instruction") {
+      return buildState(context, scaleNames, [following.item.question.standardText]);
     }
     if (following.kind === "prompt") {
       await tx.dialogueTurn.create({
@@ -566,6 +716,40 @@ function drawingOutcome(drawingDataUrl: string | undefined): NormalizationOutcom
 }
 
 /**
+ * 医护判定题只保存患者原话/完成动作，不做选项归一化。
+ * 来源：AGENTS.md 硬约束 2、3；MMSE 等题缺少可由患者自评的机构标准答案时必须留给医护。
+ */
+function clinicalPendingOutcome(item: AskableQuestion, input: SubmitAnswerInput): NormalizationOutcome {
+  if (item.question.patientResponseMode === "acknowledge" && input.mode !== "acknowledge") {
+    throw new DialogueConflictError("该操作只接受完成确认，不能自行选择正确或错误");
+  }
+  if (item.question.patientResponseMode === "free_text" && !["voice", "text"].includes(input.mode)) {
+    throw new DialogueConflictError("该题请直接说出或输入您的回答，由医护判定");
+  }
+  return {
+    status: "unclear",
+    method: "clinical",
+    reason:
+      item.question.judgmentMode === "configuration_missing"
+        ? "题目缺少机构标准答案或判定配置，已记录原始响应，需医护判定"
+        : "患者响应已记录，正确性由医护依据机构标准判定",
+  };
+}
+
+/** 非计分开放题只采集原始文本并确认已记录，不调用 LLM、也不形成医学分值。 */
+function unscoredRawOutcome(utterance: string): NormalizationOutcome {
+  if (!utterance) throw new DialogueConflictError("回答内容为空");
+  return {
+    status: "matched",
+    optionLabel: "已记录（不计分）",
+    score: 0,
+    method: "rules",
+    confidence: 1,
+    reason: "非计分开放题仅保存患者原始回答",
+  };
+}
+
+/**
  * 提交患者回答：归一化 → 状态机决策 → 事务落库（患者轮次 + 答案 + 下一题提问轮次）。
  * 归一化含网络调用，放在事务外执行；事务内重新校验状态防并发错位。
  */
@@ -603,12 +787,16 @@ export async function submitPatientAnswer(
     if (utterance.length === 0) throw new DialogueConflictError("回答内容为空");
   }
   const outcome =
-    input.mode === "button"
-      ? buttonOutcome(item, input.label, input.score)
-      : input.mode === "multi"
-        ? multiOutcome(item, input.labels)
-        : input.mode === "drawing"
-          ? drawingOutcome(input.drawingDataUrl)
+    input.mode === "drawing"
+      ? drawingOutcome(input.drawingDataUrl)
+      : item.question.judgmentMode === "not_scored" && item.question.patientResponseMode === "free_text"
+        ? unscoredRawOutcome(utterance)
+      : item.question.judgmentMode === "clinician" || item.question.judgmentMode === "configuration_missing"
+        ? clinicalPendingOutcome(item, input)
+        : input.mode === "button"
+        ? buttonOutcome(item, input.label, input.score)
+        : input.mode === "multi"
+          ? multiOutcome(item, input.labels)
           : await normalizeAnswer({
               question: item.question,
               options: item.options,
@@ -659,7 +847,9 @@ export async function submitPatientAnswer(
           ? `[多选作答] ${outcome.status === "matched" ? outcome.optionLabel : ""}`
           : input.mode === "drawing"
             ? "[画钟交卷] 待医生确认计分"
-            : utterance;
+            : input.mode === "acknowledge"
+              ? "[完成确认] 已完成操作，待医护判定"
+              : utterance;
     await tx.dialogueTurn.create({
       data: {
         sessionId,
@@ -675,7 +865,10 @@ export async function submitPatientAnswer(
     // 2. 按状态机决定答案落库动作
     // 画钟交卷：直接 pending（不走追问），等医生确认计分（M9.6）
     const resolution =
-      input.mode === "drawing"
+      input.mode === "drawing" ||
+      input.mode === "acknowledge" ||
+      item.question.judgmentMode === "clinician" ||
+      item.question.judgmentMode === "configuration_missing"
         ? ({ action: "markPending" } as const)
         : resolveReply(step.attempt, outcome);
     if (resolution.action !== "clarify") {
@@ -706,6 +899,11 @@ export async function submitPatientAnswer(
     if (following.kind === "narration") {
       // 下一量表前的分类过渡/工具说明旁白：只播报不需作答，轮次由 /advance 写入
       speak.push(following.narration.text);
+      return { resolution: resolutionDto, state: buildState(context, scaleNames, speak) };
+    }
+    if (following.kind === "instruction") {
+      // 采集指令不写 doctor 提问轮次，完成播报后由 /advance 写 system 留痕并推进。
+      speak.push(following.item.question.standardText);
       return { resolution: resolutionDto, state: buildState(context, scaleNames, speak) };
     }
     if (following.kind === "prompt") {
@@ -748,11 +946,13 @@ async function persistAnswer(
   const next: AnswerSnapshot = {
     optionLabel: outcome.status === "matched" ? outcome.optionLabel : null,
     score: outcome.status === "matched" ? outcome.score : null,
-    rawText:
+      rawText:
       input.mode === "drawing"
         ? (input.drawingDataUrl ?? null)
         : input.mode === "button" || input.mode === "multi"
           ? null
+          : input.mode === "acknowledge"
+            ? "患者确认已完成操作，待医护判定"
           : utterance,
     // multi/drawing 写入扩展 source 字面量（追溯界面可识别）
     source: input.mode,
