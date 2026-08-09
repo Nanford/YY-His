@@ -1,13 +1,13 @@
 {
   "generatedFrom": "V2/01_评估采集规则表.xlsx",
-  "generatedAt": "2026-08-08T02:23:42.886Z",
+  "generatedAt": "2026-08-08T11:09:42.190Z",
   "categories": [
     "全程",
     "躯体功能",
     "精神心理",
     "社会与环境",
     "老年综合征",
-    "中医特色扩展"
+    "中医特色评估"
   ],
   "narrations": [
     {
@@ -166,7 +166,7 @@
       "id": "narr_230",
       "row": 230,
       "entryType": "分类过渡",
-      "category": "中医特色扩展",
+      "category": "中医特色评估",
       "scaleId": null,
       "text": "最后问一些您平时的身体感受和体质特点。"
     }
@@ -5383,7 +5383,7 @@
     {
       "id": "tcm_constitution",
       "name": "中医体质辨识",
-      "category": "中医特色扩展",
+      "category": "中医特色评估",
       "subcategory": "中医体质",
       "items": [
         {

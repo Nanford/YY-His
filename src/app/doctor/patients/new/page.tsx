@@ -11,7 +11,6 @@ import {
   IconAlertCircle,
   IconArrowLeft,
   IconLock,
-  IconRulerMeasure,
   IconUserPlus,
 } from "@tabler/icons-react";
 import { createPatient } from "@/lib/actions/doctor";
@@ -23,6 +22,7 @@ import {
 } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
 import { V2DemoPipeline } from "@/components/v2-pipeline";
+import MeasurementSection from "./measurement-section";
 
 const inputCls = "ui-input";
 
@@ -226,46 +226,7 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
         </section>
 
         {/* §1 人体测量与客观指标：身高体重 BMI、体重史、小腿围、握力、步速；DXA/BIA 暂不接入 */}
-        <section className="border-t border-[#dbe7f6] bg-[#f8fbff]">
-          <div className="ui-panel-heading bg-transparent">
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-blue-600 shadow-[0_4px_12px_rgba(33,87,160,0.07)]">
-                <IconRulerMeasure size={21} stroke={1.9} aria-hidden="true" />
-              </span>
-              <div>
-                <h2 className="ui-panel-title">三、人体测量与客观指标</h2>
-                <p className="mt-1 text-xs text-[#62779a]">
-                  身高、体重（现在及 1/2/3/6/12 月前）可填，BMI 由系统自动计算；小腿围、握力、步速可现场测量后填入
-                </p>
-              </div>
-            </div>
-            <span className="ui-badge">测量指标</span>
-          </div>
-          <div className="ui-panel-body space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="身高" name="heightCm" type="number" unit="cm" />
-              <Field label="体重（现在）" name="weightKg" type="number" unit="kg" />
-              <Field label="腹围" name="waistCm" type="number" unit="cm" />
-              <Field label="小腿围（兼容旧字段）" name="calfCm" type="number" unit="cm" />
-            </div>
-            <div>
-              <p className="ui-label mb-2">历史体重（kg）</p>
-              <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-5">
-                <Field label="1 月前" name="weightM1" type="number" unit="kg" />
-                <Field label="2 月前" name="weightM2" type="number" unit="kg" />
-                <Field label="3 月前" name="weightM3" type="number" unit="kg" />
-                <Field label="6 月前" name="weightM6" type="number" unit="kg" />
-                <Field label="12 月前" name="weightM12" type="number" unit="kg" />
-              </div>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="小腿围-左" name="calfLeftCm" type="number" unit="cm" />
-              <Field label="小腿围-右" name="calfRightCm" type="number" unit="cm" />
-              <Field label="握力（手工填入）" name="gripStrengthKg" type="number" unit="kg" />
-              <Field label="6 米步行用时" name="gaitSpeed6mSec" type="number" unit="秒" />
-            </div>
-          </div>
-        </section>
+        <MeasurementSection />
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dbe7f6] px-[22px] py-4">
           <p className="text-xs leading-5 text-[#7f94b3]">

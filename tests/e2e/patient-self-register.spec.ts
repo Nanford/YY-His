@@ -6,6 +6,8 @@
  *         唯一审核关卡——自助生成的候选方案必须和医生录入的一样，停在 draft 等待确认。
  *         V2 装机后口径：自助建档可选 42 个可评分量表（适老化短标题，M10.3b-2 由 25 扩至 42），默认勾
  *         frail+fall_3q；全部答否时积分矩阵无匹配，候选方案为空，仍须医生确认归档。
+ *         2026-08-08 两步建档改版：建档（姓名/性别/年龄）→ /patient/select-scales 方式选择 →
+ *         本用例走自选组合·临时自定义勾选 frail+fall_3q（与原默认两项一致），再进入问询。
  */
 import { expect, test } from "@playwright/test";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
@@ -46,18 +48,21 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await page.getByText("女", { exact: true }).click();
   await page.locator('input[name="age"]').fill("81");
 
-  // V2：42 个可评分量表多选（适老化短标题），默认勾 frail+fall_3q（可当场出报告的两项）
-  const scaleChecks = page.locator('input[type="checkbox"][name="scaleIds"]');
-  await expect(scaleChecks).toHaveCount(42);
-  await expect(page.locator('input[name="scaleIds"][value="frail"]')).toBeChecked();
-  await expect(page.locator('input[name="scaleIds"][value="fall_3q"]')).toBeChecked();
-  await expect(page.locator('input[name="scaleIds"][value="mnasf"]')).not.toBeChecked();
-  for (const label of ["衰弱评估", "跌倒风险", "营养评估", "中医体质辨识", "日常生活能力", "认知初筛"]) {
-    await expect(page.getByText(label, { exact: true })).toBeVisible();
-  }
-
+  // 2026-08-08 两步建档：提交后进第二步「量表工具选择」方式页（四方式入口可见）
   // 测量数据全部留空，验证选填字段真的可以跳过
-  await page.getByRole("button", { name: "开始评估", exact: true }).click();
+  await page.getByRole("button", { name: "下一步：选择评估内容", exact: true }).click();
+  await expect(page).toHaveURL(/\/patient\/select-scales\?patientId=/);
+  await expect(page.getByText("常规综合评估", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("自选组合评估", { exact: false })).toBeVisible();
+
+  // 走自选组合 · 临时自定义选择：勾选 跌倒风险 + 衰弱评估（与原默认 frail+fall_3q 一致，
+  // 可纯自助当场出报告的两项）。注意"跌倒风险详评"（morse）同名前缀，用完整可访问名精确匹配。
+  await page.getByRole("link", { name: /自选组合评估/ }).click();
+  await expect(page).toHaveURL(/\/patient\/select-scales\/custom\?patientId=/);
+  await page.getByRole("tab", { name: "临时自定义选择" }).click();
+  await page.getByRole("checkbox", { name: /跌倒风险.*稳定情况/ }).check();
+  await page.getByRole("checkbox", { name: /衰弱评估.*容易疲劳/ }).check();
+  await page.getByRole("button", { name: /确认并进入采集/ }).click();
 
   // 提交后应直接落到该患者的问询会话页，无需医生创建任何东西
   await expect(page).toHaveURL(/\/patient\/sessions\/[^/?]+$/);
@@ -84,8 +89,8 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await expect.poll(async () => (await readPatientCreatedBy(sessionId))?.status).toBe("collected");
 
   // 报告页：全阴性标签 + frail 系统读取题豁免的"部分计分"标注；积分矩阵无匹配 → 暂无干预
-  await page.getByRole("button", { name: "查看我的评估报告", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible();
+  // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
+  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
   await expect(page.getByText("跌倒风险筛查阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("部分计分", { exact: true })).toBeVisible();
@@ -122,7 +127,7 @@ test("必填字段缺失时给出提示，不会静默创建残缺档案", async
     document.querySelectorAll('input[name="gender"]').forEach((el) => el.removeAttribute("required"));
     document.querySelector('input[name="age"]')?.removeAttribute("required");
   });
-  await page.getByRole("button", { name: "开始评估", exact: true }).click();
+  await page.getByRole("button", { name: "下一步：选择评估内容", exact: true }).click();
 
   await expect(page).toHaveURL(/\/patient\/register\?error=required$/);
   await expect(page.getByText("请完整填写姓名、性别、年龄", { exact: false })).toBeVisible();

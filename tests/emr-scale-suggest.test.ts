@@ -59,4 +59,12 @@ describe("suggestScalesByRules", () => {
     const r = suggestScalesByRules("患者近一年多次跌倒，自觉明显乏力衰弱");
     expect(r.reason).toContain("关键词匹配到");
   });
+
+  it("命中时返回实际风险关键词（设计图·病历智能评估 chips），无命中为空", () => {
+    const hit = suggestScalesByRules("患者近一年多次跌倒，夜间睡眠差，自觉明显乏力");
+    expect(hit.keywords).toContain("跌倒");
+    expect(hit.keywords.length).toBeLessThanOrEqual(8);
+    const miss = suggestScalesByRules("一般情况可，无明显主诉");
+    expect(miss.keywords).toEqual([]);
+  });
 });

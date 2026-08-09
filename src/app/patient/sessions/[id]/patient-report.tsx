@@ -28,6 +28,7 @@ import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
 import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
+import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { createSupplementarySession } from "@/lib/actions/patient";
 
 /** 5 大类固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他（来源：积分数据 categories 顺序） */
@@ -109,6 +110,9 @@ export function PatientReport({
       <PatientReportTopbar />
 
       <div className="patient-main space-y-6">
+        {/* 六步进度：报告页即患者流程终点（结果判断/干预匹配已由系统完成，本页展示干预内容） */}
+        <PatientFlowProgress current={6} />
+
         <header className="patient-panel px-6 py-8 text-center md:px-10 md:py-10">
           <span className="ui-badge mx-auto">
             <IconClipboardCheck size={17} stroke={1.9} aria-hidden="true" />

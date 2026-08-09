@@ -63,19 +63,22 @@ async function readResultSnapshot(
 test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘按 label 计标签、自动出部分计分报告", async ({ page }) => {
   test.setTimeout(240_000);
 
-  // ---------- 患者：自助建档，勾选 认知初筛 + 便秘筛查 + 便秘症状评估（去掉默认 frail/fall_3q） ----------
+  // ---------- 患者：自助建档（第一步），第二步走自选组合·临时自定义勾选 认知初筛 + 便秘筛查 + 便秘症状评估 ----------
   await page.goto("/patient/register");
   await page.locator('input[name="name"]').fill("E2E 画钟便秘患者");
   await page.getByText("男", { exact: true }).click();
   await page.locator('input[name="age"]').fill("76");
 
-  await page.locator('input[name="scaleIds"][value="frail"]').uncheck();
-  await page.locator('input[name="scaleIds"][value="fall_3q"]').uncheck();
-  await page.locator('input[name="scaleIds"][value="minicog"]').check();
-  await page.locator('input[name="scaleIds"][value="constipation_1q"]').check();
-  await page.locator('input[name="scaleIds"][value="constipation_symptom"]').check();
+  await page.getByRole("button", { name: "下一步：选择评估内容", exact: true }).click();
+  await expect(page).toHaveURL(/\/patient\/select-scales\?patientId=/);
+  await page.getByRole("link", { name: /自选组合评估/ }).click();
+  await expect(page).toHaveURL(/\/patient\/select-scales\/custom\?patientId=/);
+  await page.getByRole("tab", { name: "临时自定义选择" }).click();
+  await page.getByRole("checkbox", { name: /认知初筛.*记忆和认知/ }).check();
+  await page.getByRole("checkbox", { name: /便秘筛查.*便秘困扰/ }).check();
+  await page.getByRole("checkbox", { name: /便秘症状评估.*大便形状/ }).check();
 
-  await page.getByRole("button", { name: "开始评估", exact: true }).click();
+  await page.getByRole("button", { name: /确认并进入采集/ }).click();
   await expect(page).toHaveURL(/\/patient\/sessions\/[^/?]+$/);
   const sessionId = new URL(page.url()).pathname.split("/").at(-1);
   if (!sessionId) throw new Error("无法从会话页面 URL 读取会话编号");
@@ -137,9 +140,8 @@ test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘�
   expect(snapshot?.tagCodes).toContain("STOOL_FORM_TYPE_4");
   expect(snapshot?.tagCodes).not.toContain("STOOL_FORM_TYPE_1");
 
-  // ---------- 报告页：标签与「部分计分」标注患者可见 ----------
-  await page.getByRole("button", { name: "查看我的评估报告", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible();
+  // ---------- 报告页：标签与「部分计分」标注患者可见（2026-08-08 口径：答完自动跳转，无需点击） ----------
+  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("认知功能初筛阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("便秘筛查阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("便秘筛查阳性", { exact: true })).toHaveCount(0);

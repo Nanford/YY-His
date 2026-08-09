@@ -30,12 +30,18 @@ test.use({
 test("语音模式下播报完自动开始听，免确认自动提交并进入下一题，全程不点任何按钮", async ({ page }) => {
   test.setTimeout(240_000);
 
-  // ---------- 患者自助建档（默认 fall_3q+frail 预设，全程不经过医生端） ----------
+  // ---------- 患者自助建档（第一步）→ 第二步自选组合勾选 fall_3q+frail（原默认两项，全程不经过医生端） ----------
   await page.goto("/patient/register");
   await page.locator('input[name="name"]').fill("E2E 语音自动模式患者");
   await page.getByText("男", { exact: true }).click();
   await page.locator('input[name="age"]').fill("70");
-  await page.getByRole("button", { name: "开始评估", exact: true }).click();
+  await page.getByRole("button", { name: "下一步：选择评估内容", exact: true }).click();
+  await expect(page).toHaveURL(/\/patient\/select-scales\?patientId=/);
+  await page.getByRole("link", { name: /自选组合评估/ }).click();
+  await page.getByRole("tab", { name: "临时自定义选择" }).click();
+  await page.getByRole("checkbox", { name: /跌倒风险.*稳定情况/ }).check();
+  await page.getByRole("checkbox", { name: /衰弱评估.*容易疲劳/ }).check();
+  await page.getByRole("button", { name: /确认并进入采集/ }).click();
 
   await expect(page).toHaveURL(/\/patient\/sessions\/[^/?]+$/);
   const sessionId = new URL(page.url()).pathname.split("/").at(-1);

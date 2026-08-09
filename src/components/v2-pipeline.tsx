@@ -39,14 +39,14 @@ export const V2_PIPELINE_STEPS = [
   {
     step: 5,
     key: "match",
-    title: "干预匹配",
+    title: "干预匹配与决策",
     short: "匹配",
     description: "按规则匹配，五大类各取前 1～2 项",
   },
   {
     step: 6,
     key: "show",
-    title: "干预展示",
+    title: "干预内容展示",
     short: "展示",
     description: "先看结论，再看干预建议与教程",
   },
@@ -57,14 +57,28 @@ export type V2PipelineStep = (typeof V2_PIPELINE_STEPS)[number]["step"];
 interface Props {
   /** 当前所在步骤 1～6；0 表示总览不高亮 */
   current?: number;
+  /** 已解锁的最大步骤；大于该值的步骤会被锁定，不可点击 */
+  unlockedStep?: number;
   /** 紧凑模式（顶栏/侧栏） */
   compact?: boolean;
-  /** 步骤可点击跳转（仅演示入口页） */
+  /** 是否展示组件内置标题区；首页等已自带标题时可设为 false */
+  showHeader?: boolean;
+  /** 隐藏步骤描述文案（2026-08-08 患者端页顶进度条：只留编号+步骤名，同设计图） */
+  hideDescriptions?: boolean;
+  /** 步骤可点击跳转（仅演示入口页）；未解锁步骤即使有链接也不会渲染为可点击 */
   links?: Partial<Record<V2PipelineStep, string>>;
   className?: string;
 }
 
-export function V2DemoPipeline({ current = 0, compact = false, links, className = "" }: Props) {
+export function V2DemoPipeline({
+  current = 0,
+  unlockedStep = 6,
+  compact = false,
+  showHeader = true,
+  hideDescriptions = false,
+  links,
+  className = "",
+}: Props) {
   return (
     <nav
       aria-label="评估与干预主流程"
@@ -74,7 +88,7 @@ export function V2DemoPipeline({ current = 0, compact = false, links, className 
         className,
       ].join(" ")}
     >
-      {!compact && (
+      {!compact && showHeader && (
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="page-eyebrow">服务流程</p>
@@ -89,7 +103,8 @@ export function V2DemoPipeline({ current = 0, compact = false, links, className 
         {V2_PIPELINE_STEPS.map((item, index) => {
           const state =
             current === 0 ? "idle" : item.step < current ? "done" : item.step === current ? "current" : "todo";
-          const href = links?.[item.step];
+          const isLocked = item.step > unlockedStep;
+          const href = isLocked ? undefined : links?.[item.step];
           const body = (
             <>
               <span className="v2-pipeline-index" aria-hidden="true">
@@ -97,12 +112,15 @@ export function V2DemoPipeline({ current = 0, compact = false, links, className 
               </span>
               <span className="v2-pipeline-copy">
                 <span className="v2-pipeline-title">{compact ? item.short : item.title}</span>
-                {!compact && <span className="v2-pipeline-desc">{item.description}</span>}
+                {!compact && !hideDescriptions && <span className="v2-pipeline-desc">{item.description}</span>}
               </span>
             </>
           );
           return (
-            <li key={item.key} className={`v2-pipeline-item v2-pipeline-${state}`}>
+            <li
+              key={item.key}
+              className={["v2-pipeline-item", `v2-pipeline-${state}`, isLocked ? "v2-pipeline-locked" : ""].join(" ")}
+            >
               {href ? (
                 <Link href={href} className="v2-pipeline-card">
                   {body}

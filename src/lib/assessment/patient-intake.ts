@@ -51,7 +51,7 @@ export function parseMeasurements(formData: FormData): Measurements | null {
 }
 
 // ---------- V2 基础信息扩展（来源：V2/Demo_v2更新说明.docx §1 基础信息填写）----------
-// 全部选填；仅医生端完整表单提交这些字段，患者自助建档（简版）不涉及。
+// 全部选填；医生端完整表单与患者自助建档（2026-08-08 起同字段）共用本解析。
 // 结构化落库后供"系统读取"题（FRAIL Q4Q5、MNA-SF、NRS2002、GLIM、Morse 等）直接调用（M9.5 装机）。
 
 /** 文化程度枚举：MMSE 判定分层（thresholdByEducation，M10）要用 */

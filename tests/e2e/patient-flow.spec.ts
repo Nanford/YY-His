@@ -75,13 +75,13 @@ test("患者自助答完 FRAIL+跌倒后自动生成报告，医生端候选方�
   await answer(page, "否（0分）");
   await answer(page, "否（0分）");
 
+  // 2026-08-08 口径：答完自动出报告——结束语播完自动跳转，无需点击（按钮仅兜底）
   await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 20_000 });
 
   // 报告生成全程未经过医生任何操作：直接核实 DB 状态
   await expect.poll(() => readSessionStatus(sessionId)).toBe("collected");
 
-  await page.getByRole("button", { name: "查看我的评估报告", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
   // 评估范围与时间（V2.0 §3）：两个量表均标"新增"；frail 系统读取题豁免 → "部分计分"如实标注
   await expect(page.getByText("评估时间：", { exact: false })).toBeVisible();
   await expect(page.getByText("新增", { exact: true })).toHaveCount(2);

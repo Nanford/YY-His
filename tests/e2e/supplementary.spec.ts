@@ -39,14 +39,21 @@ async function readSession(sessionId: string): Promise<{ status: string; scaleId
 test("报告页可识别评估范围，患者可发起补充评估且历史报告不被覆盖", async ({ page }) => {
   test.setTimeout(180_000);
 
-  // ---------- 患者：自助建档（默认勾 FRAIL+跌倒三问），registerPatient 写入本机会话 cookie ----------
+  // ---------- 患者：自助建档（第一步）→ 第二步自选组合勾选 跌倒风险+衰弱评估（原默认两项），
+  // registerPatient/startAssessment 写入本机会话 cookie ----------
   // 归属校验新口径：本机 cookie 与源会话同患者才能发起补充评估，自助建档路径天然满足
   await page.goto("/patient/register");
   await page.locator('input[name="name"]').fill("E2E 补充评估患者");
   // 性别选项渲染为大按钮样式的 label（内部 radio 视觉隐藏），点击 label 才是真实用户操作
   await page.getByText("男", { exact: true }).click();
   await page.locator('input[name="age"]').fill("80");
-  await page.getByRole("button", { name: "开始评估", exact: true }).click();
+  await page.getByRole("button", { name: "下一步：选择评估内容", exact: true }).click();
+  await expect(page).toHaveURL(/\/patient\/select-scales\?patientId=/);
+  await page.getByRole("link", { name: /自选组合评估/ }).click();
+  await page.getByRole("tab", { name: "临时自定义选择" }).click();
+  await page.getByRole("checkbox", { name: /跌倒风险.*稳定情况/ }).check();
+  await page.getByRole("checkbox", { name: /衰弱评估.*容易疲劳/ }).check();
+  await page.getByRole("button", { name: /确认并进入采集/ }).click();
   await expect(page).toHaveURL(/\/patient\/sessions\/[^/?]+$/);
   const firstSessionId = new URL(page.url()).pathname.split("/").at(-1);
   if (!firstSessionId) throw new Error("无法从会话页面 URL 读取会话编号");
@@ -60,8 +67,9 @@ test("报告页可识别评估范围，患者可发起补充评估且历史报�
   for (let i = 0; i < 3; i++) {
     await page.getByRole("button", { name: "否（0分）", exact: true }).click();
   }
-  await page.getByRole("button", { name: "查看我的评估报告", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible();
+  // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
+  await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
 
   // ---------- 报告可识别评估范围与生成时间：两个量表均标"新增"，有评估时间 ----------
   await expect(page.getByText("评估时间：", { exact: false })).toBeVisible();

@@ -1,9 +1,10 @@
 /**
  * INPUT:  会话 id、患者展示信息（本地渲染，不出网）、患者端状态 API（state/start/answer）、TTS API
- * OUTPUT: InterviewScreen —— 患者端大屏主组件（大数字医生 + 大字体对话记录 + 作答区）
+ * OUTPUT: InterviewScreen —— 患者端大屏主组件（大数字医生 + 当前题大字展示 + 作答区）
  * POS:    患者端问询的前端编排：驱动 开始（默认语音）→ 逐题播报/作答 → 结束 的完整流程。
- *         适老化改版（意见4）：界面只留一个大大的数字医生形象 + 大字体滚动对话记录，
- *         砍掉信息卡/徽章等装饰。TTS/ASR 任何一环失败自动降级（纯字幕 + 按钮/文字作答）。
+ *         适老化改版（意见4）：界面只留一个大大的数字医生形象；2026-08-08 设计口径起主区
+ *         只展示当前这一条问题/旁白，不再累积滚动聊天记录。TTS/ASR 任何一环失败自动降级
+ *         （纯字幕 + 按钮/文字作答）。
  *
  * 语音模式的麦克风流只在"开始评估"这一次点击里申请一次（浏览器策略要求首次授权必须由
  * 真实手势触发），此后由本组件持有并跨题复用；每题播报（playSpeaks）结束后置
@@ -29,9 +30,9 @@ import {
 } from "@tabler/icons-react";
 import type {
   PatientDialogueStateDto,
-  PatientPromptDto,
   SubmitAnswerResult,
 } from "@/lib/dialogue/service";
+import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
 import { CONSENT_VAD_CONFIG, RecorderError, WavRecorder, requestMicStream } from "./wav-recorder";
@@ -39,15 +40,6 @@ import { logTiming } from "./timing";
 
 type LoadPhase = "loading" | "ready" | "error";
 type Mode = "voice" | "manual";
-
-/** 对话记录条目（意见4 大字体对话记录）：数字医生的问/旁白说明 + 患者的答 */
-interface TalkEntry {
-  id: string;
-  role: "doctor" | "patient";
-  text: string;
-  /** 旁白气泡的小标识（M9.2：总开场/分类过渡/工具说明显示"说明"徽章） */
-  badge?: string;
-}
 
 interface InterviewScreenProps {
   sessionId: string;
@@ -85,11 +77,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   /** 确认监听每个 intro 只启动一次；进入第一题只推进一次（防语音+按钮重复触发） */
   const consentStartedRef = useRef(false);
   const beginningRef = useRef(false);
-  /** 大字体对话记录（意见4）：医生问 + 患者答，客户端累积，自动滚到最新 */
-  const [talks, setTalks] = useState<TalkEntry[]>([]);
-  const talkScrollRef = useRef<HTMLDivElement | null>(null);
-  /** 同一题（questionId+attempt）只追加一条医生气泡，避免重渲染/重播重复入列 */
-  const lastDoctorKeyRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lipSyncRef = useRef<LipSyncRuntime>({
     context: null,
@@ -101,6 +88,8 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
   const ttsBrokenRef = useRef(false);
   /** 旁白自动推进去重（M9.2）：播完自动调 /advance 与「继续」按钮共用，防重复推进 */
   const advancingRef = useRef(false);
+  /** 报告自动跳转去重（2026-08-08：答完直接出报告，免点按钮）；跳转前短延迟让完成提示可见 */
+  const reportJumpedRef = useRef(false);
   /** applyState（稳定 useCallback）经此 ref 调用推进函数，避免 useCallback 依赖循环 */
   const advanceRef = useRef<() => void>(() => {});
 
@@ -158,35 +147,28 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     []
   );
 
+  // 评估完成（报告随 finished 状态已落库）后自动切换到报告视图：结束语 TTS 播完才触发
+  // （见 applyState），不打断播报；1.5s 短延迟让"已完成"提示可见。
+  // 「查看我的评估报告」按钮保留为兜底（刷新失败/想立即查看时仍可点）。
+  const jumpToReport = useCallback(() => {
+    if (reportJumpedRef.current) return;
+    reportJumpedRef.current = true;
+    window.setTimeout(() => router.refresh(), 1500);
+  }, [router]);
+
   const applyState = useCallback(
     (next: PatientDialogueStateDto, options: { autoplay: boolean }) => {
       setState(next);
       setReadyForVoice(false);
       setReadyForConsent(false);
       setConsentHint(false);
-      // 累积医生气泡：进入某题时把该题问题文本记入对话记录（同题去重）
-      if (next.phase === "in_question" && next.prompt) {
-        const q = next.prompt;
-        const dkey = `${q.questionId}-${q.attempt}`;
-        if (lastDoctorKeyRef.current !== dkey) {
-          lastDoctorKeyRef.current = dkey;
-          setTalks((prev) => [...prev, { id: `d-${dkey}`, role: "doctor", text: q.text }]);
-        }
-      }
-      // 累积旁白气泡（M9.2）：总开场/分类过渡/工具说明，与提问同款气泡 + 「说明」徽章（同条去重）
-      if (next.phase === "narration" && next.narration) {
-        const narration = next.narration;
-        const nkey = `narr-${narration.id}`;
-        if (lastDoctorKeyRef.current !== nkey) {
-          lastDoctorKeyRef.current = nkey;
-          setTalks((prev) => [...prev, { id: `d-${nkey}`, role: "doctor", text: narration.text, badge: "说明" }]);
-        }
-      }
+      // 2026-08-08 设计口径：不再累积聊天记录，主区只展示当前这一条问题/旁白（CurrentPrompt）
       const fallbackSubtitle = next.prompt?.text ?? next.narration?.text ?? "";
       if (next.speak.length === 0) {
         setSubtitle(fallbackSubtitle);
         if (next.phase === "in_question") setReadyForVoice(true);
         if (next.phase === "intro") setReadyForConsent(true);
+        if (next.phase === "finished") jumpToReport();
         return;
       }
       if (options.autoplay) {
@@ -195,13 +177,16 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
           if (next.phase === "intro") setReadyForConsent(true);
           // 旁白不需作答：播报完自动请求下一步（M9.2，参照"题目播报完自动开始听"的机制）
           if (next.phase === "narration") advanceRef.current();
+          // 答完全部问题：结束语播完自动跳转评估报告（2026-08-08 口径：答完直接出报告）
+          if (next.phase === "finished") jumpToReport();
         });
       } else {
         // 无用户手势时不自动播放（浏览器策略），只展示字幕
         setSubtitle(next.speak[next.speak.length - 1] ?? fallbackSubtitle);
+        if (next.phase === "finished") jumpToReport();
       }
     },
-    [playSpeaks]
+    [playSpeaks, jumpToReport]
   );
 
   // ---------- 初始加载 ----------
@@ -231,12 +216,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
     const timer = setTimeout(() => setNotice(null), 4000);
     return () => clearTimeout(timer);
   }, [notice]);
-
-  // 对话记录更新（新气泡或播报状态变化）后自动滚到最新一条
-  useEffect(() => {
-    const el = talkScrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [talks, speaking]);
 
   // ---------- 动作 ----------
 
@@ -386,14 +365,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
       }
       // 链路埋点（V2.0 §2.1）：标准答案确认（归一化决策返回）
       logTiming("answer_confirm", { action: body.resolution.action });
-      // 累积患者气泡：把这次作答（按钮选项文案 / 语音·文字原话）记入对话记录
-      const said = describeAnswer(prompt, payload);
-      if (said) {
-        setTalks((prev) => [
-          ...prev,
-          { id: `p-${prompt.questionId}-${prompt.attempt}-${prev.length}`, role: "patient", text: said },
-        ]);
-      }
       setNotice(resolutionNotice(body.resolution));
       applyState(body.state, { autoplay: true });
     } catch {
@@ -494,6 +465,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
       )}
 
       <div className="patient-main patient-main-interview">
+        <PatientFlowProgress current={3} />
 
         <section className="patient-panel overflow-hidden u-rise-in">
           <div className="patient-interview-stage lg:border-0">
@@ -566,8 +538,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     您好{patientLabel ? `，${patientLabel}` : ""}
                   </h1>
                   <p className="patient-display-copy max-w-xl">
-                    数字医生会先跟您说说这次评估，然后像聊天一样一句一句地问几个健康小问题。
-                    点下面的大按钮，全程用说话就行。
+                    数字医生会一句一句问您几个健康小问题，全程用说话回答就行。
                   </p>
                   <div className="mt-9 flex w-full flex-col items-center gap-4">
                     <button
@@ -636,10 +607,10 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
               {state.phase === "narration" && state.narration && (
                 <>
-                  {/* 旁白说明（M9.2 总开场/分类过渡/工具说明）：与提问同款大字气泡（带「说明」徽章），
-                      不显示作答区；播报完自动推进，「继续」按钮作刷新/降级兜底 */}
-                  <div ref={talkScrollRef} className="patient-interview-log">
-                    <ConversationLog talks={talks} speaking={speaking} />
+                  {/* 旁白说明（M9.2 总开场/分类过渡/工具说明）：只展示当前这一条（2026-08-08 设计口径），
+                      带「说明」徽章，不显示作答区；播报完自动推进，「继续」按钮作刷新/降级兜底 */}
+                  <div className="patient-interview-log flex flex-col items-center justify-center">
+                    <CurrentPrompt text={state.narration.text} badge="说明" speaking={speaking} />
                   </div>
                   <div className="patient-interview-answer">
                     <div className="flex items-center justify-between gap-3">
@@ -668,9 +639,9 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
               {state.phase === "in_question" && state.prompt && (
                 <>
-                  {/* 大字体对话记录：占右侧上半 flex 空间，随视口伸缩，不再死锁 52vh */}
-                  <div ref={talkScrollRef} className="patient-interview-log">
-                    <ConversationLog talks={talks} speaking={speaking} />
+                  {/* 当前题大字展示（2026-08-08 设计口径：只展示当前这一条问题，不留聊天记录） */}
+                  <div className="patient-interview-log flex flex-col items-center justify-center">
+                    <CurrentPrompt text={state.prompt.text} speaking={speaking} />
                   </div>
 
                   {/* 作答区：语音为主视觉，按钮/文字为兜底；高度上限避免挤掉对话 */}
@@ -763,7 +734,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     <IconCheck size={34} stroke={2} aria-hidden="true" />
                   </div>
                   <h1 className="mt-6 text-3xl font-bold text-[var(--ink)]">全部问题已完成，感谢您的配合！</h1>
-                  <p className="mt-3 text-xl leading-8 text-[var(--ink-muted)]">您的评估报告已经生成好了。</p>
+                  <p className="mt-3 text-xl leading-8 text-[var(--ink-muted)]">您的评估报告已经生成好了，正在为您打开…</p>
                   <button
                     type="button"
                     aria-label="查看我的评估报告"
@@ -773,6 +744,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     <span>查看我的评估报告</span>
                     <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
                   </button>
+                  <p className="mt-3 text-sm text-[var(--ink-muted)]">如未自动打开，请点上方按钮。</p>
                 </div>
               )}
             </div>
@@ -905,32 +877,9 @@ function stopLipSync(runtime: LipSyncRuntime, setMouthLevel: (value: number) => 
   setMouthLevel(0);
 }
 
-/** 把一次作答转成对话记录里"患者说的话"：按钮取选项文案，语音/文字取原话，多选取拼接选项，画钟给固定回执 */
-function describeAnswer(prompt: PatientPromptDto, payload: Record<string, unknown>): string {
-  if (payload.mode === "button") {
-    // 按钮/图片作答按 label 精确匹配（同分选项靠 label 区分）；number 题只传分值，走分值兜底
-    const opt =
-      typeof payload.label === "string"
-        ? prompt.options.find((o) => o.label === payload.label)
-        : prompt.options.find((o) => o.score === payload.score);
-    return opt?.label ?? "";
-  }
-  // 多选题（M9.6）：拼接所选项 label 作气泡（V2.0 §2.2 回答气泡即反馈）
-  if (payload.mode === "multi") {
-    const labels = Array.isArray(payload.labels)
-      ? payload.labels.filter((item): item is string => typeof item === "string")
-      : [];
-    return labels.length > 0 ? `已选：${labels.join("、")}` : "";
-  }
-  // 画钟题（绘图操作）：作品本身不进对话流，给固定回执气泡
-  if (payload.mode === "drawing") {
-    return "已提交画钟作品，待医生评分";
-  }
-  return typeof payload.utterance === "string" ? payload.utterance : "";
-}
-
-// 来源：需求更新说明 V2.0 §2.2 —— 标准答案确认后患者的回答气泡即为主要反馈载体，
-// 不再弹"已记录"提示；仅追问外的例外情形（待确认/转医生）走固定浮层提示。
+// 来源：需求更新说明 V2.0 §2.2 —— 标准答案确认后不弹"已记录"提示；2026-08-08 设计口径起
+// 不再累积回答气泡（主区只展示当前题），作答点选态与进入下一题即反馈；
+// 仅追问外的例外情形（待确认/转医生）走固定浮层提示。
 function resolutionNotice(resolution: SubmitAnswerResult["resolution"]): string | null {
   switch (resolution.action) {
     case "confirm":
@@ -944,57 +893,37 @@ function resolutionNotice(resolution: SubmitAnswerResult["resolution"]): string 
   }
 }
 
-/** 大字体对话记录：医生气泡靠左、患者气泡靠右，最新一条医生气泡（当前题）加大加粗强调 */
-function ConversationLog({ talks, speaking }: { talks: TalkEntry[]; speaking: boolean }) {
-  if (talks.length === 0) {
-    return (
-      <p className="mx-auto max-w-3xl text-center text-xl leading-relaxed text-[var(--ink-muted)]">
-        数字医生正在准备第一个问题…
-      </p>
-    );
-  }
+/**
+ * 当前条目大字展示（2026-08-08 设计口径：主区只展示当前这一条问题/旁白，不累积聊天记录）。
+ * 沿用原"当前题"医生气泡样式；旁白带「说明」徽章；播报中显示呼吸点提示。
+ */
+function CurrentPrompt({ text, badge, speaking }: { text: string; badge?: string; speaking: boolean }) {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 xl:gap-4">
-      {talks.map((talk, index) => {
-        const isDoctor = talk.role === "doctor";
-        const isCurrent = isDoctor && index === talks.length - 1;
-        return (
-          <div key={talk.id} className={`u-rise-in ${isDoctor ? "flex justify-start" : "flex justify-end"}`}>
-            <div
-              className={[
-                "max-w-[min(92%,42rem)] rounded-3xl px-5 py-3.5 leading-relaxed xl:px-6 xl:py-4",
-                isDoctor
-                  ? "rounded-tl-md bg-[var(--surface-blue)] text-[var(--ink)]"
-                  : "rounded-tr-md border border-[var(--line-strong)] bg-white text-[var(--ink)]",
-                isCurrent
-                  ? "text-[clamp(22px,2.2vw,30px)] font-bold shadow-[0_10px_24px_rgb(23_105_232_/_10%)]"
-                  : "text-[clamp(18px,1.7vw,22px)]",
-              ].join(" ")}
-            >
-              <p className="mb-1 text-sm font-bold tracking-wide text-[var(--ink-faint)]">
-                {isDoctor ? "数字医生" : "您"}
-                {talk.badge && (
-                  <span className="ml-2 inline-block rounded-full bg-[var(--brand)] px-2 py-0.5 align-middle text-xs font-bold text-white">
-                    {talk.badge}
-                  </span>
-                )}
-              </p>
-              <p>{talk.text}</p>
-              {isCurrent && speaking && (
-                <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand)]">
-                  {/* 三点缓呼吸，比图标脉冲更像"数字医生正在说话"（D 对话过程，样式见 globals.css） */}
-                  <span className="typing-dots" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                  正在播报…
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })}
+    <div className="mx-auto w-full max-w-3xl">
+      <div
+        className="u-rise-in rounded-3xl rounded-tl-md bg-[var(--surface-blue)] px-5 py-3.5 leading-relaxed text-[var(--ink)] shadow-[0_10px_24px_rgb(23_105_232_/_10%)] xl:px-6 xl:py-4"
+      >
+        <p className="mb-1 text-sm font-bold tracking-wide text-[var(--ink-faint)]">
+          数字医生
+          {badge && (
+            <span className="ml-2 inline-block rounded-full bg-[var(--brand)] px-2 py-0.5 align-middle text-xs font-bold text-white">
+              {badge}
+            </span>
+          )}
+        </p>
+        <p className="text-[clamp(22px,2.2vw,30px)] font-bold">{text}</p>
+        {speaking && (
+          <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand)]">
+            {/* 三点缓呼吸，比图标脉冲更像"数字医生正在说话"（样式见 globals.css） */}
+            <span className="typing-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            正在播报…
+          </p>
+        )}
+      </div>
     </div>
   );
 }
