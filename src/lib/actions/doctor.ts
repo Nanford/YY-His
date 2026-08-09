@@ -294,6 +294,16 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
   const forbiddenList = candidatesSnapshot.forbidden ?? [];
   const inputs: Record<string, PlanReviewInput> = {};
   for (const candidate of candidates) {
+    const rawAction = formData.get("action." + candidate.code);
+    if (
+      typeof rawAction === "string" &&
+      rawAction !== "" &&
+      rawAction !== "keep" &&
+      rawAction !== "remove" &&
+      rawAction !== "replace"
+    ) {
+      throw new Error("审核动作无效：" + candidate.code);
+    }
     const action = textOrNull(formData, `action.${candidate.code}`) ?? "keep";
     const note = textOrNull(formData, `note.${candidate.code}`);
     if (note && note.length > 500) throw new Error(`审核说明过长：${candidate.code}`);
@@ -315,6 +325,19 @@ export async function confirmPlan(sessionId: string, formData: FormData): Promis
         );
       }
       const built = buildInterventionV2(toCode, tagCodes);
+      const forbiddenReasons = built?.contributions
+        .filter((contribution) => contribution.score === FORBIDDEN_SCORE_V2)
+        .map((contribution) => contribution.tagName)
+        .join("、");
+      if (forbiddenReasons) {
+        throw new Error(
+          "该干预对本患者为禁忌项（-100），不能替换入方案：" +
+            toCode +
+            "（" +
+            forbiddenReasons +
+            "触发禁止）"
+        );
+      }
       if (!built) throw new Error(`替换项不存在：${toCode}`);
       if (built.category !== candidate.category) throw new Error(`只能在同类别内替换：${candidate.code}`);
       // 替换项继承被替换项的排位槽与类别展示标签（医生指定项不参与自动排序，仅占位展示）

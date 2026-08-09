@@ -6,7 +6,7 @@
  * POS:    「同类替换不得引入 -100 禁忌项」的服务端保险（页面层下拉禁用见 plan-review.tsx）。
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { recommendV2, toPlanCandidates } from "@/lib/recommend-v2";
+import { recommendV2, toPlanCandidates, type PlanCandidateItemV2, type PlanCandidatesV2 } from "@/lib/recommend-v2";
 
 // prisma / next 运行时全部 mock：confirmPlan 是 Server Action，测试只锁定其校验与落库参数
 const mocks = vi.hoisted(() => ({
@@ -36,9 +36,44 @@ const SESSION_ID = "session-forbidden-test";
 /** 与运行时同口径：由真实推荐引擎生成候选快照（含 forbidden 明细），不手造医学数据 */
 const SNAPSHOT = toPlanCandidates(recommendV2(["MORSE_FALL_RISK_HIGH"]));
 const FORBIDDEN_YD07 = SNAPSHOT.forbidden.find((f) => f.code === "YD07");
+const DUPLICATE_SNAPSHOT: PlanCandidatesV2 = {
+  items: [
+    {
+      code: "YD02",
+      name: "扶椅坐站训练",
+      category: "运动",
+      categoryLabel: "运动干预",
+      mediaType: "video",
+      mediaSrc: null,
+      mediaAvailable: false,
+      content: "动作要点",
+      total: 1,
+      forced: false,
+      contributions: [],
+      rankInCategory: 1,
+    },
+    {
+      code: "YD06",
+      name: "前后脚站立训练",
+      category: "运动",
+      categoryLabel: "运动干预",
+      mediaType: "video",
+      mediaSrc: null,
+      mediaAvailable: false,
+      content: "动作要点",
+      total: 1,
+      forced: false,
+      contributions: [],
+      rankInCategory: 2,
+    },
+  ] as PlanCandidateItemV2[],
+  forcedCodes: [],
+  forbidden: [],
+};
 
 function replaceForm(fromCode: string, toCode: string): FormData {
   const formData = new FormData();
+  formData.set("note." + fromCode, "测试替换理由");
   formData.set(`action.${fromCode}`, "replace");
   formData.set(`replaceWith.${fromCode}`, toCode);
   return formData;
@@ -95,5 +130,41 @@ describe("confirmPlan：同类替换禁忌红线（-100 禁止项硬拦截）", 
     expect(
       updateArgs.data.decisions.some((d) => d.action === "replace" && d.fromCode === "YD06" && d.toCode === "YD04")
     ).toBe(true);
+  });
+
+  it("删除没有明确理由 → 拒绝且不落库", async () => {
+    const formData = new FormData();
+    formData.set("action.YD06", "remove");
+
+    await expect(confirmPlan(SESSION_ID, formData)).rejects.toThrow(/删除必须填写明确审核理由/);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("两个候选替换成同一编码 → 服务端拒绝最终重复编码", async () => {
+    mocks.findPlan.mockResolvedValue({ id: "plan-duplicate", candidates: DUPLICATE_SNAPSHOT });
+    mocks.findResult.mockResolvedValue({ tags: [] });
+    const formData = new FormData();
+    formData.set("action.YD02", "replace");
+    formData.set("replaceWith.YD02", "YD04");
+    formData.set("note.YD02", "改为同类训练");
+    formData.set("action.YD06", "replace");
+    formData.set("replaceWith.YD06", "YD04");
+    formData.set("note.YD06", "改为同类训练");
+
+    await expect(confirmPlan(SESSION_ID, formData)).rejects.toThrow(/最终干预编码重复/);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("即使 forbidden 快照遗漏，替换目标当前贡献为 -100 仍拒绝", async () => {
+    mocks.findPlan.mockResolvedValue({
+      id: "plan-stale-forbidden",
+      candidates: { ...SNAPSHOT, forbidden: [] },
+    });
+    mocks.findResult.mockResolvedValue({ tags: [{ code: "MORSE_FALL_RISK_HIGH" }] });
+
+    await expect(confirmPlan(SESSION_ID, replaceForm("YD06", "YD07"))).rejects.toThrow(
+      /该干预对本患者为禁忌项（-100），不能替换入方案：YD07/
+    );
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });

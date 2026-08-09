@@ -62,8 +62,54 @@ describe("干预方案审核（V2：保留 / 删除 / 同类替换）", () => {
   it("跨类别替换被拒绝（破坏每类 1-2 项约束）", () => {
     const dietItem = candidate("SS02", "膳食营养", "优质蛋白强化膳食", 1);
     expect(() =>
-      applyPlanReview(candidates, { YD02: { action: "replace", replacement: dietItem } }, "doctor", new Date())
+      applyPlanReview(
+        candidates,
+        { YD02: { action: "replace", replacement: dietItem, note: "改为同类训练" } },
+        "doctor",
+        new Date()
+      )
     ).toThrow(/同一类别/);
+  });
+
+  it("删除或替换必须填写明确审核理由", () => {
+    expect(() =>
+      applyPlanReview(candidates, { YD01: { action: "remove" } }, "doctor", new Date())
+    ).toThrow(/删除必须填写明确审核理由/);
+
+    expect(() =>
+      applyPlanReview(candidates, { YD01: { action: "replace", replacement: candidate("YD09", "运动干预", "墙面俯卧撑训练", 1) } }, "doctor", new Date())
+    ).toThrow(/替换必须填写明确审核理由/);
+  });
+
+  it("拒绝重复最终编码、普通项超出每类上限和 -100 禁忌项", () => {
+    const replacement = candidate("YD09", "运动干预", "墙面俯卧撑训练", 1);
+    expect(() =>
+      applyPlanReview(
+        candidates,
+        {
+          YD02: { action: "replace", replacement, note: "改为同类训练" },
+          YD01: { action: "replace", replacement, note: "改为同类训练" },
+          YD06: { action: "remove", note: "暂不纳入" },
+        },
+        "doctor",
+        new Date()
+      )
+    ).toThrow(/最终干预编码重复/);
+
+    expect(() => applyPlanReview(candidates, {}, "doctor", new Date())).toThrow(/每类普通干预最多 2 项/);
+
+    const forbidden = {
+      ...candidate("YD07", "运动干预", "扶椅单脚站立训练", 1),
+      contributions: [{ tagCode: "FALL", tagName: "跌倒高风险", score: -100 }],
+    };
+    expect(() =>
+      applyPlanReview(
+        [candidates[0]],
+        { YD02: { action: "replace", replacement: forbidden, note: "改为其他训练" } },
+        "doctor",
+        new Date()
+      )
+    ).toThrow(/-100 禁忌项/);
   });
 
   it("允许候选与最终方案都为空", () => {

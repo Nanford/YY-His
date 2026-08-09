@@ -49,6 +49,7 @@ export interface TraceDialogueTurnDto {
 }
 
 export interface TraceViewProps {
+  sessionId: string;
   answers: readonly TraceAnswerDto[];
   dialogueTurns?: readonly TraceDialogueTurnDto[];
 }
@@ -72,7 +73,7 @@ const STATUS_META: Record<TraceAnswerStatus, { label: string; cls: string }> = {
 };
 
 const AUDIO_META: Record<TraceAudioStatus, { label: string; cls: string }> = {
-  available: { label: "文件已保存", cls: "bg-blue-50 text-blue-700" },
+  available: { label: "文件存在（可播放）", cls: "bg-blue-50 text-blue-700" },
   missing: { label: "文件缺失", cls: "bg-red-50 text-red-700" },
   processing: { label: "处理中", cls: "bg-amber-50 text-amber-700" },
   not_recorded: { label: "未录音", cls: "bg-slate-100 text-slate-500" },
@@ -101,9 +102,11 @@ function audioStatusOf(turn: TraceDialogueTurnDto): TraceAudioStatus {
 }
 
 function AudioRecords({
+  sessionId,
   answer,
   turns,
 }: {
+  sessionId: string;
   answer: TraceAnswerDto;
   turns: readonly TraceDialogueTurnDto[];
 }) {
@@ -114,9 +117,9 @@ function AudioRecords({
     return (
       <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">
         <span className={`mr-2 rounded-full px-2 py-0.5 text-xs ${missingVoice ? "bg-red-50 text-red-700" : "bg-slate-100"}`}>
-          {missingVoice ? "关联录音缺失" : "未录音"}
+          {missingVoice ? "文件缺失" : "未录音"}
         </span>
-        {missingVoice ? "未找到与本题关联的患者录音记录。" : "本题通过非语音方式作答。"}
+        {missingVoice ? "本题答案标记为语音作答，但未找到关联的患者录音记录。" : "本题通过非语音方式作答。"}
       </div>
     );
   }
@@ -132,9 +135,31 @@ function AudioRecords({
               <span className={`rounded-full px-2 py-0.5 font-medium ${meta.cls}`}>{meta.label}</span>
               <span className="text-slate-400">{formatDate(turn.createdAt)}</span>
             </div>
-            <p className="mt-1.5 break-all font-mono text-xs leading-5 text-slate-600">
-              {turn.audioPath ?? "无录音文件路径"}
-            </p>
+            {status === "available" && (
+              <audio
+                className="mt-2 w-full"
+                controls
+                preload="metadata"
+                src={
+                  "/api/doctor/sessions/" +
+                  encodeURIComponent(sessionId) +
+                  "/turns/" +
+                  encodeURIComponent(turn.id) +
+                  "/audio"
+                }
+                aria-label="播放本题患者原始录音"
+              >
+                您的浏览器不支持音频播放。
+              </audio>
+            )}
+            {status === "missing" && (
+              <p className="mt-1.5 text-xs leading-5 text-red-700">
+                数据库保留了录音记录，但本地文件不存在或不在本会话录音目录内。
+              </p>
+            )}
+            {status === "not_recorded" && (
+              <p className="mt-1.5 text-xs leading-5 text-slate-500">本题没有保存原始录音。</p>
+            )}
           </div>
         );
       })}
@@ -172,7 +197,7 @@ function EditHistory({ history }: { history: readonly TraceEditRecordDto[] }) {
 }
 
 /** 逐题追溯展示，不接收也不渲染任何患者直接身份信息。 */
-export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
+export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewProps) {
   const turnsByQuestion = new Map<string, TraceDialogueTurnDto[]>();
   for (const turn of dialogueTurns) {
     if (!turn.questionId) continue;
@@ -257,7 +282,7 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
                     <div className="grid gap-5 lg:grid-cols-2">
                       <div>
                         <h4 className="mb-2 text-xs font-semibold tracking-wide text-slate-600">录音记录</h4>
-                        <AudioRecords answer={answer} turns={relatedTurns} />
+                        <AudioRecords sessionId={sessionId} answer={answer} turns={relatedTurns} />
                       </div>
                       <div>
                         <h4 className="mb-2 text-xs font-semibold tracking-wide text-slate-600">修改历史</h4>

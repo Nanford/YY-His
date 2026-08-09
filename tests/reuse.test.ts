@@ -7,7 +7,11 @@
  *         抑郁两问 → GDS-15 未门控（01 表未明说），注册表注释锁定，此处无需用例。
  */
 import { describe, expect, it } from "vitest";
-import { deriveReuseAnswers, reuseTargetQuestionIds } from "@/lib/assessment/reuse";
+import {
+  deriveReuseAnswers,
+  reuseTargetQuestionIds,
+  validateReuseRegistry,
+} from "@/lib/assessment/reuse";
 import {
   buildTimeline,
   nextStep,
@@ -106,6 +110,29 @@ describe("deriveReuseAnswers：M10.3b 后扩充规则", () => {
         motor_screen_1: "是（筛查阳性，进入SPPB评估）",
       })
     ).toHaveLength(0);
+  });
+
+  it("DXA/BIA 已有明确设备结论 → 只回填 GLIM 肌肉量条目", () => {
+    const positive = derive(["dxa_bia", "glim"], {
+      dxa_bia_1: "符合肌少症肌肉量界值",
+    });
+    expect(positive).toHaveLength(1);
+    expect(positive[0].questionId).toBe("glim_4");
+    expect(positive[0].score).toBe(1);
+    expect(positive[0].optionLabel).toContain("存在肌肉减少");
+
+    const negative = derive(["dxa_bia", "glim"], {
+      dxa_bia_1: "未达肌少症肌肉量界值",
+    });
+    expect(negative).toEqual([
+      expect.objectContaining({ questionId: "glim_4", optionLabel: "不存在", score: 0 }),
+    ]);
+  });
+});
+
+describe("复用注册表：V2/01 表引用完整性", () => {
+  it("所有注册规则的源题、目标题、触发/目标 label 和同变量分值均可安全解析", () => {
+    expect(validateReuseRegistry()).toEqual({ ok: true, invalidRules: [], duplicateRules: [] });
   });
 });
 

@@ -5,8 +5,7 @@
  *         分值语义来源：V2/03_标签干预匹配表.xlsx（intervention-scoring-v2.json scoreSemantics：
  *         100=强制优先、-100=禁止、0=无关（稀疏不存）、2-10=普通匹配）；
  *         每类截取与强制置顶来源：V2/Demo_v2更新说明.docx「每类原则上选择 1 至 2 个」+ 100 分「强制优先推荐」。
- *         运行时装机（dialogue/finalize/报告页改接 V2 数据）统一在 M9 做，本模块在 M8 阶段暂不被页面引用，
- *         与旧引擎 src/lib/recommend（V1 运行时）完全独立、互不改写。
+ *         当前由 finalize 与医患报告页直接使用；旧引擎 src/lib/recommend 仅保留历史兼容，不参与 V2 运行时。
  */
 import {
   interventionsV2,

@@ -1,35 +1,13 @@
 /**
  * INPUT:  患者档案字段（身高/体重/小腿围/体重史/诊断清单）、会话勾选的量表 id 列表
- * OUTPUT: 「系统读取」条目自动作答结果（标准选项 label + 分值 + 推导依据文本）
- * POS:    M9.5：01 表「条目类型 = 系统读取」的计分条目不再问患者，由档案数据确定性推导。
- *         纯函数、无 IO，供 src/lib/assessment/finalize.ts 在评分前落库 Answer（source=system）。
- *         条目数据取 rules/v2 原生形状（ScaleItemV2.entryType 原文即「系统读取」，不经 V1 投影）。
- *         推导器清单（规则出处均为 01 表条目 + 任务拍板口径，推定处已注明）：
- *           frail_4  现有诊断 ≥5 种 → 是（数据源：diagnoses 单源；01 表复用规则写"诊断清单"，
- *                    pastHistory/recentAcute 不计入——推定，待用户确认后可扩展）
- *           frail_5  体重下降 ≥5% → 是（推定规则：baseline = max(体重史全部有效值, 当前体重)）
- *           mnasf_2  近 3 个月体重下降四档（数据源：weightHistory.m3 与当前 weightKg；
- *                    "不知道"档系统算不出，永不自动产生）
- *           mnasf_6  优先 BMI 四档，BMI 算不出回退小腿围（左右取较细，缺则旧字段 calfCm）
- *           morse_2  当前诊断 >1 个 → 15 分档（M10.3b 新增；数据源 diagnoses 单源，与 frail_4 同口径；
- *                    01 表复用规则「从病历中的当前诊断清单读取；按各量表自己的规则分别计算疾病数」）
- *           glim_1   过去 6 个月内体重下降＞5% → 是（数据源：weightHistory 的 m1/m2/m3/m6 与当前体重，
- *                    取窗口内最大下降百分比；m12 超出「6 个月内」窗口，不计入）
- *           glim_2   超过 6 个月体重下降＞10% → 是（数据源：weightHistory.m12 与当前体重，
- *                    m1~m6 不在「超过 6 个月」口径内）
- *           glim_3   低 BMI 界值（＜70 岁 BMI＜18.5 / ≥70 岁 BMI＜20）→ 符合（BMI 由身高体重算，
- *                    BMI 或年龄缺一则不答）
- *         明确不做的条目：
- *           nrs2002_终筛1（逻辑计算）——定档需「进食量占平时比例」档位（50~75%/25~50%/＜25%），
- *             档案无此数据源、初筛3 仅为是/否粒度，且本纯函数拿不到会话内其他题答案；体重史/BMI
- *             只能给出下限（进食量可再抬档），按评分确定性红线不得按下限定档。唯一可确定性推出的
- *             是重度档（BMI＜18.5 或 m1 下降＞5% 或 m3 下降＞15% 单独即 3 分封顶），但同量表终筛2
- *             仍无推导器、终筛始终阻断，自动答终筛1 解除不了阻断反而留下半截数据，故本期不做，
- *             维持医生代填 / deferClinical 豁免口径。
- *           morse_4（静脉输液）/morse_5（步态）等条目虽也可由档案推出，但口径未经用户逐条拍板，本期不做。
+ * OUTPUT: 「系统读取」条目自动作答结果 + SYSTEM_READ_COVERAGE 覆盖注册表
+ * POS:    纯函数、无 IO；评分前由 finalize.ts 落库 Answer（source=system）。
+ *         覆盖注册表直接对应 V2/01 表的「系统读取」「设备/人工测量」条目，
+ *         明确区分已实现、需医护/设备和待口径，未拍板的医学规则不进入 DERIVERS。
+ *         只有「implemented」条目允许自动作答；其余条目交由医护/设备路径或待口径处理。
  */
 
-import { scaleV2ById, type ScaleItemOptionV2, type ScaleItemV2 } from "@/lib/rules/v2";
+import { scaleV2ById, scalesV2, type ScaleItemOptionV2, type ScaleItemV2 } from "@/lib/rules/v2";
 
 /** 推导所需的患者档案字段；结构类型而非 Prisma 类型，便于纯函数测试 */
 export interface PatientLike {
@@ -48,7 +26,7 @@ export interface PatientLike {
   gaitSpeed6mSec?: number | null;
   /** 历史体重 kg：{m1, m2, m3, m6, m12}（JSON 列，运行期逐值校验） */
   weightHistory?: unknown;
-  /** 现有诊断清单（字符串数组，JSON 列） */
+  /** 现有诊断清单（字符串数组，JSON 列）；仅用于已有明确疾病数阈值的条目 */
   diagnoses?: unknown;
 }
 
@@ -64,14 +42,6 @@ export interface SystemReadAnswer {
 function positiveNumber(value: unknown): number | null {
   const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
   return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-/** 体重史 {m1..m12} → 有效正数体重列表（JSON 列不可信，逐值校验） */
-function validWeights(weightHistory: unknown): number[] {
-  if (!weightHistory || typeof weightHistory !== "object") return [];
-  return Object.values(weightHistory as Record<string, unknown>)
-    .map(positiveNumber)
-    .filter((n): n is number => n !== null);
 }
 
 /** 体重史指定键（如 m3）→ 有效体重，缺失返回 null */
@@ -140,34 +110,8 @@ type Derivation = { score: number; keyword?: string; rawText: string } | null;
 
 /** 各「系统读取」条目的推导器（key = 01 表条目 id） */
 const DERIVERS: Record<string, (patient: PatientLike) => Derivation> = {
-  // 来源：01 表 frail_4「5 种以上疾病 → 是」；复用规则写"从病历中的当前诊断清单读取"，
-  // 按 diagnoses 单源实现（pastHistory/recentAcute 不计入——推定口径，见文件头注释）
-  frail_4(patient) {
-    const count = diagnosisCount(patient.diagnoses);
-    if (count === null) return null;
-    const yes = count >= 5;
-    return {
-      score: yes ? 1 : 0,
-      keyword: yes ? "是" : "否",
-      rawText: `现有诊断 ${count} 种（≥5 种判定为「是」）`,
-    };
-  },
-  // 来源：01 表 frail_5「体重下降 ≥5% → 是」；推定规则：baseline = max(体重史全部有效值, 当前体重)
-  frail_5(patient) {
-    const current = positiveNumber(patient.weightKg);
-    const history = validWeights(patient.weightHistory);
-    if (current === null || history.length === 0) return null;
-    const baseline = Math.max(...history, current);
-    const lossPct = ((baseline - current) / baseline) * 100;
-    const yes = lossPct >= 5;
-    return {
-      score: yes ? 1 : 0,
-      keyword: yes ? "是" : "否",
-      rawText: `体重下降 ${round1(lossPct)}%（峰值 ${round1(baseline)}kg → 现在 ${round1(current)}kg，≥5% 判定为「是」）`,
-    };
-  },
-  // 来源：01 表 morse_2「超过 1 个医疗诊断（15分）」；复用规则「从病历中的当前诊断清单读取」，
-  // 数据源 diagnoses 单源（与 frail_4 同口径，pastHistory/recentAcute 不计入——推定，见文件头注释）
+  // 来源：01 表 morse_2「超过 1 个医疗诊断（15分）」；只读取当前诊断清单，
+  // 不把既往史/近期急性病史混入“当前诊断”变量。
   morse_2(patient) {
     const count = diagnosisCount(patient.diagnoses);
     if (count === null) return null;
@@ -220,12 +164,15 @@ const DERIVERS: Record<string, (patient: PatientLike) => Derivation> = {
   glim_1(patient) {
     const current = positiveNumber(patient.weightKg);
     if (current === null) return null;
-    const windowWeights = ["m1", "m2", "m3", "m6"]
-      .map((k) => weightAt(patient.weightHistory, k))
+    const windowKeys = ["m1", "m2", "m3", "m6"];
+    const windowWeights = windowKeys
+      .map((key) => weightAt(patient.weightHistory, key))
       .filter((n): n is number => n !== null);
     if (windowWeights.length === 0) return null;
     const baseline = Math.max(...windowWeights);
     const lossPct = ((baseline - current) / baseline) * 100;
+    // 已有任一时间点足以证明阳性；判定阴性则必须确认四个窗口点均有值，避免缺失值制造阴性。
+    if (lossPct <= 5 && windowWeights.length !== windowKeys.length) return null;
     const yes = lossPct > 5;
     return {
       score: Number.NaN,
@@ -259,31 +206,6 @@ const DERIVERS: Record<string, (patient: PatientLike) => Derivation> = {
       score: Number.NaN,
       keyword: meet ? "符合低BMI界值" : "不符合",
       rawText: `年龄 ${age} 岁、BMI=${round1(bmi)}（界值 ${threshold} kg/m²，低于界值判定为「符合」）`,
-    };
-  },
-  // 来源：01 表 NRS2002 初筛 1「BMI＜20.5？」；标准 NRS2002 初筛项；选项 score=null，按关键字反查
-  "nrs2002_初筛1"(patient) {
-    const bmi = bmiOf(patient);
-    if (bmi === null) return null;
-    const yes = bmi < 20.5;
-    return {
-      score: Number.NaN,
-      keyword: yes ? "是" : "否",
-      rawText: `BMI=${round1(bmi)}（＜20.5 判定为初筛「是」）`,
-    };
-  },
-  // 来源：01 表 NRS2002 初筛 2 体重下降史；推定：近 3 月体重下降＞5% 或＞3kg → 是
-  "nrs2002_初筛2"(patient) {
-    const current = positiveNumber(patient.weightKg);
-    const m3 = weightAt(patient.weightHistory, "m3");
-    if (current === null || m3 === null) return null;
-    const diff = m3 - current;
-    const pct = (diff / m3) * 100;
-    const yes = diff > 3 || pct > 5;
-    return {
-      score: Number.NaN,
-      keyword: yes ? "是" : "否",
-      rawText: `近3月体重变化 ${round1(diff)}kg（${round1(pct)}%）：3月前 ${round1(m3)}kg → 现在 ${round1(current)}kg`,
     };
   },
   // 来源：01 表 NRS2002 终筛 3 年龄加分；≥70 岁加 1 分（选项有分值 0/1）
@@ -337,6 +259,244 @@ const DERIVERS: Record<string, (patient: PatientLike) => Derivation> = {
   },
 };
 
+export type SystemReadCoverageStatus = "implemented" | "needsClinicalOrDevice" | "pendingDefinition";
+
+export interface SystemReadCoverageEntry {
+  questionId: string;
+  entryType: "系统读取" | "设备/人工测量";
+  variableCode: string | null;
+  status: SystemReadCoverageStatus;
+  /** 来源于 01 表或现有字段边界的原因；不以“尚未写代码”作为分类理由。 */
+  reason: string;
+}
+
+interface CoverageDefinition {
+  questionId: string;
+  entryType: "系统读取" | "设备/人工测量";
+  variableCode: string;
+  status: SystemReadCoverageStatus;
+  reason: string;
+}
+
+/**
+ * V2/01 表「系统读取」「设备/人工测量」条目注册表。
+ * 来源：V2/01_评估采集规则表.xlsx；只把现有 Patient 字段和表内明确阈值同时具备的条目标为 implemented。
+ */
+const COVERAGE_DEFINITIONS: readonly CoverageDefinition[] = [
+  {
+    questionId: "morse_2",
+    entryType: "系统读取",
+    variableCode: "DIAGNOSIS_LIST_CURRENT",
+    status: "implemented",
+    reason: "01 表明确为“超过1个医疗诊断”；现有 diagnoses 为当前诊断清单，按 Morse 自身阈值计分。",
+  },
+  {
+    questionId: "morse_4",
+    entryType: "系统读取",
+    variableCode: "IV_THERAPY_CURRENT",
+    status: "needsClinicalOrDevice",
+    reason: "01 表要求护理记录或当前治疗医嘱中的静脉输液/静脉通路；当前 Patient 没有该字段。",
+  },
+  {
+    questionId: "morse_5",
+    entryType: "系统读取",
+    variableCode: "GAIT_CLINICAL_STATUS",
+    status: "needsClinicalOrDevice",
+    reason: "01 表要求医护观察、SPPB 或6米步速结果后确认三档步态；现有6米用时没有被授权直接映射到三档 Morse 步态。",
+  },
+  {
+    questionId: "frail_4",
+    entryType: "系统读取",
+    variableCode: "DIAGNOSIS_LIST_CURRENT",
+    status: "pendingDefinition",
+    reason: "01 表只给出诊断清单变量和是/否选项，未给出疾病数阈值；不沿用未经本表确认的推定阈值。",
+  },
+  {
+    questionId: "frail_5",
+    entryType: "系统读取",
+    variableCode: "WEIGHT_HISTORY_1_2_3_6M",
+    status: "pendingDefinition",
+    reason: "01 表只给出体重史变量和是/否选项，未明确体重下降时间窗、基线选择及阈值。",
+  },
+  {
+    questionId: "nrs2002_初筛1",
+    entryType: "系统读取",
+    variableCode: "BMI_CURRENT",
+    status: "pendingDefinition",
+    reason: "01 表未在该条目给出 BMI 阳性界值；不能仅凭常见 NRS2002 口径替代 V2 规则定义。",
+  },
+  {
+    questionId: "nrs2002_初筛2",
+    entryType: "系统读取",
+    variableCode: "WEIGHT_HISTORY_1_2_3_6M",
+    status: "pendingDefinition",
+    reason: "01 表未明确体重史判定为“是”的百分比、公斤数和时间窗组合。",
+  },
+  {
+    questionId: "nrs2002_初筛4",
+    entryType: "系统读取",
+    variableCode: "NRS2002_初筛4",
+    status: "pendingDefinition",
+    reason: "01 表标为系统/病历读取但没有题干、数据字段或判定定义；任务清单也标记为待拍板。",
+  },
+  {
+    questionId: "nrs2002_终筛3",
+    entryType: "系统读取",
+    variableCode: "AGE_YEARS",
+    status: "implemented",
+    reason: "01 表明确年龄＜70/≥70两档；Patient.age 是现有必填字段。",
+  },
+  {
+    questionId: "mnasf_2",
+    entryType: "系统读取",
+    variableCode: "WEIGHT_HISTORY_1_2_3_6M",
+    status: "implemented",
+    reason: "01 表明确＞3kg、1～3kg、无下降和不知道四档；当前体重与3个月前体重可确定前三档，不伪造“不知道”。",
+  },
+  {
+    questionId: "mnasf_6",
+    entryType: "系统读取",
+    variableCode: "BMI_OR_CALF_CIRCUMFERENCE",
+    status: "implemented",
+    reason: "01 表明确 BMI 四档及 BMI 缺失时小腿围两档；现有身高、体重和双侧/兼容小腿围字段足够。",
+  },
+  {
+    questionId: "glim_1",
+    entryType: "系统读取",
+    variableCode: "WEIGHT_HISTORY_1_2_3_6M",
+    status: "implemented",
+    reason: "01 表明确过去6个月体重下降＞5%；使用当前体重与1/2/3/6个月体重，缺少全部对照点时不生成否定结论。",
+  },
+  {
+    questionId: "glim_2",
+    entryType: "系统读取",
+    variableCode: "WEIGHT_HISTORY_1_2_3_6M",
+    status: "implemented",
+    reason: "01 表明确超过6个月体重下降＞10%；现有12个月体重史与当前体重可确定该项。",
+  },
+  {
+    questionId: "glim_3",
+    entryType: "系统读取",
+    variableCode: "BMI_CURRENT_AND_AGE",
+    status: "implemented",
+    reason: "01 表明确＜70岁 BMI＜18.5、≥70岁 BMI＜20；现有年龄、身高和体重可确定计算。",
+  },
+  {
+    questionId: "glim_4",
+    entryType: "系统读取",
+    variableCode: "MUSCLE_MASS_INDEX",
+    status: "needsClinicalOrDevice",
+    reason: "01 表明确要求 DXA/BIA/去脂体质指数结果；当前 Patient 没有肌肉量测量字段，只能等待设备结果或医护录入。",
+  },
+  {
+    questionId: "glim_6",
+    entryType: "系统读取",
+    variableCode: "GLIM_6",
+    status: "pendingDefinition",
+    reason: "01 表只列急性疾病/慢性炎症四档，没有现有字段到两类炎症证据的确定性映射。",
+  },
+  {
+    questionId: "calf_1",
+    entryType: "设备/人工测量",
+    variableCode: "CALF_CIRCUMFERENCE_BILATERAL",
+    status: "implemented",
+    reason: "01 表明确男＜34、女＜33；现有双侧小腿围/兼容字段可复用已录入测量值。",
+  },
+  {
+    questionId: "grip_1",
+    entryType: "设备/人工测量",
+    variableCode: "GRIP_1",
+    status: "implemented",
+    reason: "01 表明确男＜28kg、女＜18kg；现有 gripStrengthKg 是医护录入的测量结果。",
+  },
+  {
+    questionId: "gait_speed_1",
+    entryType: "设备/人工测量",
+    variableCode: "GAIT6M_1",
+    status: "implemented",
+    reason: "01 表明确6米用时换算步速并按1.0m/s判定；现有 gaitSpeed6mSec 可确定换算。",
+  },
+  {
+    questionId: "dxa_bia_1",
+    entryType: "设备/人工测量",
+    variableCode: "MUSCLE_MASS_INDEX",
+    status: "needsClinicalOrDevice",
+    reason: "01 表要求记录测量方法和肌肉量指数；当前系统没有 DXA/BIA 原始结果或方法字段。",
+  },
+];
+
+const ITEM_INDEX: ReadonlyMap<string, { item: ScaleItemV2; scaleId: string }> = new Map(
+  scalesV2.flatMap((scale) => scale.items.map((item) => [item.id, { item, scaleId: scale.id }] as const))
+);
+
+export const SYSTEM_READ_COVERAGE: readonly SystemReadCoverageEntry[] = COVERAGE_DEFINITIONS.map((definition) => ({
+  questionId: definition.questionId,
+  entryType: definition.entryType,
+  variableCode: ITEM_INDEX.get(definition.questionId)?.item.variableCode ?? null,
+  status: definition.status,
+  reason: definition.reason,
+}));
+
+export interface SystemReadCoverageValidation {
+  ok: boolean;
+  expectedQuestionIds: string[];
+  registeredQuestionIds: string[];
+  missing: string[];
+  extra: string[];
+  invalidEntryTypes: string[];
+  variableMismatches: string[];
+  implementedWithoutDeriver: string[];
+}
+
+/** 对照运行时 V2 规则做覆盖校验，阻止新增系统/测量条目悄悄落入“未实现”。 */
+export function validateSystemReadCoverage(): SystemReadCoverageValidation {
+  const expected = scalesV2.flatMap((scale) =>
+    scale.items
+      .filter((item) => item.entryType === "系统读取" || item.entryType === "设备/人工测量")
+      .map((item) => item.id)
+  );
+  const registered = COVERAGE_DEFINITIONS.map((definition) => definition.questionId);
+  const expectedSet = new Set(expected);
+  const registeredSet = new Set(registered);
+  const missing = expected.filter((id) => !registeredSet.has(id));
+  const extra = registered.filter((id) => !expectedSet.has(id));
+  const invalidEntryTypes: string[] = [];
+  const variableMismatches: string[] = [];
+  for (const definition of COVERAGE_DEFINITIONS) {
+    const hit = ITEM_INDEX.get(definition.questionId);
+    if (!hit) {
+      invalidEntryTypes.push(`${definition.questionId}:规则条目不存在`);
+      continue;
+    }
+    if (hit.item.entryType !== definition.entryType) {
+      invalidEntryTypes.push(`${definition.questionId}:${hit.item.entryType}≠${definition.entryType}`);
+    }
+    if (hit.item.variableCode !== definition.variableCode) {
+      variableMismatches.push(`${definition.questionId}:${hit.item.variableCode}≠${definition.variableCode}`);
+    }
+  }
+  const implementedWithoutDeriver = COVERAGE_DEFINITIONS
+    .filter((definition) => definition.status === "implemented" && !DERIVERS[definition.questionId])
+    .map((definition) => definition.questionId);
+  return {
+    ok:
+      missing.length === 0 &&
+      extra.length === 0 &&
+      invalidEntryTypes.length === 0 &&
+      variableMismatches.length === 0 &&
+      implementedWithoutDeriver.length === 0,
+    expectedQuestionIds: expected,
+    registeredQuestionIds: registered,
+    missing,
+    extra,
+    invalidEntryTypes,
+    variableMismatches,
+    implementedWithoutDeriver,
+  };
+}
+
+const SYSTEM_READ_COVERAGE_BY_ID = new Map(SYSTEM_READ_COVERAGE.map((entry) => [entry.questionId, entry]));
+
 /** 允许系统推导的条目类型：系统读取 + 可由档案直接换算的设备测量项 */
 const SYSTEM_DERIVABLE_ENTRY_TYPES: ReadonlySet<string> = new Set(["系统读取", "设备/人工测量"]);
 
@@ -359,6 +519,8 @@ export function resolveSystemReadAnswers(
     for (const item of scale.items) {
       if (!SYSTEM_DERIVABLE_ENTRY_TYPES.has(item.entryType)) continue;
       if (opts?.existing?.has(item.id)) continue;
+      // 覆盖注册表是“是否允许自动推导”的唯一闸门；需医护/设备或待口径条目不得因存在同名代码而误答。
+      if (SYSTEM_READ_COVERAGE_BY_ID.get(item.id)?.status !== "implemented") continue;
       const derive = DERIVERS[item.id];
       if (!derive) continue;
       const derived = derive(patient);

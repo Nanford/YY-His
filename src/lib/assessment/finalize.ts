@@ -14,7 +14,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { scoreAllV2, type AnswersV2, type ScaleScoreResultV2 } from "@/lib/scoring-v2";
 import { recommendV2, toPlanCandidates } from "@/lib/recommend-v2";
 import { judgmentsV2, scaleV2ById } from "@/lib/rules/v2";
-import type { AssessmentTag, QuestionScoreDetail, TagLevel } from "./report-types";
+import { splitTagName, type AssessmentTag, type QuestionScoreDetail } from "./report-types";
 import { syncReuseAnswers, upsertSystemAnswers } from "./system-answers";
 import { resolveSystemReadAnswers } from "./system-read";
 
@@ -35,15 +35,6 @@ export async function acquireFinalizingLock(
     data: { status: "finalizing" },
   });
   if (transitioned.count !== 1) throw new Error("会话状态已变化，请刷新后重试");
-}
-
-/** 中医体质标签名「气虚质：倾向是」拆分为展示名 + 级别徽章；其余量表标签无级别后缀，恒"是" */
-function splitTagName(name: string): { tag: string; level: TagLevel } {
-  const levels: TagLevel[] = ["倾向是", "基本是", "是"];
-  for (const level of levels) {
-    if (name.endsWith(`：${level}`)) return { tag: name.slice(0, name.length - level.length - 1), level };
-  }
-  return { tag: name, level: "是" };
 }
 
 /** 中医体质标签编码 → 该体质计分题 id（judgments-v2.json 配置），用于标签下钻只展示本体质题目 */
@@ -69,9 +60,9 @@ function toAssessmentTags(result: ScaleScoreResultV2, tcmQuestionIds: ReadonlyMa
       questionId: d.itemId,
       no: d.no,
       title: d.text,
-      rawScore: d.score as number,
-      effectiveScore: d.score as number,
-      reversed: false,
+      rawScore: d.rawScore ?? (d.score as number),
+      effectiveScore: d.effectiveScore ?? (d.score as number),
+      reversed: d.reversed ?? false,
     }));
   return result.tags.map((tag) => {
     const { tag: displayName, level } = splitTagName(tag.name);

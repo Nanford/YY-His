@@ -42,6 +42,7 @@ export function scoreTcmConstitution(
   const missingIds: string[] = [];
   // 条目 id → 得分（仅已答且适用的计分题）
   const scoreByItemId = new Map<string, number>();
+  const reverseItemIds = new Set(judgment.balanced.reverseItemIds ?? []);
 
   for (const item of scale.items) {
     if (!scoredIds.has(item.id)) {
@@ -64,10 +65,19 @@ export function scoreTcmConstitution(
       });
       continue;
     }
-    scoreByItemId.set(item.id, resolved.score!);
+    const rawScore = resolved.score!;
+    const reversed = reverseItemIds.has(item.id);
+    const effectiveScore = reversed ? 6 - rawScore : rawScore;
+    // 分组统计按原始分存取，在 statOf 中只对平和质反向题应用一次 6−原始分。
+    scoreByItemId.set(item.id, rawScore);
     details.push({
       itemId: item.id, no: item.no, text: item.text,
-      answerLabel: resolved.answerLabel, score: resolved.score, excluded: false,
+      answerLabel: resolved.answerLabel,
+      score: rawScore,
+      excluded: false,
+      rawScore,
+      effectiveScore,
+      reversed,
     });
   }
 
@@ -109,7 +119,7 @@ export function scoreTcmConstitution(
   });
 
   // 平和质 A.1-2/A.1-3/A.1-4 为负向题，按 6−原始分 反向计分（来源：国标 CCMQ 平和质负向题反向计分口径）
-  const b = statOf(judgment.balanced.questionIds, new Set(judgment.balanced.reverseItemIds ?? []));
+  const b = statOf(judgment.balanced.questionIds, reverseItemIds);
   const allBelow = (max: number): boolean => biasedScores.every((s) => lt(s, max));
   // 来源：02 表「平和质转化分≥60分且其他8种均＜30分=是；≥60且其他均＜40（不满足是）=基本是；否则=否」
   const balancedTag = ge(b.score, t.balancedMin) && allBelow(t.othersMaxForYes)

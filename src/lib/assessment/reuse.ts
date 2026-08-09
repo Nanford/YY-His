@@ -12,7 +12,8 @@
  *         - 运动初筛阴性 → FRAIL 上楼/100 米题回填「否」
  *         - 跌倒三问第1题「否」→ Morse 跌倒史回填「无」
  *         - 尿失禁两问第1题「否」→ ICIQ 频率/漏量/情形回填无漏尿档
- *         抑郁两问 → GDS-15 01 表未明说门控，不做门控；NRS2002 初筛→终筛为分支门控另案。
+ *         - DXA/BIA 测量结论 → GLIM 肌肉量条目（只复用已确认的设备/医护结果）
+ *         抑郁两问 → GDS-15 01 表未明说门控，不做门控；NRS2002 初筛→终筛为评分器分支，不在此伪造答案。
  */
 
 import { scalesV2, type ScaleItemV2 } from "@/lib/rules/v2";
@@ -25,17 +26,19 @@ export interface ReuseAnswer {
   rawText: string;
 }
 
-/** 复用规则：源题答出触发值（whenLabel）时，目标题按 0 分档或显式 targetLabel 回填 */
+/** 复用规则：源题答出触发值时，目标题按 0 分档或显式 label 回填。 */
 interface ReuseRule {
   sourceQuestionId: string;
-  /** 触发值：源题标准选项 label（须精确等于 01 表选项，派生时校验，数据异常抛错） */
-  whenLabel: string;
+  /** 触发值；缺省表示源题任一合法已确认 label 均触发（同变量复制）。 */
+  whenLabel?: string;
   targetQuestionId: string;
   /**
    * 可选：显式目标 label（用于无分值选项如「从不漏尿」）；
    * 缺省时按目标题唯一 0 分档反查。
-   */
+  */
   targetLabel?: string;
+  /** 当目标选项未解析出 score（如 GLIM 布尔项）时使用的目标分值。 */
+  targetScore?: number;
   /** 01 表出处与口径说明 */
   note: string;
 }
@@ -44,7 +47,7 @@ interface ReuseRule {
  * 复用规则注册表（手工维护；新增规则前确认两张量表均已配判定可评分）。
  * 抑郁两问 → GDS-15 不在此列：01 表未明说门控/回填规则（见文件头注释），不做门控。
  */
-const REUSE_RULES: ReuseRule[] = [
+export const REUSE_RULES: readonly ReuseRule[] = [
   {
     // 来源：01 表 anxiety_2q_1 复用规则「若后续选择GAD-7且回答"否"，GAD-7第1题直接回填0分」
     sourceQuestionId: "anxiety_2q_1",
@@ -98,6 +101,23 @@ const REUSE_RULES: ReuseRule[] = [
     targetLabel: "从不漏尿",
     note: "尿失禁筛查无漏尿 → ICIQ 情形回填「从不漏尿」",
   },
+  {
+    // 来源：01 表 GLIM-4 与 DXA/BIA 均使用 MUSCLE_MASS_INDEX；只复制已确认设备结论。
+    sourceQuestionId: "dxa_bia_1",
+    whenLabel: "符合肌少症肌肉量界值",
+    targetQuestionId: "glim_4",
+    targetScore: 1,
+    targetLabel: "存在肌肉减少：DXA骨骼肌指数男＜7.0、女＜5.4 kg/m²，或BIA男＜7.0、女＜5.7 kg/m²，或去脂体质指数男＜17.0、女＜15.0 kg/m²",
+    note: "DXA/BIA 已有设备/医护结论 → GLIM 肌肉量条目；没有设备结果不自动推导",
+  },
+  {
+    sourceQuestionId: "dxa_bia_1",
+    whenLabel: "未达肌少症肌肉量界值",
+    targetQuestionId: "glim_4",
+    targetScore: 0,
+    targetLabel: "不存在",
+    note: "DXA/BIA 已有设备/医护结论 → GLIM 肌肉量条目；没有设备结果不自动推导",
+  },
 ];
 
 interface IndexedItem {
@@ -113,10 +133,54 @@ const itemIndex: ReadonlyMap<string, IndexedItem> = new Map(
   )
 );
 
+export interface ReuseRegistryValidation {
+  ok: boolean;
+  invalidRules: string[];
+  duplicateRules: string[];
+}
+
 function indexed(questionId: string): IndexedItem {
   const hit = itemIndex.get(questionId);
   if (!hit) throw new Error(`复用规则引用了未知条目：${questionId}（规则注册表与规则数据不一致）`);
   return hit;
+}
+
+/**
+ * 校验复用注册表的引用和 label 口径；规则数据或注册表变化时由测试显式调用。
+ * 这里只验证“能否安全复用”，不替医学表补充未定义的门控规则。
+ */
+export function validateReuseRegistry(): ReuseRegistryValidation {
+  const invalidRules: string[] = [];
+  const duplicateRules: string[] = [];
+  const seen = new Set<string>();
+
+  REUSE_RULES.forEach((rule, index) => {
+    const identity = `${rule.sourceQuestionId}→${rule.targetQuestionId}→${rule.whenLabel ?? "*"}`;
+    if (seen.has(identity)) duplicateRules.push(`第${index + 1}条：${identity}`);
+    seen.add(identity);
+
+    let source: IndexedItem;
+    let target: IndexedItem;
+    try {
+      source = indexed(rule.sourceQuestionId);
+      target = indexed(rule.targetQuestionId);
+    } catch (error) {
+      invalidRules.push(`第${index + 1}条：${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+
+    if (rule.whenLabel && !source.item.options?.some((option) => option.label === rule.whenLabel)) {
+      invalidRules.push(`第${index + 1}条：源题触发 label 不存在：${rule.sourceQuestionId}=${rule.whenLabel}`);
+    }
+    if (rule.targetLabel && !hasTargetLabel(target.item, rule.targetLabel)) {
+      invalidRules.push(`第${index + 1}条：目标 label 不存在：${rule.targetQuestionId}=${rule.targetLabel}`);
+    }
+    if (rule.targetScore !== undefined && (!Number.isFinite(rule.targetScore) || rule.targetScore < 0)) {
+      invalidRules.push(`第${index + 1}条：目标分值非法：${rule.targetQuestionId}=${rule.targetScore}`);
+    }
+  });
+
+  return { ok: invalidRules.length === 0 && duplicateRules.length === 0, invalidRules, duplicateRules };
 }
 
 /** 目标题 0 分档选项：从规则数据按分值反查（不硬编码 label）；查不到/不唯一均为规则数据异常，宁可抛错 */
@@ -126,17 +190,24 @@ function zeroScoreOption(item: ScaleItemV2): { label: string; score: number } {
   throw new Error(`条目 ${item.id} 的 0 分选项${scored.length === 0 ? "不存在" : "不唯一"}（规则数据异常，无法回填）`);
 }
 
-/** 解析目标回填选项：优先 targetLabel，否则 0 分档 */
+/** 目标 label 可能来自结构化 options，也可能只存在于 01 表原文（复用题）。 */
+function hasTargetLabel(item: ScaleItemV2, label: string): boolean {
+  return item.options?.some((option) => option.label === label) ?? item.optionsRaw.includes(label);
+}
+
+/** 解析目标回填选项：优先显式 label，否则按 0 分档反查。 */
 function resolveTargetOption(
   item: ScaleItemV2,
-  targetLabel: string | undefined
+  targetLabel: string | undefined,
+  targetScore: number | undefined
 ): { label: string; score: number } {
   if (targetLabel) {
     const hit = (item.options ?? []).find((o) => o.label === targetLabel);
-    if (!hit) {
+    if (hit) return { label: hit.label, score: hit.score ?? targetScore ?? 0 };
+    if (!hasTargetLabel(item, targetLabel)) {
       throw new Error(`复用目标 label「${targetLabel}」不是条目 ${item.id} 的合法选项`);
     }
-    return { label: hit.label, score: hit.score ?? 0 };
+    return { label: targetLabel, score: targetScore ?? 0 };
   }
   return zeroScoreOption(item);
 }
@@ -170,16 +241,20 @@ export function deriveReuseAnswers(
     const source = indexed(rule.sourceQuestionId);
     const target = indexed(rule.targetQuestionId);
     if (!scaleSet.has(source.scaleId) || !scaleSet.has(target.scaleId)) continue;
-    // 触发值必须是源题的合法选项（注册表与规则数据一致性校验，异常宁可抛错）
-    if (!source.item.options?.some((option) => option.label === rule.whenLabel)) {
+    // 有固定触发值时必须是源题的合法选项（注册表与规则数据一致性校验，异常宁可抛错）
+    if (rule.whenLabel && !source.item.options?.some((option) => option.label === rule.whenLabel)) {
       throw new Error(
         `复用规则触发值「${rule.whenLabel}」不是条目 ${rule.sourceQuestionId} 的合法选项（规则数据异常）`
       );
     }
     const sourceLabel = confirmed.get(rule.sourceQuestionId);
-    if (sourceLabel !== rule.whenLabel) continue;
+    if (sourceLabel === undefined) continue;
+    if (rule.whenLabel && sourceLabel !== rule.whenLabel) continue;
+    if (!rule.whenLabel && !source.item.options?.some((option) => option.label === sourceLabel)) {
+      throw new Error(`复用源题 ${rule.sourceQuestionId} 的已确认 label 不是规则数据中的合法选项`);
+    }
     if (confirmed.has(rule.targetQuestionId)) continue;
-    const fill = resolveTargetOption(target.item, rule.targetLabel);
+    const fill = resolveTargetOption(target.item, rule.targetLabel, rule.targetScore);
     out.push({
       questionId: rule.targetQuestionId,
       optionLabel: fill.label,

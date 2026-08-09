@@ -7,12 +7,16 @@
 import { DialogueConflictError, advancePatientNarration } from "@/lib/dialogue/service";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/patient/sessions/[id]/advance">
 ): Promise<Response> {
   const { id } = await context.params;
   try {
-    const state = await advancePatientNarration(id);
+    const body = (await request.json().catch(() => null)) as { stepId?: unknown } | null;
+    if (typeof body?.stepId !== "string" || body.stepId.length < 1 || body.stepId.length > 128) {
+      return Response.json({ error: "播报步骤参数无效" }, { status: 400 });
+    }
+    const state = await advancePatientNarration(id, body.stepId);
     return Response.json(state);
   } catch (error) {
     if (error instanceof DialogueConflictError) {

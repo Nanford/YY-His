@@ -21,6 +21,7 @@ import type { PlanDecision } from "@/lib/assessment/plan-review";
 import { firstQueryValue } from "@/lib/query";
 import { reopenSession } from "@/lib/actions/doctor";
 import { readAnswerEditHistory } from "@/lib/assessment/audit";
+import { inspectDoctorAudioFile } from "@/app/api/doctor/sessions/[id]/turns/[turnId]/audio/route";
 import { V2DemoPipeline } from "@/components/v2-pipeline";
 import { CollectForm } from "./collect-form";
 import { ResultView } from "./result-view";
@@ -128,15 +129,18 @@ export default async function SessionPage({
       updatedAt: answer.updatedAt,
     }))
     .sort((a, b) => (questionOrder.get(a.questionId) ?? 999) - (questionOrder.get(b.questionId) ?? 999));
-  const traceTurns: TraceDialogueTurnDto[] = session.turns
-    .filter((turn) => turn.role === "doctor" || turn.role === "patient" || turn.role === "system")
-    .map((turn) => ({
-      id: turn.id,
-      questionId: turn.questionId,
-      role: turn.role as TraceDialogueTurnDto["role"],
-      audioPath: turn.audioPath,
-      createdAt: turn.createdAt,
-    }));
+  const traceTurns: TraceDialogueTurnDto[] = await Promise.all(
+    session.turns
+      .filter((turn) => turn.role === "doctor" || turn.role === "patient" || turn.role === "system")
+      .map(async (turn) => ({
+        id: turn.id,
+        questionId: turn.questionId,
+        role: turn.role as TraceDialogueTurnDto["role"],
+        audioPath: turn.audioPath,
+        audioStatus: await inspectDoctorAudioFile(session.id, turn.audioPath),
+        createdAt: turn.createdAt,
+      }))
+  );
   const meta = STATUS_META[session.status] ?? { label: session.status, cls: "ui-badge" };
   const latestResult = session.results[0];
   const latestPlan = session.plans.find((plan) =>
@@ -254,7 +258,9 @@ export default async function SessionPage({
         </>
       )}
 
-      {traceAnswers.length > 0 && <TraceView answers={traceAnswers} dialogueTurns={traceTurns} />}
+      {traceAnswers.length > 0 && (
+        <TraceView sessionId={session.id} answers={traceAnswers} dialogueTurns={traceTurns} />
+      )}
     </div>
   );
 }
