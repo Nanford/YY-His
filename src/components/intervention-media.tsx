@@ -7,7 +7,7 @@
  */
 "use client";
 import { useState } from "react";
-import { IconVideoOff, IconZoomIn, IconX, IconPhotoOff, IconFileDescription } from "@tabler/icons-react";
+import { IconVideoOff, IconZoomIn, IconX, IconPhotoOff } from "@tabler/icons-react";
 
 /** 运动视频卡：视频就绪则播放，未就绪/播放失败回退文字动作要点（文字要点始终展示，作为正文与兜底） */
 export function InterventionVideo({
@@ -35,13 +35,13 @@ export function InterventionVideo({
           <source src={src} type="video/mp4" />
         </video>
       ) : (
-        <div className="flex items-center gap-2 rounded-xl border border-dashed border-[var(--line-strong,#bcd4f5)] bg-[var(--brand-soft,#f1f6ff)] px-4 py-3 text-sm font-semibold text-[var(--ink-muted,#5b7196)]">
+        <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ink-muted,#5b7196)]" role="status">
           <IconVideoOff size={18} aria-hidden="true" />
-          <span>{failed ? "视频暂时无法播放，请参考下方动作要点" : "视频教程待上线，请先参考下方动作要点"}</span>
+          <span>{failed ? "视频暂不可播放" : "素材待补齐"}</span>
         </div>
       )}
       {text && (
-        <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink-muted,#4b668e)]">{text}</p>
+        <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink)]">{text}</p>
       )}
     </div>
   );
@@ -69,9 +69,9 @@ export function InterventionImage({
 
   if (!available || failed) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-dashed border-[#f0b8b8] bg-[#fff5f5] px-4 py-3 text-sm font-semibold text-[#b4322f]">
+      <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#b4322f]" role="status">
         <IconPhotoOff size={18} aria-hidden="true" />
-        <span>该项图文教程素材待补齐（不以其他干预图片替代）</span>
+        <span>素材待补齐</span>
       </div>
     );
   }
@@ -138,12 +138,8 @@ export function InterventionImage({
  */
 export function InterventionText({ name, content }: { name: string; content: string }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 rounded-xl border border-dashed border-[var(--line-strong,#bcd4f5)] bg-[var(--brand-soft,#f1f6ff)] px-4 py-3 text-sm font-semibold text-[var(--ink-muted,#5b7196)]">
-        <IconFileDescription size={18} aria-hidden="true" />
-        <span>{name} · 文字说明</span>
-      </div>
-      <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink-muted,#4b668e)]">{content}</p>
+    <div className="space-y-3" role="group" aria-label={`${name}正文`}>
+      <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink)]">{content}</p>
     </div>
   );
 }

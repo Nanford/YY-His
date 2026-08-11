@@ -146,11 +146,11 @@ export async function createSupplementarySession(sessionId: string, formData: Fo
   });
   if (!guard.ok) {
     if (guard.reason === "forbidden") throw new Error("无权为该患者发起补充评估");
-    redirect(`/patient/sessions/${sessionId}?error=not_reported`);
+    redirect(`/patient/sessions/${sessionId}/supplement?error=not_reported`);
   }
 
   const scaleIds = parseScaleSelection(formData);
-  if (!scaleIds) redirect(`/patient/sessions/${sessionId}?error=scales`);
+  if (!scaleIds) redirect(`/patient/sessions/${sessionId}/supplement?error=scales`);
 
   const siblings = await prisma.assessmentSession.findMany({
     where: { patientId: source.patientId },
@@ -160,7 +160,7 @@ export async function createSupplementarySession(sessionId: string, formData: Fo
     siblings.map((s) => ({ status: s.status, scaleIds: s.scaleIds as string[], startedAt: s.startedAt }))
   );
   if (scaleIds.some((id) => done.has(id))) {
-    redirect(`/patient/sessions/${sessionId}?error=repeat`);
+    redirect(`/patient/sessions/${sessionId}/supplement?error=repeat`);
   }
 
   const created = await prisma.$transaction(async (tx) => {

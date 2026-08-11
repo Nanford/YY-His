@@ -22,7 +22,6 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { registerPatient } from "@/lib/actions/patient";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { prisma } from "@/lib/db";
 import {
   CARE_SITUATIONS,
@@ -95,8 +94,6 @@ export default async function PatientRegisterPage({
         返回评估首页
       </Link>
 
-      <PatientFlowProgress current={1} />
-
       <section className="patient-panel overflow-hidden">
         <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
           <div className="flex items-start gap-4">
@@ -106,9 +103,6 @@ export default async function PatientRegisterPage({
             <div>
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第一步 · 建立健康档案</p>
               <h1 className="patient-display-title mt-2">新建健康档案</h1>
-              <p className="patient-display-copy max-w-2xl">
-                只需填姓名、性别、年龄即可开始；其余可先留空。填过的信息后续评估直接调用，不再重复问您。
-              </p>
             </div>
           </div>
         </div>

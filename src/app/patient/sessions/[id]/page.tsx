@@ -5,7 +5,7 @@
  *         状态分流与医生端会话页（src/app/doctor/sessions/[id]/page.tsx）同构：都以
  *         session.status 决定渲染哪个子视图，避免患者端另起一套状态判断逻辑。
  *         V2.0 §3：报告页展示评估范围（新增/复评）与生成时间，保留历史报告入口，
- *         并可对尚未完成的量表发起补充评估；历史报告互访按"同患者"放宽数据隔离。
+ *         报告页提供补充评估入口，项目选择在独立页面完成；历史报告互访按"同患者"放宽数据隔离。
  */
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -13,7 +13,6 @@ import { prisma } from "@/lib/db";
 import { scaleById, scales } from "@/lib/rules";
 import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 import { completedScaleIds, scaleComparisons, scaleNeedsClinician, scaleScopes } from "@/lib/assessment/supplementary";
-import { firstQueryValue } from "@/lib/query";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { DeferredScale } from "./patient-report";
@@ -27,10 +26,8 @@ const scaleName = (scaleId: string) => scaleById.get(scaleId)?.name ?? scaleId;
 
 export default async function PatientSessionPage({
   params,
-  searchParams,
 }: PageProps<"/patient/sessions/[id]">) {
   const { id } = await params;
-  const error = firstQueryValue((await searchParams).error);
   const session = await prisma.assessmentSession.findUnique({
     where: { id },
     include: {
@@ -164,7 +161,6 @@ export default async function PatientSessionPage({
             confirmedAt={latestPlan.confirmedAt}
             historyReports={historyReports}
             remainingScales={remainingScales}
-            error={error}
           />
         </>
       );

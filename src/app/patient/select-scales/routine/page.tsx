@@ -8,7 +8,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { IconArrowLeft, IconChecklist } from "@tabler/icons-react";
 import { startAssessment } from "@/lib/actions/patient";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { prisma } from "@/lib/db";
 import { firstQueryValue } from "@/lib/query";
 import { scaleById } from "@/lib/rules";
@@ -34,11 +33,9 @@ export default async function PatientRoutineScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { name: true, gender: true, age: true },
+    select: { id: true },
   });
   if (!patient) notFound();
-
-  const honorific = patient.gender === "女" ? "奶奶" : "爷爷";
 
   // 服务端预分组：套餐量表按 01 表一级分类分组（保持文档顺序），附适老化标签与医护协助提示
   const packageOptions: RoutinePackageOption[] = ROUTINE_PACKAGES.map((pkg, index) => ({
@@ -73,8 +70,6 @@ export default async function PatientRoutineScalesPage({
         返回方式选择
       </Link>
 
-      <PatientFlowProgress current={2} />
-
       <section className="patient-panel overflow-hidden">
         <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
           <div className="flex items-start gap-4">
@@ -85,8 +80,7 @@ export default async function PatientRoutineScalesPage({
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 常规综合评估</p>
               <h1 className="patient-display-title mt-2">常规综合评估</h1>
               <p className="patient-display-copy max-w-2xl">
-                {patient.name}
-                {honorific}，请选择评估套餐，确认后开始评估。
+                请选择评估套餐，确认后开始评估。
               </p>
             </div>
           </div>

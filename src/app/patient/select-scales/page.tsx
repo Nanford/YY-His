@@ -15,7 +15,6 @@ import {
   IconListCheck,
 } from "@tabler/icons-react";
 import { prisma } from "@/lib/db";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { PipelineProgressUpdater } from "@/components/pipeline-progress-updater";
 
 export const dynamic = "force-dynamic";
@@ -57,11 +56,9 @@ export default async function PatientSelectScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { name: true, gender: true, age: true },
+    select: { id: true },
   });
   if (!patient) notFound();
-
-  const honorific = patient.gender === "女" ? "奶奶" : "爷爷";
 
   return (
     <main className="patient-main flex-1">
@@ -70,8 +67,6 @@ export default async function PatientSelectScalesPage({
         <IconArrowLeft size={19} stroke={2} aria-hidden="true" />
         返回评估首页
       </Link>
-
-      <PatientFlowProgress current={2} />
 
       <section className="patient-panel overflow-hidden">
         <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
@@ -83,8 +78,7 @@ export default async function PatientSelectScalesPage({
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 选择评估内容</p>
               <h1 className="patient-display-title mt-2">量表工具选择</h1>
               <p className="patient-display-copy max-w-2xl">
-                {patient.name}
-                {honorific}，请选择本次评估的进入方式。
+                请选择本次评估的进入方式。
               </p>
             </div>
           </div>

@@ -32,7 +32,6 @@ import type {
   PatientDialogueStateDto,
   SubmitAnswerResult,
 } from "@/lib/dialogue/service";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { DoctorAvatar } from "./avatar";
 import { AnswerInput, type VoiceAnswer } from "./answer-input";
 import { CONSENT_VAD_CONFIG, RecorderError, WavRecorder, requestMicStream } from "./wav-recorder";
@@ -501,8 +500,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
       )}
 
       <div className="patient-main patient-main-interview">
-        <PatientFlowProgress current={3} />
-
         <section className="patient-panel overflow-hidden u-rise-in">
           <div className="patient-interview-stage lg:border-0">
             {/* 左侧：数字医生主视觉；栏宽约 1:2.1，形象与状态文案垂直居中 */}
@@ -528,11 +525,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                       ? "请开口回答就行"
                       : "全程陪伴本次问询"}
                 </p>
-                {speaking && subtitle && (
-                  <p className="mx-auto mt-2 line-clamp-3 text-sm leading-6 text-[var(--ink-faint)]">
-                    “{subtitle}”
-                  </p>
-                )}
               </div>
               {state.phase === "in_question" && (
                 <div className="w-full max-w-[16rem] xl:max-w-[18rem]">

@@ -8,7 +8,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { IconArrowLeft, IconClipboardText } from "@tabler/icons-react";
 import { startAssessment } from "@/lib/actions/patient";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { prisma } from "@/lib/db";
 import { firstQueryValue } from "@/lib/query";
 import { SCORABLE_SCALE_IDS } from "@/lib/assessment/scale-packages";
@@ -30,11 +29,9 @@ export default async function PatientEmrScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { name: true, gender: true, age: true },
+    select: { id: true },
   });
   if (!patient) notFound();
-
-  const honorific = patient.gender === "女" ? "奶奶" : "爷爷";
 
   // 可评分量表目录（适老化标签），供推荐结果渲染名称
   const catalog: EmrScaleItem[] = SCORABLE_SCALE_IDS.map((id) => ({
@@ -53,8 +50,6 @@ export default async function PatientEmrScalesPage({
         返回方式选择
       </Link>
 
-      <PatientFlowProgress current={2} />
-
       <section className="patient-panel overflow-hidden">
         <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
           <div className="flex items-start gap-4">
@@ -65,8 +60,7 @@ export default async function PatientEmrScalesPage({
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 病历智能评估</p>
               <h1 className="patient-display-title mt-2">病历智能评估</h1>
               <p className="patient-display-copy max-w-2xl">
-                {patient.name}
-                {honorific}，粘贴病历或上传文件，系统自动推荐评估项目。
+                粘贴病历或上传文件，系统自动推荐评估项目。
               </p>
             </div>
           </div>

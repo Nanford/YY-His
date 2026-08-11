@@ -7,7 +7,7 @@
  *         的 draft→confirmed 流程与禁忌提示硬约束），本组件与医生端审核互不阻塞、并行展示。
  *         方案状态（初步 / 医生已确认）必须醒目区分，让患者知道自己看到的是哪个阶段的内容。
  *         V2.0 §3：报告必须可识别评估范围（新增/复评量表）与生成时间，保留历史报告入口，
- *         并可对尚未完成的量表直接发起补充评估（复评属医生授权，不在患者自助入口出现）。
+ *         补充评估只保留入口，项目选择在独立页面完成（复评属医生授权，不在患者自助入口出现）。
  */
 import Link from "next/link";
 import {
@@ -19,17 +19,13 @@ import {
   IconFileDescription,
   IconHeartHandshake,
   IconHistory,
-  IconPlus,
   IconShieldCheck,
-  IconStethoscope,
 } from "@tabler/icons-react";
 import { isAttentionTag, type AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
 import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
-import { createSupplementarySession } from "@/lib/actions/patient";
 
 /** 5 大类固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他（来源：积分数据 categories 顺序） */
 const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
@@ -88,7 +84,6 @@ interface PatientReportProps {
   confirmedAt: Date | null;
   historyReports: HistoryReportEntry[];
   remainingScales: RemainingScale[];
-  error?: string;
 }
 
 export function PatientReport({
@@ -104,16 +99,12 @@ export function PatientReport({
   confirmedAt,
   historyReports,
   remainingScales,
-  error,
 }: PatientReportProps) {
   return (
     <main className="patient-shell flex-1">
       <PatientReportTopbar />
 
       <div className="patient-main space-y-6">
-        {/* 六步进度：报告页即患者流程终点（结果判断/干预匹配已由系统完成，本页展示干预内容） */}
-        <PatientFlowProgress current={6} />
-
         <header className="patient-panel px-6 py-8 text-center md:px-10 md:py-10">
           <span className="ui-badge mx-auto">
             <IconClipboardCheck size={17} stroke={1.9} aria-hidden="true" />
@@ -146,31 +137,12 @@ export function PatientReport({
           </ul>
         </header>
 
-        {error === "scales" && (
-          <div className="ui-alert ui-alert-danger text-lg" role="alert">
-            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-            <span>请至少勾选一项要补充评估的内容。</span>
-          </div>
-        )}
-        {error === "repeat" && (
-          <div className="ui-alert ui-alert-danger text-lg" role="alert">
-            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-            <span>勾选的项目已经评估过了；如需重新评估，请医生在工作台为您发起。</span>
-          </div>
-        )}
-        {error === "not_reported" && (
-          <div className="ui-alert ui-alert-danger text-lg" role="alert">
-            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-            <span>上次评估尚未出报告，暂不能发起补充评估，请稍后再试或请联系医生。</span>
-          </div>
-        )}
-
         <TagsSection tags={tags} deferredScales={deferredScales} />
         {comparisons.length > 0 && <ComparisonSection comparisons={comparisons} />}
         <PlanSection planStatus={planStatus} plan={plan} confirmedAt={confirmedAt} />
 
         {remainingScales.length > 0 && (
-          <SupplementarySection sessionId={sessionId} remainingScales={remainingScales} />
+          <SupplementaryEntry sessionId={sessionId} />
         )}
         {historyReports.length > 0 && <HistorySection historyReports={historyReports} />}
 
@@ -183,59 +155,19 @@ export function PatientReport({
 }
 
 /**
- * 补充评估入口（V2.0 §3）：只列"尚未完成的量表"（复评需医生在工作台发起）；
- * 提交即创建独立新会话并进入问询，复用既有档案与测量数据，不影响本次报告。
+ * 补充评估入口（V2.1）：报告页只保留关键操作，项目选择放到独立页面。
+ * 独立页仍只列"尚未完成的量表"，提交后创建新会话，不影响本次报告。
  */
-function SupplementarySection({
-  sessionId,
-  remainingScales,
-}: {
-  sessionId: string;
-  remainingScales: RemainingScale[];
-}) {
+function SupplementaryEntry({ sessionId }: { sessionId: string }) {
   return (
-    <section className="patient-panel px-6 py-7 md:px-8">
-      <span className="ui-badge">
-        <IconClipboardPlus size={16} stroke={1.8} aria-hidden="true" />
+    <section className="patient-panel flex justify-center px-6 py-7 md:px-8">
+      <Link
+        href={`/patient/sessions/${sessionId}/supplement`}
+        className="patient-primary-action w-full justify-center sm:w-auto"
+      >
+        <IconClipboardPlus size={24} stroke={1.9} aria-hidden="true" />
         补充评估
-      </span>
-      <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">还想评估更多项目？</h2>
-      <p className="mt-2 max-w-2xl text-base leading-7 text-[var(--ink-muted)]">
-        勾选后点下方大按钮即可开始新一轮问答；本次报告和历史记录都会保留，互不影响。
-        如需重新评估已完成的项目，请医生在工作台为您发起。
-      </p>
-      <form action={createSupplementarySession.bind(null, sessionId)} className="mt-5 space-y-5">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {remainingScales.map((scale) => (
-            <label key={scale.id} className="patient-check">
-              <input type="checkbox" name="scaleIds" value={scale.id} />
-              <span className="min-w-0">
-                <span className="block text-lg font-extrabold leading-tight text-[var(--ink)]">{scale.name}</span>
-                <span
-                  className={`mt-2 flex items-start gap-1.5 text-sm font-semibold leading-6 ${
-                    scale.needsClinician ? "text-[var(--warning)]" : "text-[var(--success)]"
-                  }`}
-                >
-                  {scale.needsClinician ? (
-                    <IconStethoscope size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  ) : (
-                    <IconCheck size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  )}
-                  <span>
-                    {scale.needsClinician
-                      ? "含舌象、测量等需医生查看的项，这些题暂不计分，答完先出部分计分报告"
-                      : "可当场生成评估报告"}
-                  </span>
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-        <button type="submit" className="patient-primary-action w-full sm:w-auto">
-          <IconPlus size={26} stroke={2} aria-hidden="true" />
-          <span>开始补充评估</span>
-        </button>
-      </form>
+      </Link>
     </section>
   );
 }

@@ -19,7 +19,6 @@ import {
   IconClipboardText,
 } from "@tabler/icons-react";
 import { startAssessment } from "@/lib/actions/patient";
-import { PatientFlowProgress } from "@/components/patient-flow-progress";
 import { prisma } from "@/lib/db";
 import { firstQueryValue } from "@/lib/query";
 import { SCORABLE_SCALE_IDS } from "@/lib/assessment/scale-packages";
@@ -69,10 +68,9 @@ export default async function PatientFollowupScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { name: true, gender: true, age: true },
+    select: { id: true },
   });
   if (!patient) notFound();
-  const honorific = patient.gender === "女" ? "奶奶" : "爷爷";
 
   // 已出报告（collected/confirmed）的既往会话，最新在前；最近一次作为复评基准
   const reportedSessions = await prisma.assessmentSession.findMany({
@@ -95,8 +93,6 @@ export default async function PatientFollowupScalesPage({
         返回方式选择
       </Link>
 
-      <PatientFlowProgress current={2} />
-
       <section className="patient-panel overflow-hidden">
         <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
           <div className="flex items-start gap-4">
@@ -107,8 +103,7 @@ export default async function PatientFollowupScalesPage({
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 随访对比评估</p>
               <h1 className="patient-display-title mt-2">随访对比评估</h1>
               <p className="patient-display-copy max-w-2xl">
-                {patient.name}
-                {honorific}，调取上次评估结果，只复评需要更新的项目。
+                调取上次评估结果，只复评需要更新的项目。
               </p>
             </div>
           </div>
