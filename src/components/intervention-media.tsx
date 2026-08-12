@@ -41,7 +41,7 @@ export function InterventionVideo({
         </div>
       )}
       {text && (
-        <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink)]">{text}</p>
+        <p className="whitespace-pre-wrap text-base leading-7 text-black">{text}</p>
       )}
     </div>
   );
@@ -139,7 +139,7 @@ export function InterventionImage({
 export function InterventionText({ name, content }: { name: string; content: string }) {
   return (
     <div className="space-y-3" role="group" aria-label={`${name}正文`}>
-      <p className="whitespace-pre-wrap text-base leading-7 text-[var(--ink)]">{content}</p>
+      <p className="whitespace-pre-wrap text-base leading-7 text-black">{content}</p>
     </div>
   );
 }

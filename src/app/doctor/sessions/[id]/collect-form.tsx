@@ -4,7 +4,7 @@
  * POS:    M2 无语音采集路径与语音链路的兜底补录界面；M9.6/M9.7 扩展数字/多选/图片/画钟确认。
  *         条目来自 V2 题库投影——非正式问题计分条目患者端不提问，由本表单代填。
  */
-import { IconArrowRight, IconDeviceFloppy, IconMessageCircle } from "@tabler/icons-react";
+import { IconArrowRight, IconDeviceFloppy } from "@tabler/icons-react";
 import { MULTI_CHOICE_SEP, optionsOf, scales, type Scale, type ScaleQuestion } from "@/lib/rules";
 import { finalizeSession, saveAnswers } from "@/lib/actions/doctor";
 
@@ -42,10 +42,6 @@ function QuestionBlock({
         </span>
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm font-bold leading-6 text-[#29496f]">{question.standardText}</p>
-          <p className="inline-flex items-start gap-1.5 text-xs leading-5 text-[#7890b1]">
-            <IconMessageCircle size={15} className="mt-0.5 shrink-0 text-blue-500" aria-hidden="true" />
-            数字医生话术：{question.colloquialText}
-          </p>
           <div className="flex flex-wrap gap-1.5">
             {question.observerAssisted && (
               <span className="ui-badge">

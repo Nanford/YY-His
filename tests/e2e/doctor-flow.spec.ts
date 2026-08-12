@@ -117,6 +117,8 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   const collectionForm = page.locator("form").filter({ has: page.locator('input[name="answer.frail_1"]') });
   // 8 个量表分区（常规综合评估包：adl/iadl/frail/mnasf/minicog/depression_2q/anxiety_2q/tcm）
   await expect(collectionForm.locator(":scope > section")).toHaveCount(8);
+  // V2.1 精简医生采集界面：只保留正式题目，不重复展示患者端数字医生话术。
+  await expect(collectionForm.getByText("数字医生话术：", { exact: false })).toHaveCount(0);
 
   // ADL 全 0 分 → 重度依赖（同时触发 YD07 禁止推荐，03 表 -100 语义）
   const adlZero: Record<string, string> = {
@@ -222,7 +224,9 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   await expect(reviewSection.getByRole("button", { name: /放大查看/ })).toHaveCount(2);
   await expect(reviewSection.getByText("素材待补齐", { exact: true })).toHaveCount(2);
   await expect(reviewSection.getByText("适用场景：多问题共存", { exact: false })).toBeVisible();
-  await expect(reviewSection.getByText("具体做法：向家属或照护者提供", { exact: false })).toBeVisible();
+  const interventionBody = reviewSection.getByText("具体做法：向家属或照护者提供", { exact: false });
+  await expect(interventionBody).toBeVisible();
+  await expect(interventionBody).toHaveCSS("color", "rgb(0, 0, 0)");
   // 积分来源明细逐项下钻：9 项各有明细；JZ02 老年综合诊疗建议累加总分最高（32）
   await expect(reviewSection.getByText("积分来源：", { exact: true })).toHaveCount(9);
   await expect(reviewSection.getByText("匹配分 32", { exact: true })).toHaveCount(1);
