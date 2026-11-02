@@ -7,11 +7,10 @@ import { tagV2ByCode, type ScaleItemV2, type ScaleV2 } from "@/lib/rules/v2";
 import type { AnswerValue, ItemScoreDetail, TagResultV2 } from "./types";
 
 /**
- * 可用 deferClinical 豁免计分的条目类型（来源：01 表「条目类型」列；
- * 口径对齐旧引擎 src/lib/scoring/common.ts 的 partitionMissing——需医生检查/系统读取类才可豁免）。
- * 与 src/lib/rules/index.ts 投影的 observerAssisted（条目类型 ≠ 正式问题）保持一致：
- * 记忆指令/图片识别/操作指令等需现场道具、图片或医生判定的条目，患者端同样不提问，
- * 缺失时按 deferClinical 豁免计分。仅「正式问题」缺失在任何模式下都阻断评分。
+ * 医生侧/系统侧条目类型集合（来源：01 表「条目类型」列；与 rules/index.ts 投影的
+ * observerAssisted 口径一致）。2026-08-13 起 deferClinical 不再按条目类型区分豁免
+ * （全部缺失条目一律豁免，见 partitionMissingV2），本集合保留供报告/代填等
+ * 展示层识别「需临床处理」的条目。
  */
 export const CLINICAL_ENTRY_TYPES: ReadonlySet<string> = new Set([
   "系统读取",
@@ -71,25 +70,18 @@ export function resolveAnswerScore(item: ScaleItemV2, answer: AnswerValue): Reso
 
 /**
  * 把缺失条目分成「阻断评分」与「可豁免」两组。
- * 仅 deferClinical 模式且条目属临床/系统类（CLINICAL_ENTRY_TYPES）才可豁免；
- * 普通问答题缺失在任何模式下都阻断（与旧引擎口径一致）。
+ * deferClinical（患者自助 Demo 路径）：2026-08-13 用户拍板「不需要医生确认，直接生成评估报告」——
+ * 所有缺失条目一律豁免计分（含答不清转「待人工确认」的普通问答题；2026-07-20「普通问答题
+ * 缺失仍阻断」口径废止），按已答题目计分并在报告标注「部分计分」；零条已答的量表仍受
+ * 全豁免守卫（guardFullyDeferred）约束不产标签，杜绝"零证据伪造阴性"。
+ * strict（医生端，deferClinical=false）：任何缺失都阻断，待医生补录后重算。
  */
 export function partitionMissingV2(
-  scale: ScaleV2,
   missingIds: readonly string[],
   deferClinical: boolean
 ): { blocking: string[]; deferred: string[] } {
-  const blocking: string[] = [];
-  const deferred: string[] = [];
-  for (const id of missingIds) {
-    const item = itemOf(scale, id);
-    if (deferClinical && CLINICAL_ENTRY_TYPES.has(item.entryType)) {
-      deferred.push(id);
-    } else {
-      blocking.push(id);
-    }
-  }
-  return { blocking, deferred };
+  if (deferClinical) return { blocking: [], deferred: [...missingIds] };
+  return { blocking: [...missingIds], deferred: [] };
 }
 
 /** 标签编码 → {code, name}；编码不在 02 表 190 标签内属规则数据异常，抛错 */

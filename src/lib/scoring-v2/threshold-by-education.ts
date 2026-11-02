@@ -50,12 +50,33 @@ export function scoreThresholdByEducation(
     });
   }
 
-  const { blocking, deferred } = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);
+  const { blocking, deferred } = partitionMissingV2(missingIds, opts.deferClinical ?? false);
 
-  // 缺文化程度（或非法枚举值）无法分层判定：按阻断信息返回（非条目缺失，补录档案后可评）。
-  // 条目缺失与文化程度缺失可能同时存在，missing 照实返回。
+  // 缺文化程度（或非法枚举值）无法分层判定：strict 路径按阻断信息返回（非条目缺失，补录档案后可评）。
+  // deferClinical 路径（2026-08-13 拍板「不需要医生确认，直接生成评估报告」）：不阻断——
+  // 四档界值结论一致时才出标签（总分 > 最高界值 → 正常；≤ 最低界值 → 减退；中间地带各档结论
+  // 分歧 → 本题不出标签，仅部分计分留痕），拿不准绝不硬判（硬约束 3）。
   const band = educationBandOf(opts.education);
   if (band === null) {
+    if (opts.deferClinical) {
+      const thresholds = Object.values(judgment.educationThresholds);
+      const unanimousNormal = total > Math.max(...thresholds);
+      const unanimousDecline = total <= Math.min(...thresholds);
+      return {
+        scaleId: scale.id,
+        ok: true,
+        missing: [],
+        deferred,
+        totalScore: total,
+        tags: unanimousNormal
+          ? [tagResult(judgment.normalTagCode)]
+          : unanimousDecline
+            ? [tagResult(judgment.declineTagCode)]
+            : [],
+        details,
+        partial: true,
+      };
+    }
     return {
       scaleId: scale.id,
       ok: false,

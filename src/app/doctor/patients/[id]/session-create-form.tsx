@@ -197,7 +197,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                     value={emrText}
                     onChange={(e) => setEmrText(e.target.value)}
                     rows={6}
-                    className="ui-input mt-2 w-full font-normal"
+                    className="ui-textarea mt-2 w-full font-normal"
                     placeholder="粘贴现病史、既往史、诊断等（系统会在出网前脱敏证件号与手机号）"
                   />
                 </label>

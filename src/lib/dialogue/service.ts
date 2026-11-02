@@ -5,17 +5,27 @@
  *         不实现任何医学规则；评分仍由医生端 finalize 时调用评分引擎完成。
  */
 import { prisma } from "@/lib/db";
-import { scaleById } from "@/lib/rules";
+import { displayOptionLabel, questionById, scaleById } from "@/lib/rules";
 import type { Prisma } from "@/generated/prisma/client";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { acquireFinalizingLock, scoreAndSnapshot, type FinalizeOutcome } from "@/lib/assessment/finalize";
 import { syncReuseAnswers } from "@/lib/assessment/system-answers";
 import { voiceCapabilities, type VoiceCapabilities } from "@/lib/providers/capabilities";
 import { normalizeAnswer, type NormalizationOutcome } from "./normalize";
+import { judgeWordRecall, type WordRecallOutcome } from "./judge";
+import {
+  FREE_ANSWER_ITEMS,
+  displayTextOverride,
+  polarOptionsOf,
+  wordRecallGroupByTrigger,
+  type WordRecallGroup,
+} from "./cognitive-flow";
 import { CLOSING_TEXT, OPENING_TEXT, clarifyText, recheckText } from "./prompts";
 import {
   askableQuestions,
+  askText,
   buildTimeline,
+  computeLadderSkips,
   matchButtonOption,
   nextStep,
   progressOf,
@@ -25,6 +35,7 @@ import {
   type AskAttempt,
   type DialogueSnapshot,
   type DialogueStep,
+  type NarrationPresentation,
   type TimelineStep,
 } from "./state-machine";
 import type { NarrationV2 } from "@/lib/rules/v2";
@@ -37,8 +48,19 @@ export interface PatientPromptDto {
   attempt: AskAttempt;
   /** 播报/字幕文案（预生成模板拼装） */
   text: string;
+  /**
+   * 屏幕展示文案（2026-09-04 修改意见 6：MMSE 复述题目标句"瑞雪兆丰年"只播报不上屏）。
+   * 缺省时前端展示 text 本身。
+   */
+  displayText?: string;
   answerType: "boolean" | "choice" | "likert5" | "number" | "multiChoice" | "imageChoice" | "drawing";
-  options: { label: string; score: number }[];
+  /** free = 自由回答题（认知题改版）：前端不渲染选项按钮，只给语音/文字作答入口 */
+  responseMode?: "free";
+  /**
+   * label 为提交/匹配/评分用的原始选项 label（含评分注解，不得改动）；
+   * displayLabel 为患者端按钮展示文案（2026-09-04 修改意见 1：剥除评分与流程备注）。
+   */
+  options: { label: string; displayLabel: string; score: number }[];
   /** number 题合法分值范围 */
   numberMin?: number;
   numberMax?: number;
@@ -57,6 +79,10 @@ export interface PatientNarrationDto {
   entryType: string;
   /** 播报/字幕文案（01 表预生成文本，不经 LLM） */
   text: string;
+  /** 屏幕展示文案（2026-09-04 修改意见 3：记忆词指令只播报不上屏；缺省 = 与 text 同文） */
+  displayText?: string;
+  /** 播报语速（豆包 TTS speech_rate；缺省 = 全局默认） */
+  speechRate?: number;
 }
 
 export interface PatientDialogueStateDto {
@@ -67,8 +93,8 @@ export interface PatientDialogueStateDto {
    * narration：正在播放采集编排旁白（M9.2 总开场/分类过渡/工具说明），只播报不需作答，
    *           播完前端自动调 /advance 推进（旁白轮次由 /advance 写入）。
    * in_question：问询进行中。
-   * awaiting_doctor：问答已全部答完，但评估暂未生成（存在普通问答题"待人工确认"未补录），需医生协助后才能生成报告。
-   * （测量/观察类医生题缺口不再进入此态——Demo 口径 deferClinical 豁免其计分，直接出部分计分报告。）
+   * awaiting_doctor：兜底状态（2026-08-13 起患者自助一律出报告，正常流程不再进入此态；
+   *           仅评分异常等意外情况可能出现），提示请医生协助。
    * finished：本次提交刚好完成评分并生成报告——仅作为触发前端跳转去看报告的一次性信号，不会被 GET /state 重复返回。
    * locked：会话已不在 in_progress（通常因为报告已生成，应改为渲染报告页；此值仅作兜底）。
    */
@@ -133,6 +159,8 @@ interface LoadedContext {
   /** 采集编排时间线（M9.2：旁白 + 题目按 01 表顺序交错） */
   timeline: TimelineStep[];
   snapshot: DialogueSnapshot;
+  /** 已确认答案的 label（questionId → optionLabel），供阶梯跳题在答案落库后即时重算 */
+  confirmedLabelById: Map<string, string | null>;
   started: boolean;
 }
 
@@ -143,7 +171,7 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
     where: { id: sessionId },
     include: {
       patient: { select: { code: true, name: true } },
-      answers: { select: { questionId: true, status: true } },
+      answers: { select: { questionId: true, status: true, optionLabel: true } },
       turns: { select: { role: true, questionId: true } },
     },
   });
@@ -154,10 +182,12 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
   const timeline = buildTimeline(scaleIds);
 
   const answerStatus = new Map<string, AnswerStatus>();
+  const confirmedLabelById = new Map<string, string | null>();
   for (const answer of session.answers) {
     // superseded 是分支切换后的历史答案，不参与当前问询判断
     if (answer.status === "superseded") continue;
     answerStatus.set(answer.questionId, answer.status as AnswerStatus);
+    if (answer.status === "confirmed") confirmedLabelById.set(answer.questionId, answer.optionLabel);
   }
   const doctorAskCount = new Map<string, number>();
   const patientReplyCount = new Map<string, number>();
@@ -185,7 +215,15 @@ async function loadContext(tx: Tx, sessionId: string): Promise<LoadedContext> {
     },
     questions,
     timeline,
-    snapshot: { answerStatus, doctorAskCount, patientReplyCount, deliveredNarrationIds },
+    snapshot: {
+      answerStatus,
+      doctorAskCount,
+      patientReplyCount,
+      deliveredNarrationIds,
+      // 阶梯跳题（视力/听力"可以（结束）"）：由已确认答案派生，见 state-machine.computeLadderSkips
+      skippedQuestionIds: computeLadderSkips(scaleIds, confirmedLabelById),
+    },
+    confirmedLabelById,
     started: session.turns.some((turn) => turn.role === "doctor"),
   };
 }
@@ -198,7 +236,7 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
   const kind = attempt === 1 ? "ask" : attempt === 2 ? "clarify" : "recheck";
   const text =
     attempt === 1
-      ? item.question.colloquialText
+      ? askText(item.question)
       : attempt === 2
         ? clarifyText(item.question, item.options)
         : recheckText(item.question);
@@ -207,8 +245,16 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
     kind,
     attempt,
     text,
+    // 展示文案覆盖（mmse_24 复述目标句不上屏，2026-09-04 修改意见 6）；追问/复问展示同一干净题面
+    displayText: displayTextOverride(item.question.id) ?? undefined,
     answerType: item.question.answerType,
-    options: item.options,
+    responseMode: item.question.responseMode,
+    // 展示用 displayLabel（剥除评分/备注）与提交用原始 label 并行下发，匹配/评分链路不动
+    options: item.options.map((option) => ({
+      label: option.label,
+      displayLabel: displayOptionLabel(option.label),
+      score: option.score,
+    })),
     numberMin: item.question.numberMin,
     numberMax: item.question.numberMax,
     imageSrc: item.question.imageSrc,
@@ -218,26 +264,32 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
   };
 }
 
-function narrationDto(narration: NarrationV2): PatientNarrationDto {
-  return { id: narration.id, entryType: narration.entryType, text: narration.text };
+function narrationDto(narration: NarrationV2 & NarrationPresentation): PatientNarrationDto {
+  return {
+    id: narration.id,
+    entryType: narration.entryType,
+    text: narration.text,
+    displayText: narration.displayText,
+    speechRate: narration.speechRate,
+  };
 }
 
 /**
  * 旁白阶段的显式状态构造：用于 begin/advance 等"刚决定播这条旁白"的返回。
- * 不能走 buildState —— 首条旁白（总开场）播报前既无题目轮次也无旁白轮次，
+ * 不能走 buildState —— 首条旁白播报前既无题目轮次也无旁白轮次，
  * buildState 的 intro 判定（讲解确认阶段）会把它吞掉；GET /state 刷新重放仍走 buildState。
  */
 function narrationState(
   context: LoadedContext,
   scaleNames: string[],
-  narration: NarrationV2
+  narration: NarrationV2 & NarrationPresentation
 ): PatientDialogueStateDto {
   return {
     sessionId: context.session.id,
     phase: "narration",
     scaleNames,
     capabilities: voiceCapabilities(),
-    progress: progressOf(context.questions, context.snapshot),
+    progress: progressOf(context.questions, context.snapshot, context.timeline),
     prompt: null,
     narration: narrationDto(narration),
     speak: [narration.text],
@@ -250,7 +302,7 @@ function buildState(
   speak: string[]
 ): PatientDialogueStateDto {
   const capabilities = voiceCapabilities();
-  const progress = progressOf(context.questions, context.snapshot);
+  const progress = progressOf(context.questions, context.snapshot, context.timeline);
   const base = { sessionId: context.session.id, scaleNames, capabilities, progress };
   if (context.session.status !== "in_progress") {
     return { ...base, phase: "locked", prompt: null, narration: null, speak: [] };
@@ -272,9 +324,8 @@ function buildState(
     return { ...base, phase: "narration", prompt: null, narration: narrationDto(step.narration), speak };
   }
   if (step.kind === "finished") {
-    // 到达这里时 session 仍是 in_progress：说明问答已问完，但评分未成功
-    // （存在普通问答题"待人工确认"未补录；测量/观察类医生题已按 deferClinical 豁免不阻断），
-    // 需医生协助补录后才能生成报告。
+    // 到达这里时 session 仍是 in_progress：问答已问完但评分未成功落库。
+    // 2026-08-13 起 deferClinical 全豁免，正常流程不会到这里；仅评分异常等意外情况兜底。
     return { ...base, phase: "awaiting_doctor", prompt: null, narration: null, speak };
   }
   return { ...base, phase: "in_question", prompt: promptDto(step), narration: null, speak };
@@ -291,7 +342,7 @@ function reportReadyState(
     phase: "finished",
     scaleNames,
     capabilities: voiceCapabilities(),
-    progress: progressOf(context.questions, context.snapshot),
+    progress: progressOf(context.questions, context.snapshot, context.timeline),
     prompt: null,
     narration: null,
     speak,
@@ -310,9 +361,9 @@ function withReplaySpeak(state: PatientDialogueStateDto): PatientDialogueStateDt
  * 患者问答已全部完成（state machine 判定 finished）时尝试自动生成评估报告。
  * 用户已确认的产品口径：评估内容是确定性计算，问答完成即应生成报告，
  * 不需要医生先审核评估结果——干预方案候选医生仍可另行审核调整，互不阻塞。
- * Demo 口径（2026-07-20 用户拍板）：患者自助路径传 deferClinical——舌象/测量等
- * 医生检查题缺失不再阻断出报告，忽略其计分并在报告中标注"部分计分"；
- * 仅普通问答题"待人工确认"未补录时才会落 awaiting_doctor 等医生补录。
+ * Demo 口径（2026-08-13 用户拍板，覆盖 2026-07-20 版）：患者自助答完**一律出报告**——
+ * 任何缺失条目（医生检查题、答不清转"待人工确认"的普通问答题）都按 deferClinical
+ * 豁免计分，报告标注"部分计分"；医生后续补录仍可在医生端重算更新。
  */
 async function tryAutoFinalize(tx: Tx, sessionId: string): Promise<FinalizeOutcome> {
   await acquireFinalizingLock(tx, sessionId);
@@ -371,9 +422,9 @@ export async function startPatientDialogue(sessionId: string): Promise<PatientDi
     const step = nextStep(context.timeline, context.snapshot);
     if (step.kind === "prompt" || step.kind === "narration") {
       // 讲解播完进入 intro：不写旁白/第一题轮次，等患者确认后由 beginPatientQuestions 推进。
-      // M9.2 取舍：OPENING_TEXT 保留作"征求开始"的确认触发器（含"说一声开始"指令与 VAD 确认监听），
-      // 01 表总开场旁白（narr_3）在患者确认后作为第一条编排旁白播报，两者文案不重复
-      // （一个征求开始、一个是内容总览），故不替换 OPENING_TEXT。
+      // M9.2 取舍：OPENING_TEXT 保留作"征求开始"的确认触发器（含"说一声开始"指令与 VAD 确认监听）；
+      // 01 表总开场旁白 narr_3 已于 2026-09-13 编排层删除（prompts.NARRATION_SUPPRESSED_IDS），
+      // 确认后直接进各量表的分类过渡/专题过渡句。
       return buildState({ ...context, started: true }, scaleNames, [OPENING_TEXT]);
     }
     if (step.kind === "finished") {
@@ -416,7 +467,7 @@ export async function beginPatientQuestions(sessionId: string): Promise<PatientD
     }
     const step = nextStep(context.timeline, context.snapshot);
     if (step.kind === "narration") {
-      // 确认后先播总开场等编排旁白：不写轮次（旁白轮次由 /advance 在播报完成后写入），
+      // 确认后先播编排旁白（分类过渡/专题过渡句）：不写轮次（旁白轮次由 /advance 在播报完成后写入），
       // 前端播完自动调 /advance 推进到下一旁白或第一题。
       // 注意必须走 narrationState 直构：首条旁白前无任何题目/旁白轮次，buildState 会误判回 intro。
       return narrationState(context, scaleNames, step.narration);
@@ -602,20 +653,48 @@ export async function submitPatientAnswer(
   if (input.mode === "voice" || input.mode === "text") {
     if (utterance.length === 0) throw new DialogueConflictError("回答内容为空");
   }
-  const outcome =
-    input.mode === "button"
-      ? buttonOutcome(item, input.label, input.score)
-      : input.mode === "multi"
-        ? multiOutcome(item, input.labels)
-        : input.mode === "drawing"
-          ? drawingOutcome(input.drawingDataUrl)
-          : await normalizeAnswer({
-              question: item.question,
-              options: item.options,
-              utterance,
-              patientCode: preview.session.patientCode,
-              patientName: preview.session.patientName,
-            });
+  // 认知题改版（2026-08-13）：自由回答题与词复述组只接受语音/文字作答（选项不向患者展示）
+  const group = wordRecallGroupByTrigger.get(input.questionId);
+  if ((group || FREE_ANSWER_ITEMS.has(input.questionId)) && input.mode !== "voice" && input.mode !== "text") {
+    throw new DialogueConflictError("该题目只支持语音或文字作答");
+  }
+  // 词复述组：一次复述由 LLM（规则兜底）识别命中词，组内各题逐一落分（事务内 persistGroupAnswers）
+  let groupVerdict: WordRecallOutcome | null = null;
+  let outcome: NormalizationOutcome;
+  if (group) {
+    groupVerdict = await judgeWordRecall(
+      group.words,
+      utterance,
+      preview.session.patientCode,
+      preview.session.patientName
+    );
+    outcome =
+      groupVerdict.status === "matched"
+        ? {
+            status: "matched",
+            optionLabel: `复述命中 ${groupVerdict.matchedWords.length} 个词`,
+            score: groupVerdict.matchedWords.length,
+            method: groupVerdict.method,
+            confidence: groupVerdict.confidence ?? 1,
+            reason: groupVerdict.reason,
+          }
+        : { status: "unclear", method: groupVerdict.method, reason: groupVerdict.reason };
+  } else {
+    outcome =
+      input.mode === "button"
+        ? buttonOutcome(item, input.label, input.score)
+        : input.mode === "multi"
+          ? multiOutcome(item, input.labels)
+          : input.mode === "drawing"
+            ? drawingOutcome(input.drawingDataUrl)
+            : await normalizeAnswer({
+                question: item.question,
+                options: item.options,
+                utterance,
+                patientCode: preview.session.patientCode,
+                patientName: preview.session.patientName,
+              });
+  }
 
   // 第二步（事务内）：重新校验进度未变化后落库
   return prisma.$transaction(async (tx) => {
@@ -685,9 +764,25 @@ export async function submitPatientAnswer(
           : resolution.action === "markPending"
             ? "pending"
             : "manual";
-      await persistAnswer(tx, sessionId, input, outcome, nextAnswerStatus, utterance);
-      (context.snapshot.answerStatus as Map<string, AnswerStatus>).set(input.questionId, nextAnswerStatus);
+      if (group) {
+        // 词复述组：一次回答给组内各题（mmse_11/12/13 或 mmse_19/20/21）同步落库
+        await persistGroupAnswers(tx, sessionId, group, input, groupVerdict, nextAnswerStatus, utterance);
+        for (const targetId of group.targetItemIds) {
+          (context.snapshot.answerStatus as Map<string, AnswerStatus>).set(targetId, nextAnswerStatus);
+        }
+      } else {
+        await persistAnswer(tx, sessionId, input.questionId, input, outcome, nextAnswerStatus, utterance);
+        (context.snapshot.answerStatus as Map<string, AnswerStatus>).set(input.questionId, nextAnswerStatus);
+        if (resolution.action === "confirm") {
+          context.confirmedLabelById.set(input.questionId, resolution.optionLabel);
+        }
+      }
     }
+
+    // 阶梯跳题即时重算（2026-08-13 修复）：快照在事务开始时装载，答完"可以（结束）"后若不重算，
+    // 下面推进的 nextStep 会返回本应跳过的下一道阶梯题（患者端表现为"答了可以还继续问"）
+    (context.snapshot as { skippedQuestionIds?: ReadonlySet<string> }).skippedQuestionIds =
+      computeLadderSkips(context.session.scaleIds, context.confirmedLabelById);
 
     // 2b. M9.3/M9.4：答案确认后同步跨量表复用回填（如焦虑两问答「否」→ GAD-7 对应题回填 0 分），
     //     回填题在下面推进 nextStep 时自然跳过；非确认类落库（pending/manual）不触发新回填，调用为空操作
@@ -740,6 +835,7 @@ export async function submitPatientAnswer(
 async function persistAnswer(
   tx: Tx,
   sessionId: string,
+  questionId: string,
   input: SubmitAnswerInput,
   outcome: NormalizationOutcome,
   status: "confirmed" | "pending" | "manual",
@@ -766,11 +862,11 @@ async function persistAnswer(
   } as Prisma.InputJsonValue;
 
   const existing = await tx.answer.findUnique({
-    where: { sessionId_questionId: { sessionId, questionId: input.questionId } },
+    where: { sessionId_questionId: { sessionId, questionId } },
   });
   if (!existing) {
     await tx.answer.create({
-      data: { sessionId, questionId: input.questionId, ...next, aiJudgment },
+      data: { sessionId, questionId, ...next, aiJudgment },
     });
     return;
   }
@@ -790,4 +886,49 @@ async function persistAnswer(
     where: { id: existing.id },
     data: { ...next, aiJudgment, editHistory: editHistory as unknown as Prisma.InputJsonValue },
   });
+}
+
+/**
+ * 词复述组回答落库（2026-08-13 认知题改版）：一次复述给组内每题各记一条答案——
+ * 命中词 → 该题 1 分选项，未命中 → 0 分选项；rawText 均存同一段原始转写（可追溯，硬约束 4）。
+ * 追问后仍不清（pending/manual）：组内各题同步落同一状态，避免目标题被当成"未问"。
+ */
+async function persistGroupAnswers(
+  tx: Tx,
+  sessionId: string,
+  group: WordRecallGroup,
+  input: SubmitAnswerInput,
+  verdict: WordRecallOutcome | null,
+  status: "confirmed" | "pending" | "manual",
+  utterance: string
+): Promise<void> {
+  for (let i = 0; i < group.targetItemIds.length; i++) {
+    const targetId = group.targetItemIds[i];
+    if (status !== "confirmed" || !verdict || verdict.status !== "matched") {
+      await persistAnswer(
+        tx,
+        sessionId,
+        targetId,
+        input,
+        { status: "unclear", method: verdict?.method ?? "none", reason: verdict?.reason ?? "组回答未判定" },
+        status,
+        utterance
+      );
+      continue;
+    }
+    const word = group.words[i];
+    const hit = verdict.matchedWords.includes(word);
+    const polar = polarOptionsOf(targetId);
+    const question = questionById.get(targetId);
+    const option = question?.options?.find((o) => o.label === (hit ? polar.correct : polar.incorrect));
+    const outcome: NormalizationOutcome = {
+      status: "matched",
+      optionLabel: hit ? polar.correct : polar.incorrect,
+      score: option?.score ?? (hit ? 1 : 0),
+      method: verdict.method,
+      confidence: verdict.confidence ?? 1,
+      reason: hit ? `复述命中「${word}」` : `未复述出「${word}」`,
+    };
+    await persistAnswer(tx, sessionId, targetId, input, outcome, "confirmed", utterance);
+  }
 }

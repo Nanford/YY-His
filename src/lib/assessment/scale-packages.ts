@@ -3,7 +3,7 @@
  * OUTPUT: 量表套餐定义（常规综合评估包 + 4 个系统预设套餐）与"发起评估"选择解析（套餐/自定义/随访复评）
  * POS:    医生端「发起评估」量表工具选择（来源：V2/Demo_v2更新说明.docx §2）的唯一解析口径，
  *         供 src/lib/actions/doctor.ts 的 createSession 与患者详情页表单共用。
- *         病历智能评估（docx §2 LLM 推荐量表）属 M10.2，本期只做入口占位，不参与本模块解析。
+ *         病历智能评估（docx §2 LLM 推荐量表）已实现，见 src/lib/assessment/emr-scale-suggest.ts。
  */
 import { judgmentsV2, scalesV2 } from "@/lib/rules/v2";
 

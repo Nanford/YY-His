@@ -122,11 +122,42 @@ describe("条目缺失的 deferClinical / strict 口径（记忆指令/图片识
     expect(r.deferred).toEqual([]);
   });
 
-  it("正式问题（mmse_1）缺失在任何模式下都阻断（deferClinical 不豁免）", () => {
-    const r = scoreScaleV2("mmse", mmseAnswers(29, ["mmse_1"]), { education: "小学", deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["mmse_1"]);
-    expect(r.deferred).toEqual([]);
+  it("正式问题（mmse_1）缺失：strict 阻断；deferClinical 豁免部分计分（2026-08-13 口径）", () => {
+    const answers = mmseAnswers(29, ["mmse_1"]);
+    const strict = scoreScaleV2("mmse", answers, { education: "小学" });
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["mmse_1"]);
+    expect(strict.deferred).toEqual([]);
+    const defer = scoreScaleV2("mmse", answers, { education: "小学", deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["mmse_1"]);
+    expect(defer.partial).toBe(true);
+    expect(defer.tags[0].code).toBe("MMSE_WITHIN_NORMAL_RANGE"); // 29 > 20（小学档）
+  });
+});
+
+describe("缺文化程度的 deferClinical 降级判定（2026-08-13：四档界值结论一致才出标签）", () => {
+  it("总分 30 > 最高界值 23：四档一致 → 正常标签", () => {
+    const r = scoreScaleV2("mmse", mmseAnswers(30), { deferClinical: true });
+    expect(r.ok).toBe(true);
+    expect(r.blockedReason).toBeUndefined();
+    expect(r.tags[0].code).toBe("MMSE_WITHIN_NORMAL_RANGE");
+    expect(r.partial).toBe(true);
+  });
+
+  it("总分 15 ≤ 最低界值 17：四档一致 → 认知功能减退标签", () => {
+    const r = scoreScaleV2("mmse", mmseAnswers(15), { deferClinical: true });
+    expect(r.ok).toBe(true);
+    expect(r.tags[0].code).toBe("MMSE_COGNITIVE_DECLINE");
+  });
+
+  it("总分 20 落在 18~23 分歧带：各档结论不一致 → 不出标签、不阻断", () => {
+    const r = scoreScaleV2("mmse", mmseAnswers(20), { deferClinical: true });
+    expect(r.ok).toBe(true);
+    expect(r.tags).toEqual([]);
+    expect(r.totalScore).toBe(20);
+    expect(r.partial).toBe(true);
   });
 });
 

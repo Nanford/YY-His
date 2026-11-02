@@ -9,8 +9,14 @@
  *         状态完全由 DialogueTurn/Answer 派生，不引入额外持久化状态字段。
  */
 import { optionsOf, scaleById, type QuestionOption, type ScaleQuestion } from "@/lib/rules";
-import { narrationsV2, scalesV2, type NarrationV2 } from "@/lib/rules/v2";
-import { clarifyText, recheckText } from "./prompts";
+import { judgmentsV2, narrationsV2, scalesV2, type NarrationV2 } from "@/lib/rules/v2";
+import {
+  GROUP_NON_TRIGGER_IDS,
+  instructionBeforeItem,
+  spokenTextOverride,
+  wordRecallGroupByTrigger,
+} from "./cognitive-flow";
+import { clarifyText, narrationSuppressed, narrationText, recheckText, scaleTransitionSkipped, scaleTransitionSuppressed, SCALE_TRANSITION_OVERRIDES, SCALE_TRANSITION_TEXTS } from "./prompts";
 import type { NormalizationOutcome } from "./normalize-rules";
 
 /** 患者端可问的题目（含展示所需的量表信息与选项） */
@@ -26,6 +32,9 @@ export interface AskableQuestion {
  * 跳过规则（来源：V2/01_评估采集规则表.xlsx 条目类型）：
  * - observerAssisted 计分条目（条目类型 ≠ 正式问题：系统读取/逻辑计算/操作测试/绘图操作等）：
  *   不向患者提问，系统读取自动作答（M9.5）或走医生端代填；缺失时按 deferClinical 口径豁免。
+ *   例外（2026-08-13 认知题改版）：词复述组的 trigger 题（如 mmse_11 立即复述）虽为记忆指令，
+ *   仍向患者提问——患者自由复述，LLM 识别命中词后一次性给组内各题记分。
+ * - 词复述组的非 trigger 目标题（mmse_12/13/20/21）：不单独提问，答案由组回答一次写入。
  */
 export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[] {
   const items: AskableQuestion[] = [];
@@ -33,9 +42,8 @@ export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[]
     const scale = scaleById.get(scaleId);
     if (!scale) throw new Error(`会话包含未知量表：${scaleId}`);
     for (const question of scale.questions) {
-      // observerAssisted（V2：条目类型 ≠ 正式问题的计分条目，如系统读取/逻辑计算/操作测试）：
-      // 禁止向患者提问，走医生端代填；缺失时按 deferClinical 口径豁免计分
-      if (question.observerAssisted) continue;
+      if (GROUP_NON_TRIGGER_IDS.has(question.id)) continue;
+      if (question.observerAssisted && !wordRecallGroupByTrigger.has(question.id)) continue;
       items.push({ question, scaleId: scale.id, scaleName: scale.name, options: optionsOf(scale, question) });
     }
   }
@@ -44,9 +52,19 @@ export function askableQuestions(scaleIds: readonly string[]): AskableQuestion[]
 
 // ---------- 采集编排时间线（M9.2：总开场/分类过渡/工具说明旁白） ----------
 
+/** 旁白的展示/播报呈现参数（认知指令播报用：记忆词不上屏 + 放慢语速，2026-09-04 修改意见 3） */
+export interface NarrationPresentation {
+  /** 屏幕展示文案（缺省 = 与播报同文） */
+  displayText?: string;
+  /** 播报语速（豆包 TTS speech_rate，缺省 = 全局默认） */
+  speechRate?: number;
+  /** 计入题号进度（2026-09-12：minicog 记词指令是量表第 1 个条目，见 cognitive-flow.countsAsProgress） */
+  countsAsProgress?: boolean;
+}
+
 /** 采集编排步骤：旁白（只播报、不需作答）或正式提问 */
 export type TimelineStep =
-  | { kind: "narration"; narration: NarrationV2 }
+  | { kind: "narration"; narration: NarrationV2 & NarrationPresentation }
   | { kind: "question"; item: AskableQuestion };
 
 /** 01 表各量表首个条目的行号（用于给 scaleId 为空的分类过渡找"紧邻其后的量表"锚点） */
@@ -72,30 +90,82 @@ function narrationAnchorScaleId(narration: NarrationV2): string | null {
  * 组装采集编排时间线：总开场恒在最前；每条分类过渡/工具说明锚定到其后的量表，
  * 仅当该量表被本次会话勾选时才纳入，插在该量表首题之前；同一量表前多条旁白按 01 表行号排序。
  * 未勾选量表的旁白不播；正文为空的旁白行（如 01 表 112 行）跳过。
+ * 旁白文案经 prompts.narrationText 应用简化覆盖（2026-09-12：开场白、过渡句改简单一些，
+ * 01 表只读源不动，编排层替换措辞）；prompts.narrationSuppressed 命中的旁白整条删除
+ * （2026-09-13 用户拍板：认知初筛前三条开场白只留 narr_50，删 narr_3 总开场与 narr_51）。
+ * 认知题指令播报（2026-08-13，cognitive-flow.INSTRUCTION_BROADCASTS）：插在配置题目之前
+ * （可位于量表中部，如 MMSE 三词播报插在计算题之前），只播报不需作答，复用 narration 机制。
  * 来源：V2/Demo_v2更新说明.docx §3 —— 按预设顺序播放开场白、分类过渡句和必要的工具说明。
  */
 export function buildTimeline(scaleIds: readonly string[]): TimelineStep[] {
   const questions = askableQuestions(scaleIds); // 复用题目过滤与未知量表校验
   const steps: TimelineStep[] = [];
   for (const narration of narrationsV2) {
-    if (narration.entryType === "总开场" && narration.text.trim()) {
-      steps.push({ kind: "narration", narration });
+    if (narration.entryType === "总开场" && narration.text.trim() && !narrationSuppressed(narration.id)) {
+      steps.push({ kind: "narration", narration: { ...narration, text: narrationText(narration) } });
     }
   }
+  let transitionIndex = 0;
   for (const scaleId of scaleIds) {
+    // 纯测量/医护观察量表（calf/grip/gait_speed/dxa_bia 等）在患者端无题可问：
+    // 不播过渡句/旁白，避免"说了要测却没有下文"（2026-09-13）
+    const items = questions.filter((item) => item.scaleId === scaleId);
+    if (items.length === 0) continue;
     const anchored = narrationsV2
       .filter(
         (narration) =>
           narration.entryType !== "总开场" &&
           narration.text.trim() &&
+          !narrationSuppressed(narration.id) &&
           narrationAnchorScaleId(narration) === scaleId
       )
       .sort((a, b) => a.row - b.row);
-    for (const narration of anchored) {
-      steps.push({ kind: "narration", narration });
+    // 量表切换过渡（2026-09-13 用户拍板：开场白/过渡句不播报量表名称，用日常交流的话
+    // 简要说明接下来了解什么，取代 2026-08-13 起"下面是「量表短名」。"的开场点名）：
+    // 有锚定旁白 → 旁白本身即是口语过渡句，直接播；无锚定旁白 → 有专题过渡句用专题句
+    // （SCALE_TRANSITION_OVERRIDES，如 mnasf → "下面问问您的营养情况。"），否则从过渡句池轮换注入
+    if (anchored.length > 0) {
+      for (const narration of anchored) {
+        steps.push({ kind: "narration", narration: { ...narration, text: narrationText(narration) } });
+      }
+    } else if (!scaleTransitionSuppressed(scaleId) && !scaleTransitionSkipped(scaleId, scaleIds)) {
+      // 整条删除（2026-09-15 修改.docx ③，如 anxiety_2q 开场白）：不播过渡句直接开问
+      // 语境省略（2026-09-14）：过渡句重复/突兀时整条不播，直接开问（prompts.SCALE_TRANSITION_CONTEXT_SKIP）
+      steps.push({
+        kind: "narration",
+        narration: {
+          id: `scale_intro_${scaleId}`,
+          row: 0,
+          entryType: "工具说明",
+          category: "量表开场",
+          scaleId,
+          text:
+            SCALE_TRANSITION_OVERRIDES.get(scaleId) ??
+            SCALE_TRANSITION_TEXTS[transitionIndex++ % SCALE_TRANSITION_TEXTS.length],
+        },
+      });
     }
-    for (const item of questions) {
-      if (item.scaleId === scaleId) steps.push({ kind: "question", item });
+    for (const item of items) {
+      const instruction = instructionBeforeItem.get(item.question.id);
+      if (instruction) {
+        // 虚拟旁白：id 前缀 instr_，播报完成标记与 01 表旁白共用 system 轮次机制；
+        // 认知指令带 displayText/speechRate（记忆词不上屏 + 放慢语速，2026-09-04 修改意见 3）
+        steps.push({
+          kind: "narration",
+          narration: {
+            id: instruction.id,
+            row: 0,
+            entryType: "记忆指令",
+            category: "认知评估指令",
+            scaleId,
+            text: instruction.text,
+            displayText: instruction.displayText,
+            speechRate: instruction.speechRate,
+            countsAsProgress: instruction.countsAsProgress,
+          },
+        });
+      }
+      steps.push({ kind: "question", item });
     }
   }
   return steps;
@@ -113,6 +183,12 @@ export interface DialogueSnapshot {
   patientReplyCount: ReadonlyMap<string, number>;
   /** 已播报旁白 id 集合（播报时写入 role=system、questionId=旁白 id 的轮次，由此派生） */
   deliveredNarrationIds: ReadonlySet<string>;
+  /**
+   * 阶梯跳题（2026-08-13，视力/听力"可以（结束）"）：由已确认答案派生的跳过集合，
+   * 见 computeLadderSkips；命中的题目视同已有记录，不再向患者提问（评分层 ladderScore
+   * 本就按"命中即停、后续 excluded"计分，口径一致）。
+   */
+  skippedQuestionIds?: ReadonlySet<string>;
 }
 
 /** 提问尝试序号：1=首问（口语版） 2=追问 3=轮末换说法复问 */
@@ -143,6 +219,46 @@ function counts(snapshot: DialogueSnapshot, questionId: string): { asks: number;
   };
 }
 
+/** 首问播报/展示文案：词复述组 trigger 题用组提问文案（不再逐词分问），其余用口语版题面 */
+export function askText(question: ScaleQuestion): string {
+  return spokenTextOverride(question.id) ?? question.colloquialText;
+}
+
+/**
+ * 阶梯跳题派生（视力/听力等 ladderScore 量表）：按 stepItemIds 顺序扫描，
+ * 首个已确认答案的条目若命中有分选项（"可以（N分，结束）"），其后阶梯题全部跳过；
+ * 命中无分选项（"不可以（进入下一题）"，score=null）则继续看下一级。
+ * 状态完全由已确认答案派生：医生改答后重算，跳题自动失效。
+ */
+export function computeLadderSkips(
+  scaleIds: readonly string[],
+  confirmedLabelById: ReadonlyMap<string, string | null>
+): Set<string> {
+  const skipped = new Set<string>();
+  const selected = new Set(scaleIds);
+  for (const entry of judgmentsV2) {
+    if (!selected.has(entry.scaleId)) continue;
+    const scale = scalesV2.find((s) => s.id === entry.scaleId);
+    if (!scale) continue;
+    for (const judgment of entry.judgments) {
+      if (judgment.type !== "ladderScore") continue;
+      for (let i = 0; i < judgment.stepItemIds.length; i++) {
+        const itemId = judgment.stepItemIds[i];
+        const label = confirmedLabelById.get(itemId);
+        if (!label) break; // 该级尚无结论：后续级尚未轮到，无需处理
+        const item = scale.items.find((candidate) => candidate.id === itemId);
+        const option = item?.options?.find((candidate) => candidate.label === label);
+        if (option && option.score !== null) {
+          // "可以（结束）"：跳过后续全部阶梯题
+          for (const rest of judgment.stepItemIds.slice(i + 1)) skipped.add(rest);
+        }
+        // 无分选项（"不可以"）：不跳，继续检查下一级是否已答（医生可能已代填多级）
+      }
+    }
+  }
+  return skipped;
+}
+
 /**
  * 由当前快照推导下一步。遍历顺序即时间线顺序（旁白插在锚定量表首题之前）：
  * 主轮：未播报的旁白 → narration 步骤（不需作答）；首个无答案记录的题目 → 首问或追问
@@ -152,6 +268,7 @@ function counts(snapshot: DialogueSnapshot, questionId: string): { asks: number;
  * 刷新重放安全：已写入 system 轮次的旁白（deliveredNarrationIds）不会再次返回。
  */
 export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSnapshot): DialogueStep {
+  const skipped = snapshot.skippedQuestionIds ?? new Set<string>();
   // ---- 主轮（旁白与题目按时间线顺序交错） ----
   for (const step of timeline) {
     if (step.kind === "narration") {
@@ -161,13 +278,14 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
       continue;
     }
     const item = step.item;
+    if (skipped.has(item.question.id)) continue; // 阶梯题已被前序"可以（结束）"截断
     const status = snapshot.answerStatus.get(item.question.id);
     if (status) continue; // 已有记录（confirmed/pending/manual）→ 主轮完成
     const { asks, replies } = counts(snapshot, item.question.id);
     if (asks === 0) {
       return {
         kind: "prompt",
-        prompt: { kind: "ask", item, attempt: 1, text: item.question.colloquialText },
+        prompt: { kind: "ask", item, attempt: 1, text: askText(item.question) },
       };
     }
     // 计数由 turns 派生、无法重置，故一轮"首问+追问"内 attempt 按 asks 奇偶推导：
@@ -184,7 +302,7 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
           kind: attempt === 1 ? "ask" : "clarify",
           item,
           attempt,
-          text: attempt === 1 ? item.question.colloquialText : clarifyText(item.question, item.options),
+          text: attempt === 1 ? askText(item.question) : clarifyText(item.question, item.options),
         },
       };
     }
@@ -201,6 +319,7 @@ export function nextStep(timeline: readonly TimelineStep[], snapshot: DialogueSn
   for (const step of timeline) {
     if (step.kind !== "question") continue;
     const item = step.item;
+    if (skipped.has(item.question.id)) continue;
     if (snapshot.answerStatus.get(item.question.id) !== "pending") continue;
     // 画钟题交卷即落 pending（首问后直接 markPending，asks=1/replies=1），只等医生在
     // CollectForm 确认计分（M9.6），无需也不应轮末复问——跳过让会话正常走到 finished，
@@ -268,11 +387,27 @@ export function resolveReply(attempt: AskAttempt, outcome: NormalizationOutcome)
   return { action: "markManual" };
 }
 
-/** 问询进度：total 为患者端可问题目数，answered 为已有结论（含待确认/待人工确认）的数量 */
+/**
+ * 问询进度：total 为患者端可问题目数，answered 为已有结论（含待确认/待人工确认/阶梯跳过）的数量。
+ * 传入时间线时，countsAsProgress 的指令播报（minicog_1 记词，01 表里是量表第 1 个条目）
+ * 计入 total，播报落库（deliveredNarrationIds）后计入 answered——
+ * 患者端题号由此呈现"第 1 题记词 → 第 2 题画钟 → 第 3 题复述"（2026-09-12 用户口径）。
+ */
 export function progressOf(
   questions: readonly AskableQuestion[],
-  snapshot: DialogueSnapshot
+  snapshot: DialogueSnapshot,
+  timeline?: readonly TimelineStep[]
 ): { answered: number; total: number } {
-  const answered = questions.filter((item) => snapshot.answerStatus.has(item.question.id)).length;
-  return { answered, total: questions.length };
+  const skipped = snapshot.skippedQuestionIds ?? new Set<string>();
+  let answered = questions.filter(
+    (item) => snapshot.answerStatus.has(item.question.id) || skipped.has(item.question.id)
+  ).length;
+  let total = questions.length;
+  for (const step of timeline ?? []) {
+    if (step.kind === "narration" && step.narration.countsAsProgress) {
+      total += 1;
+      if (snapshot.deliveredNarrationIds.has(step.narration.id)) answered += 1;
+    }
+  }
+  return { answered, total };
 }

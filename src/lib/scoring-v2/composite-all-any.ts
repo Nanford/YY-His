@@ -113,7 +113,7 @@ export function scoreCompositeAllAny(
     });
   }
 
-  const { blocking, deferred } = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);
+  const { blocking, deferred } = partitionMissingV2(missingIds, opts.deferClinical ?? false);
   const ok = blocking.length === 0;
   if (!ok) {
     return {

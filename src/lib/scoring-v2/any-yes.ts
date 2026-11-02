@@ -38,7 +38,7 @@ export function scoreAnyYes(
     details.push({ itemId: item.id, no: item.no, text: item.text, answerLabel: hit.label, score: null, excluded: false });
   }
 
-  const { blocking, deferred } = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);
+  const { blocking, deferred } = partitionMissingV2(missingIds, opts.deferClinical ?? false);
   const ok = blocking.length === 0;
   return {
     scaleId: scale.id,

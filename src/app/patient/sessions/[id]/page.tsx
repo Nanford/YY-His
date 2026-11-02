@@ -19,6 +19,7 @@ import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { DeferredScale } from "./patient-report";
 import { InterviewScreen } from "./interview-screen";
 import { PatientReport } from "./patient-report";
+import { PipelineProgressUpdater } from "@/components/pipeline-progress-updater";
 
 export const dynamic = "force-dynamic";
 
@@ -148,24 +149,32 @@ export default async function PatientSessionPage({
         .map((scale) => ({ id: scale.id, name: scale.name, needsClinician: scaleNeedsClinician(scale.id) }));
 
       return (
-        <PatientReport
-          sessionId={session.id}
-          patientLabel={patientLabel}
-          assessedAt={session.completedAt ?? session.startedAt}
-          reportScales={reportScales}
-          tags={currentTags}
-          deferredScales={(latestResult.deferred ?? []) as unknown as DeferredScale[]}
-          comparisons={comparisons}
-          planStatus={planStatus}
-          plan={plan}
-          confirmedAt={latestPlan.confirmedAt}
-          historyReports={historyReports}
-          remainingScales={remainingScales}
-          error={error}
-        />
+        <>
+          <PipelineProgressUpdater step={6} />
+          <PatientReport
+            sessionId={session.id}
+            patientLabel={patientLabel}
+            assessedAt={session.completedAt ?? session.startedAt}
+            reportScales={reportScales}
+            tags={currentTags}
+            deferredScales={(latestResult.deferred ?? []) as unknown as DeferredScale[]}
+            comparisons={comparisons}
+            planStatus={planStatus}
+            plan={plan}
+            confirmedAt={latestPlan.confirmedAt}
+            historyReports={historyReports}
+            remainingScales={remainingScales}
+            error={error}
+          />
+        </>
       );
     }
   }
 
-  return <InterviewScreen sessionId={session.id} patientLabel={patientLabel} />;
+  return (
+    <>
+      <PipelineProgressUpdater step={3} />
+      <InterviewScreen sessionId={session.id} patientLabel={patientLabel} />
+    </>
+  );
 }

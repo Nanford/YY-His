@@ -186,22 +186,21 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
 
   return (
     <section className="ui-panel overflow-hidden">
-      <div className="border-b border-[#dbe7f6] bg-[#eff6ff] px-6 py-5 text-[#173766]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="page-eyebrow">AUDIT TRACE</p>
-            <h2 className="mt-1 text-lg font-extrabold">答案与采集追溯</h2>
-            <p className="mt-2 text-sm leading-6 text-[#6b82a4]">逐题核对标准化结果、原始回答、修改记录与录音存储状态。</p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="ui-badge">{answers.length} 道答案</span>
-            <span className="ui-badge">{editedCount} 道已修改</span>
-            <span className="ui-badge ui-badge-warning">{manualCount} 道待确认</span>
-          </div>
+      {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），保留浅蓝底作模块识别 */}
+      <div className="ui-panel-heading flex-wrap bg-[#eff6ff]">
+        <div>
+          <p className="page-eyebrow">AUDIT TRACE</p>
+          <h2 className="ui-panel-title mt-1">答案与采集追溯</h2>
+          <p className="mt-2 text-sm leading-6 text-[#6b82a4]">逐题核对标准化结果、原始回答、修改记录与录音存储状态。</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="ui-badge">{answers.length} 道答案</span>
+          <span className="ui-badge">{editedCount} 道已修改</span>
+          <span className="ui-badge ui-badge-warning">{manualCount} 道待确认</span>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="ui-panel-body">
         {answers.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center">
             <p className="font-medium text-slate-700">暂无可追溯答案</p>

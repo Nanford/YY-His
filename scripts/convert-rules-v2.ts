@@ -81,8 +81,12 @@ const ENTRY_TYPES = [
 ] as const;
 const NARRATION_TYPES = new Set(["总开场", "分类过渡", "工具说明"]);
 
-// 一级分类固定顺序（来源：01 表「一级分类」列）
-const CATEGORIES = ["全程", "躯体功能", "精神心理", "社会与环境", "老年综合征", "中医特色扩展"];
+// 一级分类固定顺序（来源：01 表「一级分类」列；Demo_v2更新说明 §2(3) 写作"中医特色评估"）
+const CATEGORIES = ["全程", "躯体功能", "精神心理", "社会与环境", "老年综合征", "中医特色评估"];
+// 01 表原始值 → 展示用名称（docx 口径与表格文案不一致时在此映射）
+const CATEGORY_DISPLAY_MAP: Record<string, string> = {
+  "中医特色扩展": "中医特色评估",
+};
 
 // 量表名 → 量表 id（脚本内手工维护；01 表出现的每个量表名必须恰好在表中）。
 // 值：[id, 期望条目数]（条目数从 01 表数出，防漏行硬校验）；整场评估为总开场占位，不成量表。
@@ -292,7 +296,7 @@ function buildScalesV2(): { json: unknown; scaleNames: string[] } {
     const row = i + 3; // xlsx 行号（与 tmp/v2-01 dump 行号一致）
     const r = data[i];
     const categoryRaw = cell(r[0]), subRaw = cell(r[1]), scaleRaw = cell(r[2]);
-    if (categoryRaw) lastCategory = categoryRaw;
+    if (categoryRaw) lastCategory = CATEGORY_DISPLAY_MAP[categoryRaw] ?? categoryRaw;
     if (subRaw) lastSubcategory = subRaw;
     if (scaleRaw) lastScaleName = scaleRaw;
     const no = cell(r[3]);

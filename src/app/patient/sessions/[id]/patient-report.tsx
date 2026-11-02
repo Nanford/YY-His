@@ -5,7 +5,8 @@
  * POS:    产品口径（2026-07-14 已与用户确认）：评估内容是确定性计算，问答完成即生成报告，
  *         不需要医生先审核评估结果；干预方案候选医生仍会另行审核调整（保留 InterventionPlan
  *         的 draft→confirmed 流程与禁忌提示硬约束），本组件与医生端审核互不阻塞、并行展示。
- *         方案状态（初步 / 医生已确认）必须醒目区分，让患者知道自己看到的是哪个阶段的内容。
+ *         2026-08-11 用户拍板：问答完成即出报告与方案，患者端不再呈现等待医生确认的中间态
+ *         （医生端 draft→confirmed 审核流程保留）。
  *         V2.0 §3：报告必须可识别评估范围（新增/复评量表）与生成时间，保留历史报告入口，
  *         并可对尚未完成的量表直接发起补充评估（复评属医生授权，不在患者自助入口出现）。
  */
@@ -15,20 +16,17 @@ import {
   IconCalendarClock,
   IconCheck,
   IconClipboardCheck,
-  IconClipboardPlus,
-  IconFileDescription,
   IconHeartHandshake,
   IconHistory,
-  IconPlus,
   IconShieldCheck,
-  IconStethoscope,
 } from "@tabler/icons-react";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
 import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
-import { createSupplementarySession } from "@/lib/actions/patient";
+import { SectionHead } from "./section-head";
+import { SupplementarySection } from "./supplementary-section";
 
 /** 5 大类固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他（来源：积分数据 categories 顺序） */
 const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
@@ -104,6 +102,8 @@ export function PatientReport({
   remainingScales,
   error,
 }: PatientReportProps) {
+  const hasError = error === "scales" || error === "repeat" || error === "not_reported";
+
   return (
     <main className="patient-shell flex-1">
       <PatientReportTopbar />
@@ -165,7 +165,11 @@ export function PatientReport({
         <PlanSection planStatus={planStatus} plan={plan} confirmedAt={confirmedAt} />
 
         {remainingScales.length > 0 && (
-          <SupplementarySection sessionId={sessionId} remainingScales={remainingScales} />
+          <SupplementarySection
+            sessionId={sessionId}
+            remainingScales={remainingScales}
+            defaultOpen={hasError}
+          />
         )}
         {historyReports.length > 0 && <HistorySection historyReports={historyReports} />}
 
@@ -177,76 +181,20 @@ export function PatientReport({
   );
 }
 
-/**
- * 补充评估入口（V2.0 §3）：只列"尚未完成的量表"（复评需医生在工作台发起）；
- * 提交即创建独立新会话并进入问询，复用既有档案与测量数据，不影响本次报告。
- */
-function SupplementarySection({
-  sessionId,
-  remainingScales,
-}: {
-  sessionId: string;
-  remainingScales: RemainingScale[];
-}) {
-  return (
-    <section className="patient-panel px-6 py-7 md:px-8">
-      <span className="ui-badge">
-        <IconClipboardPlus size={16} stroke={1.8} aria-hidden="true" />
-        补充评估
-      </span>
-      <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">还想评估更多项目？</h2>
-      <p className="mt-2 max-w-2xl text-base leading-7 text-[var(--ink-muted)]">
-        勾选后点下方大按钮即可开始新一轮问答；本次报告和历史记录都会保留，互不影响。
-        如需重新评估已完成的项目，请医生在工作台为您发起。
-      </p>
-      <form action={createSupplementarySession.bind(null, sessionId)} className="mt-5 space-y-5">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {remainingScales.map((scale) => (
-            <label key={scale.id} className="patient-check">
-              <input type="checkbox" name="scaleIds" value={scale.id} />
-              <span className="min-w-0">
-                <span className="block text-lg font-extrabold leading-tight text-[var(--ink)]">{scale.name}</span>
-                <span
-                  className={`mt-2 flex items-start gap-1.5 text-sm font-semibold leading-6 ${
-                    scale.needsClinician ? "text-[var(--warning)]" : "text-[var(--success)]"
-                  }`}
-                >
-                  {scale.needsClinician ? (
-                    <IconStethoscope size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  ) : (
-                    <IconCheck size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  )}
-                  <span>
-                    {scale.needsClinician
-                      ? "含舌象、测量等需医生查看的项，这些题暂不计分，答完先出部分计分报告"
-                      : "可当场生成评估报告"}
-                  </span>
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-        <button type="submit" className="patient-primary-action w-full sm:w-auto">
-          <IconPlus size={26} stroke={2} aria-hidden="true" />
-          <span>开始补充评估</span>
-        </button>
-      </form>
-    </section>
-  );
-}
-
 /** 历史报告入口（V2.0 §3）：同患者历次已出报告的评估，按时间分别展示、可进入查看 */
 function HistorySection({ historyReports }: { historyReports: HistoryReportEntry[] }) {
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
-      <span className="ui-badge">
-        <IconHistory size={16} stroke={1.8} aria-hidden="true" />
-        历史记录
-      </span>
-      <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">历史评估报告</h2>
-      <ul className="mt-4 space-y-3">
+      <SectionHead
+        icon={<IconHistory size={16} stroke={1.8} aria-hidden="true" />}
+        eyebrow="历史记录"
+        title="历史评估报告"
+        aside="同一患者的历次评估报告，点卡片可回看。"
+      />
+      <ul className="mt-6 space-y-4">
         {historyReports.map((report) => (
           <li key={report.id}>
+            {/* 历史条目与对比卡片同为 px-5 py-4 的行内节奏，左文右入口对齐 */}
             <Link
               href={`/patient/sessions/${report.id}`}
               className="patient-choice min-h-[72px] justify-between gap-4 px-5 py-4"
@@ -276,12 +224,13 @@ function HistorySection({ historyReports }: { historyReports: HistoryReportEntry
 function ComparisonSection({ comparisons }: { comparisons: readonly ScaleComparison[] }) {
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
-      <span className="ui-badge">
-        <IconHistory size={16} stroke={1.8} aria-hidden="true" />
-        随访对比
-      </span>
-      <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">与上次评估对比</h2>
-      <div className="mt-5 space-y-4">
+      <SectionHead
+        icon={<IconHistory size={16} stroke={1.8} aria-hidden="true" />}
+        eyebrow="随访对比"
+        title="与上次评估对比"
+        aside="复评项目与上次报告相比的标签与总分变化，箭头只表示变化方向。"
+      />
+      <div className="mt-6 space-y-4">
         {comparisons.map((comparison) => (
           <ComparisonCard key={comparison.scaleId} comparison={comparison} />
         ))}
@@ -416,18 +365,12 @@ function TagsSection({
 
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <span className="ui-badge">
-            <IconClipboardCheck size={16} stroke={1.8} aria-hidden="true" />
-            评估结论
-          </span>
-          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">评估结果</h2>
-        </div>
-        <p className="max-w-md text-sm leading-6 text-[var(--ink-muted)]">
-          按量表分组展示，需要关注的结果会优先标出。
-        </p>
-      </div>
+      <SectionHead
+        icon={<IconClipboardCheck size={16} stroke={1.8} aria-hidden="true" />}
+        eyebrow="评估结论"
+        title="评估结果"
+        aside="按量表分组展示，需要关注的结果会优先标出。"
+      />
 
       {/* Demo 口径：医生检查题（舌象/测量等）暂未计分的量表如实标注，医生补录重评后结论可能更新 */}
       {deferredScales.length > 0 && (
@@ -452,10 +395,11 @@ function TagsSection({
           </div>
         )
       ) : (
-        <div className="mt-6 space-y-5">
+        <div className="mt-6 space-y-6">
           {groups.map((group) => (
             <div key={group.scaleId}>
-              <p className="mb-2 text-sm font-extrabold tracking-wide text-[var(--ink-muted)]">
+              {/* 组头与 chips 节奏统一：组间距 24px、组头距 chips 12px，chips 保持 min-h-12 大胶囊 */}
+              <p className="mb-3 text-sm font-extrabold tracking-wide text-[var(--ink-muted)]">
                 {group.scaleName}
               </p>
               <div className="flex flex-wrap gap-3">
@@ -497,34 +441,21 @@ function PlanSection({
 }) {
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <span className="ui-badge">
-            <IconHeartHandshake size={16} stroke={1.8} aria-hidden="true" />
-            干预建议
-          </span>
-          <h2 className="mt-3 text-2xl font-bold text-[var(--ink)]">个性化干预方案</h2>
-        </div>
-        {planStatus === "confirmed" ? (
-          <span className="ui-badge ui-badge-success">
-            <IconCheck size={16} stroke={2} aria-hidden="true" />
-            <span>医生已确认</span>
-            {confirmedAt && <span>· {confirmedAt.toLocaleDateString("zh-CN")}</span>}
-          </span>
-        ) : (
-          <span className="ui-badge ui-badge-warning">
-            <IconFileDescription size={16} stroke={1.8} aria-hidden="true" />
-            初步方案 · 医生确认中
-          </span>
-        )}
-      </div>
-
-      {planStatus === "draft" && (
-        <div className="ui-alert ui-alert-warning mt-6">
-          <IconAlertTriangle size={22} stroke={1.8} aria-hidden="true" />
-          <p>以下是根据评估结果生成的初步建议，医生会尽快为您核实并确认，请以医生最终确认的方案为准。</p>
-        </div>
-      )}
+      <SectionHead
+        icon={<IconHeartHandshake size={16} stroke={1.8} aria-hidden="true" />}
+        eyebrow="干预建议"
+        title="个性化干预方案"
+        aside={
+          // 2026-08-11 口径：患者端不再呈现"初步方案·医生确认中"中间态，仅在医生确认后标注
+          planStatus === "confirmed" ? (
+            <span className="ui-badge ui-badge-success">
+              <IconCheck size={16} stroke={2} aria-hidden="true" />
+              <span>医生已确认</span>
+              {confirmedAt && <span>· {confirmedAt.toLocaleDateString("zh-CN")}</span>}
+            </span>
+          ) : undefined
+        }
+      />
 
       {plan.length === 0 ? (
         <div className="ui-alert mt-6">
@@ -532,20 +463,30 @@ function PlanSection({
           <p>本次评估暂无需要执行的干预项目。</p>
         </div>
       ) : (
-        <div className="mt-7 space-y-7">
+        <div className="mt-6 space-y-6">
           {CATEGORY_ORDER.map((category) => {
             const items = plan.filter((item) => item.categoryLabel === category);
             return (
-              <div key={category} className="space-y-3">
+              <div key={category}>
                 <h3 className="border-l-4 border-[var(--brand)] pl-3 text-lg font-bold text-[var(--brand-strong)]">
                   {category}
                 </h3>
                 {items.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--brand-soft)] px-4 py-3 text-base text-[var(--ink-muted)]">
+                  <p className="mt-3 rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--brand-soft)] px-4 py-3 text-base text-[var(--ink-muted)]">
                     本类暂无匹配干预
                   </p>
                 ) : (
-                  items.map((item) => <PlanCard key={item.code} item={item} />)
+                  // 宽容器下两列等高排布（卡片 h-full 拉齐行高）；单项独占整行，
+                  // 媒体仍完整展示（视频卡内播、图片全宽、文本全文），DOM 顺序不变故 forced 红框仍置顶
+                  <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {items.map((item) => (
+                      <PlanCard
+                        key={item.code}
+                        item={item}
+                        className={items.length === 1 ? "xl:col-span-2" : undefined}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             );
@@ -556,14 +497,15 @@ function PlanSection({
   );
 }
 
-function PlanCard({ item }: { item: PlanCandidateItemV2 }) {
+function PlanCard({ item, className }: { item: PlanCandidateItemV2; className?: string }) {
   // 素材状态随候选快照落库（mediaAvailable），缺失如实标注"素材待补齐"；文本类正文即 content 全文
   // 100 分强制项（如 CAM 谵妄 → JZ01）醒目标注（Demo_v2 §5 + 03 表 100 语义）
   return (
     <article
       className={[
-        "ui-panel-subtle px-5 py-5 md:px-6",
+        "ui-panel-subtle h-full px-5 py-5 md:px-6",
         item.forced ? "border-2 border-[var(--danger)] bg-[var(--danger-soft)]" : "",
+        className ?? "",
       ].join(" ")}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">

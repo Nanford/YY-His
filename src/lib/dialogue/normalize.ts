@@ -6,12 +6,16 @@
  */
 import type { QuestionOption, ScaleQuestion } from "@/lib/rules";
 import { normalizeByDeepSeek } from "@/lib/providers/deepseek";
+import { FREE_ANSWER_ITEMS } from "./cognitive-flow";
+import { judgeFreeAnswer } from "./judge";
 import { normalizeByRules, type NormalizationOutcome } from "./normalize-rules";
 
 export type { NormalizationOutcome } from "./normalize-rules";
 
 /**
  * 归一化编排：
+ * 0. 自由回答题（2026-08-13 认知题改版：MMSE 定向/计算/复述、minicog 词计数）→
+ *    走判定通道（judge.ts：LLM 判内容对错/数词，映射回既有标准选项），不念选项；
  * 1. DeepSeek 可用 → 模型结论即最终结论（matched / unclear 都有效）；
  *    模型判 unclear 时**不再**让规则复核——关键词规则对"我没听明白"这类
  *    表达会误命中"否"，推翻模型正确的"不清楚"结论（2026-07-14 联调发现）。
@@ -27,6 +31,17 @@ export async function normalizeAnswer(input: {
   /** 患者档案姓名（可选）：用于出网前的值级替换脱敏，见 deepseek.ts */
   patientName?: string;
 }): Promise<NormalizationOutcome> {
+  const freeSpec = FREE_ANSWER_ITEMS.get(input.question.id);
+  if (freeSpec) {
+    return judgeFreeAnswer({
+      question: input.question,
+      options: input.options,
+      spec: freeSpec,
+      utterance: input.utterance,
+      patientCode: input.patientCode,
+      patientName: input.patientName,
+    });
+  }
   const llmOutcome = await normalizeByDeepSeek({
     standardText: input.question.standardText,
     colloquialText: input.question.colloquialText,

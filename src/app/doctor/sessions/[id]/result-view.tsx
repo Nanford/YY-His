@@ -56,10 +56,11 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
 
   return (
     <section className="ui-panel overflow-hidden">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#dbe7f6] bg-[#f8fbff] px-6 py-5">
+      {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），保留浅蓝底作模块识别 */}
+      <div className="ui-panel-heading flex-wrap bg-[#f8fbff]">
         <div>
           <p className="page-eyebrow">评估结果</p>
-          <h2 className="mt-1 inline-flex items-center gap-2 text-lg font-extrabold text-[#173766]">
+          <h2 className="ui-panel-title mt-1 inline-flex items-center gap-2">
             <IconClipboardData size={21} className="text-blue-600" aria-hidden="true" />
             评估标签
           </h2>
@@ -67,10 +68,10 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
             按量表分组展示，可展开查看每道题的计分依据。
           </p>
         </div>
-        <span className="ui-badge">{tags.length} 个标签</span>
+        <span className="ui-badge shrink-0">{tags.length} 个标签</span>
       </div>
 
-      <div className="p-6">
+      <div className="ui-panel-body">
         {tags.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#bcd4f5] bg-[#f8fbff] px-6 py-8 text-center">
             <p className="font-extrabold text-[#2b4a75]">当前没有触发评估标签</p>

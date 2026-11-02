@@ -176,7 +176,7 @@ describe("scales-v2.json（01 表：采集编排）", () => {
     expect(scalesV2.scales).toHaveLength(42);
     expect(scalesV2.scales.reduce((s, x) => s + x.items.length, 0)).toBe(238);
     expect(scalesV2.narrations).toHaveLength(20);
-    expect(scalesV2.categories).toEqual(["全程", "躯体功能", "精神心理", "社会与环境", "老年综合征", "中医特色扩展"]);
+    expect(scalesV2.categories).toEqual(["全程", "躯体功能", "精神心理", "社会与环境", "老年综合征", "中医特色评估"]);
   });
 
   it("旁白只含总开场/分类过渡/工具说明，总开场 scaleId 为 null", () => {

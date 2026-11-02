@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   askableQuestions,
   buildTimeline,
+  computeLadderSkips,
   nextStep,
   progressOf,
   resolveReply,
@@ -24,6 +25,7 @@ import {
   type TimelineStep,
 } from "@/lib/dialogue/state-machine";
 import type { NormalizationOutcome } from "@/lib/dialogue/normalize-rules";
+import { shortScaleName } from "@/lib/rules";
 
 const MATCHED_YES: NormalizationOutcome = {
   status: "matched",
@@ -394,13 +396,44 @@ describe("A2 复用回填撤回：有提问/回答计数但无有效答案 → �
 
 describe("buildTimeline：采集编排时间线（M9.2，来源：V2/Demo_v2更新说明.docx §3 + 01 表行序）", () => {
   it("总开场恒在最前；分类过渡/工具说明插在锚定量表首题之前，按 01 表行号排序", () => {
-    // minicog 前锚定两条旁白：narr_50（分类过渡，行 50）+ narr_51（工具说明，行 51）
+    // minicog 前原锚定两条旁白：narr_50（分类过渡，行 50）+ narr_51（工具说明，行 51）；
+    // 2026-09-13 用户拍板：三条开场白（含总开场 narr_3）只保留 narr_50，narr_3/narr_51 编排层删除
     const timeline = buildTimeline(["minicog"]);
-    expect(timeline[0]).toMatchObject({ kind: "narration", narration: { id: "narr_3", entryType: "总开场" } });
-    expect(timeline[1]).toMatchObject({ kind: "narration", narration: { id: "narr_50", entryType: "分类过渡" } });
-    expect(timeline[2]).toMatchObject({ kind: "narration", narration: { id: "narr_51", entryType: "工具说明" } });
-    // 旁白之后是该量表首题（M9.6：minicog_2 画钟向患者提问）
-    expect(timeline[3]).toMatchObject({ kind: "question", item: { question: { id: "minicog_2" } } });
+    expect(timeline[0]).toMatchObject({ kind: "narration", narration: { id: "narr_50", entryType: "分类过渡" } });
+    // 认知题改版（2026-08-13）：画钟前插入三词指令播报（虚拟旁白 instr_minicog_words，文本取 minicog_1）
+    expect(timeline[1]).toMatchObject({
+      kind: "narration",
+      narration: { id: "instr_minicog_words", entryType: "记忆指令" },
+    });
+    // 2026-09-04 修改意见 3：指令播报的展示文案（不含记忆词）与放慢语速随时间线透传到 DTO
+    if (timeline[1].kind !== "narration") throw new Error("timeline[1] 应为旁白");
+    expect(timeline[1].narration.displayText).toBeTruthy();
+    expect(timeline[1].narration.displayText).not.toContain("苹果");
+    expect(timeline[1].narration.speechRate).toBeLessThan(0);
+    // 指令播报之后是该量表首题（M9.6：minicog_2 画钟向患者提问）
+    expect(timeline[2]).toMatchObject({ kind: "question", item: { question: { id: "minicog_2" } } });
+  });
+
+  it("记词指令（minicog_1）计入题号进度：画钟=第 2 题、复述=第 3 题（2026-09-12 用户口径）", () => {
+    const timeline = buildTimeline(["minicog"]);
+    const questions = askableQuestions(["minicog"]);
+    const empty: DialogueSnapshot = {
+      answerStatus: new Map(),
+      doctorAskCount: new Map(),
+      patientReplyCount: new Map(),
+      deliveredNarrationIds: new Set(),
+    };
+    // 指令未播报：total=3（指令+画钟+复述），画钟页显示"第 answered+1 / total 题"= 第 2 / 3 题
+    expect(progressOf(questions, empty, timeline)).toEqual({ answered: 0, total: 3 });
+    // 指令播完（system 轮次落库）+ 画钟交卷 pending：复述页显示第 3 / 3 题
+    const afterDrawing: DialogueSnapshot = {
+      ...empty,
+      answerStatus: new Map([["minicog_2", "pending"]]),
+      deliveredNarrationIds: new Set(["narr_50", "instr_minicog_words"]),
+    };
+    expect(progressOf(questions, afterDrawing, timeline)).toEqual({ answered: 2, total: 3 });
+    // 不传 timeline 时维持原口径（只计可问题目）
+    expect(progressOf(questions, empty)).toEqual({ answered: 0, total: 2 });
   });
 
   it("只纳入勾选量表锚定的旁白，未勾选量表的旁白不播", () => {
@@ -408,12 +441,25 @@ describe("buildTimeline：采集编排时间线（M9.2，来源：V2/Demo_v2更�
     const narrationIds = timeline
       .filter((step): step is Extract<TimelineStep, { kind: "narration" }> => step.kind === "narration")
       .map((step) => step.narration.id);
-    // 总开场 narr_3 + 锚定 fall_3q 的分类过渡 narr_136（行 136，其后第一个量表为 fall_3q）；
-    // 其余旁白锚定 sppb/vision/minicog/mmse/tcm_constitution 等未勾选量表，一律不播
-    expect(narrationIds).toEqual(["narr_3", "narr_136"]);
+    // 总开场 narr_3 已删除（2026-09-13）；锚定 fall_3q 的分类过渡 narr_136（行 136，其后第一个量表为 fall_3q）保留；
+    // 其余旁白锚定 sppb/vision/minicog/mmse/tcm_constitution 等未勾选量表，一律不播；
+    // frail 无锚定旁白 → 注入虚拟过渡 scale_intro_frail（2026-09-13 起不再念量表名，
+    // 用专题过渡句点出内容）；fall_3q 有锚定旁白 narr_136 → 直接播旁白本身（id 不变）
+    expect(narrationIds).toEqual(["scale_intro_frail", "narr_136"]);
+    const introFrail = timeline.find(
+      (step): step is Extract<TimelineStep, { kind: "narration" }> =>
+        step.kind === "narration" && step.narration.id === "scale_intro_frail"
+    );
+    expect(introFrail?.narration.text).toBe("下面问问您最近的活动情况。");
+    const narr136 = timeline.find(
+      (step): step is Extract<TimelineStep, { kind: "narration" }> =>
+        step.kind === "narration" && step.narration.id === "narr_136"
+    );
+    // 过渡句不含量表名/书名号
+    expect(narr136?.narration.text).toBe("下面问几个老年人常见的健康问题。");
     // narr_136 插在 fall_3q 首题之前、frail 题目之后（遵循量表勾选顺序）
     expect(timeline.map((step) => (step.kind === "narration" ? step.narration.id : step.item.question.id))).toEqual([
-      "narr_3",
+      "scale_intro_frail",
       "frail_1",
       "frail_2",
       "frail_3",
@@ -448,23 +494,19 @@ describe("buildTimeline：采集编排时间线（M9.2，来源：V2/Demo_v2更�
   });
 });
 
-describe("nextStep：旁白步骤消费", () => {
-  it("未播报旁白 → narration 步骤；播报（写 system 轮次）后不再重复返回", () => {
+describe("nextStep：旁白步骤消费", () => {  it("未播报旁白 → narration 步骤；播报（写 system 轮次）后不再重复返回", () => {
     const sim = new SessionSim(buildTimeline(["fall_3q"]));
-    const first = sim.emitPrompt(); // narr_3 总开场
-    expect(first).toMatchObject({ kind: "narration", narration: { id: "narr_3" } });
-    // 已播报 → 不再返回 narr_3，推进到锚定 fall_3q 的分类过渡 narr_136
+    // 总开场 narr_3 已删除（2026-09-13）：fall_3q 时间线首条即锚定的分类过渡 narr_136
+    const first = sim.emitPrompt();
+    expect(first).toMatchObject({ kind: "narration", narration: { id: "narr_136" } });
+    // 已播报 → 不再返回 narr_136，旁白全部播完，发出第一题首问
     const second = sim.emitPrompt();
-    expect(second).toMatchObject({ kind: "narration", narration: { id: "narr_136" } });
-    // 再推进：旁白全部播完，发出第一题首问
-    const third = sim.emitPrompt();
-    expect(third.kind).toBe("prompt");
-    if (third.kind === "prompt") expect(third.prompt.item.question.id).toBe("fall_3q_1");
+    expect(second.kind).toBe("prompt");
+    if (second.kind === "prompt") expect(second.prompt.item.question.id).toBe("fall_3q_1");
   });
 
   it("旁白不需要作答：全部旁白播完且题目答完才 finished；只播旁白不够", () => {
     const sim = new SessionSim(buildTimeline(["fall_3q"]));
-    sim.emitPrompt(); // narr_3
     sim.emitPrompt(); // narr_136
     // 旁白全播完但题目未答 → 不是 finished，而是首题 prompt
     expect(sim.emitPrompt().kind).toBe("prompt");
@@ -475,5 +517,184 @@ describe("nextStep：旁白步骤消费", () => {
     }
     // 最后一次 emitPrompt 已在答完 fall_3q_3 后消费；再确认一次终态幂等
     expect(sim.emitPrompt().kind).toBe("finished");
+  });
+});
+
+describe("阶梯跳题（2026-08-13：视力/听力「可以（结束）」）", () => {
+  it("题干中的流程注解（可以（结束）、不可以（2）等）不向患者展示/播报", () => {
+    // 来源：01 表跳题标注只给流程用；清理在 rules/index.ts stripBranchAnnotations
+    for (const item of askableQuestions(["vision", "hearing"])) {
+      expect(item.question.colloquialText).not.toMatch(/可以（结束）/);
+      expect(item.question.colloquialText).not.toMatch(/不可以（/);
+    }
+    // 清理后题干仍完整（vision_2 保留 1-1/1-2 两个分支问句）
+    const vision2 = askableQuestions(["vision"]).find((i) => i.question.id === "vision_2");
+    expect(vision2?.question.colloquialText).toContain("报纸或者书上的字");
+  });
+
+  it("computeLadderSkips：命中有分选项 → 后续阶梯题全跳过；命中无分「不可以」→ 不跳", () => {
+    const yesVision = computeLadderSkips(
+      ["vision"],
+      new Map([["vision_2", "可以看清标准字体（4分，结束视力评估）"]])
+    );
+    expect([...yesVision].sort()).toEqual(["vision_3", "vision_4", "vision_5"]);
+
+    const noVision = computeLadderSkips(["vision"], new Map([["vision_2", "不可以（进入下一题）"]]));
+    expect(noVision.size).toBe(0);
+
+    // 多级已答：第二级答「可以」→ 只跳其后
+    const midHearing = computeLadderSkips(
+      ["hearing"],
+      new Map([
+        ["hearing_2", "不可以（进入下一题）"],
+        ["hearing_3", "可以听清（3分，结束听力评估）"],
+      ])
+    );
+    expect([...midHearing].sort()).toEqual(["hearing_4", "hearing_5"]);
+
+    // 未勾选量表不计算
+    expect(computeLadderSkips(["frail"], new Map([["vision_2", "可以看清标准字体（4分，结束视力评估）"]])).size).toBe(0);
+  });
+
+  it("答「可以」后 nextStep 不再问后续阶梯题，直接结束量表；答「不可以」继续下一题", () => {
+    const timeline = buildTimeline(["vision"]);
+    const sim = new SessionSim(timeline);
+    // 播完旁白后到 vision_2 首问
+    let step = sim.emitPrompt();
+    while (step.kind === "narration") step = sim.emitPrompt();
+    expect(step).toMatchObject({ kind: "prompt", prompt: { item: { question: { id: "vision_2" } } } });
+
+    // 答「可以（4分，结束）」→ 带跳题集合的快照直接 finished
+    sim.reply("vision_2", 1, {
+      status: "matched",
+      optionLabel: "可以看清标准字体（4分，结束视力评估）",
+      score: 4,
+      method: "rules",
+      confidence: 1,
+      reason: "测试",
+    });
+    const skipped = computeLadderSkips(["vision"], new Map([["vision_2", "可以看清标准字体（4分，结束视力评估）"]]));
+    const snapshot: DialogueSnapshot = { ...sim.snapshot(), skippedQuestionIds: skipped };
+    expect(nextStep(timeline, snapshot).kind).toBe("finished");
+    // 进度把跳过题计入 answered，不回退
+    expect(progressOf(askableQuestions(["vision"]), snapshot)).toEqual({ answered: 4, total: 4 });
+  });
+
+  it("答「不可以」继续下一级阶梯题", () => {
+    const timeline = buildTimeline(["vision"]);
+    const sim = new SessionSim(timeline);
+    let step = sim.emitPrompt();
+    while (step.kind === "narration") step = sim.emitPrompt();
+    sim.reply("vision_2", 1, {
+      status: "matched",
+      optionLabel: "不可以（进入下一题）",
+      score: 0,
+      method: "rules",
+      confidence: 1,
+      reason: "测试",
+    });
+    const skipped = computeLadderSkips(["vision"], new Map([["vision_2", "不可以（进入下一题）"]]));
+    const snapshot: DialogueSnapshot = { ...sim.snapshot(), skippedQuestionIds: skipped };
+    const next = nextStep(timeline, snapshot);
+    expect(next).toMatchObject({ kind: "prompt", prompt: { item: { question: { id: "vision_3" } } } });
+  });
+});
+
+describe("认知题时间线（2026-08-13：MMSE 三词播报与组提问）", () => {  it("MMSE：三词播报插在 mmse_11 前；组目标题不在时间线；trigger 用组提问文案", () => {
+    const timeline = buildTimeline(["mmse"]);
+    const seq = timeline.map((step) => (step.kind === "narration" ? step.narration.id : step.item.question.id));
+    // 组目标不单独提问
+    for (const excluded of ["mmse_12", "mmse_13", "mmse_20", "mmse_21"]) {
+      expect(seq).not.toContain(excluded);
+    }
+    // 指令播报紧跟在 mmse_11（立即复述 trigger）之前、mmse_10 之后
+    const instructionIndex = seq.indexOf("instr_mmse_words");
+    expect(instructionIndex).toBeGreaterThan(-1);
+    expect(seq[instructionIndex - 1]).toBe("mmse_10");
+    expect(seq[instructionIndex + 1]).toBe("mmse_11");
+    // 立即复述 trigger 首问文案是组提问文案（不逐词分问）
+    const sim = new SessionSim(timeline);
+    let step = sim.emitPrompt();
+    while (step.kind === "narration" || (step.kind === "prompt" && step.prompt.item.question.id !== "mmse_11")) {
+      if (step.kind === "prompt") sim.reply(step.prompt.item.question.id, 1, MATCHED_YES);
+      step = sim.emitPrompt();
+    }
+    if (step.kind !== "prompt") throw new Error("应推进到 mmse_11");
+    expect(step.prompt.text).toContain("三个词");
+    expect(step.prompt.text).not.toContain("第一个词是");
+  });
+});
+
+describe("量表切换过渡（2026-09-13：不再念量表名，用日常过渡句）", () => {
+  it("shortScaleName：去「简易/简版」，书面后缀归一", () => {
+    expect(shortScaleName("听力简易评估表")).toBe("听力评估");
+    expect(shortScaleName("视力简易评估表")).toBe("视力评估");
+    expect(shortScaleName("FRAIL量表")).toBe("FRAIL");
+    expect(shortScaleName("微型营养评定简表（MNA-SF）")).toBe("微型营养评定（MNA-SF）");
+    expect(shortScaleName("耳语试验")).toBe("耳语试验");
+    expect(shortScaleName("中医体质辨识")).toBe("中医体质辨识");
+  });
+
+  it("shortScaleName：认知类量表患者端不出现「智力」措辞（2026-09-04 修改意见 2/5）", () => {
+    // 修改意见 2：「简易智力评估量表」（minicog）→ 认知功能筛查
+    expect(shortScaleName("简易智力评估量表")).toBe("认知功能筛查");
+    // 修改意见 5：「简易智力状态检查量表（MMSE）」→ 详细的认知功能评价
+    expect(shortScaleName("简易智力状态检查量表（MMSE）")).toBe("详细的认知功能评价");
+  });
+
+  it("有锚定旁白的量表直接播旁白本身，不再拼量表名（视力/听力）", () => {
+    const timeline = buildTimeline(["vision", "hearing"]);
+    const texts = timeline
+      .filter((step): step is Extract<TimelineStep, { kind: "narration" }> => step.kind === "narration")
+      .map((step) => step.narration.text);
+    // narr_30/narr_39 锚定 vision/hearing，播报其简化覆盖文案
+    expect(texts).toContain("下面问看东西的情况。戴眼镜就按戴镜时回答。");
+    expect(texts).toContain("下面问听声音的情况。戴助听器就按戴时回答。");
+    // 任何过渡句都不出现量表名/书名号/书面后缀
+    expect(texts.some((t) => t.includes("「"))).toBe(false);
+    expect(texts.some((t) => t.includes("简易评估表"))).toBe(false);
+  });
+
+  it("无锚定旁白的量表用专题过渡句（mnasf → 营养情况、frail → 活动情况）", () => {
+    const timeline = buildTimeline(["mnasf", "frail"]);
+    const introMnasf = timeline.find(
+      (step): step is Extract<TimelineStep, { kind: "narration" }> =>
+        step.kind === "narration" && step.narration.id === "scale_intro_mnasf"
+    );
+    expect(introMnasf?.narration.text).toBe("下面问问您的营养情况。");
+    const introFrail = timeline.find(
+      (step): step is Extract<TimelineStep, { kind: "narration" }> =>
+        step.kind === "narration" && step.narration.id === "scale_intro_frail"
+    );
+    expect(introFrail?.narration.text).toBe("下面问问您最近的活动情况。");
+  });
+
+  it("患者端无题可问的量表（纯测量/医护观察）不播过渡句和旁白", () => {
+    // grip/gait_speed 全为测量题、braden 全为医护评估题：患者端不问，也就不该有"下面要……"的空预告
+    const timeline = buildTimeline(["grip", "gait_speed", "braden", "frail"]);
+    const narrations = timeline.filter(
+      (step): step is Extract<TimelineStep, { kind: "narration" }> => step.kind === "narration"
+    );
+    // 总开场 narr_3 已删除（2026-09-13）：只剩 frail 的虚拟过渡句
+    expect(narrations.map((step) => step.narration.id)).toEqual(["scale_intro_frail"]);
+  });
+
+  it("过渡句语境省略（2026-09-14 门诊简版啰嗦过渡句）：重复/没头没尾的整条不播", () => {
+    const narrationIdsOf = (scaleIds: string[]) =>
+      buildTimeline(scaleIds)
+        .filter((step): step is Extract<TimelineStep, { kind: "narration" }> => step.kind === "narration")
+        .map((step) => step.narration.id);
+    // 门诊简版包：depression_2q 的"问问心情"与 minicog 锚定旁白 narr_50"记忆和心情"重复 → 省略；
+    // ais 的"再细问睡觉"以 sleep_1q 为前题，本包没有 → 省略；
+    // anxiety_2q 开场白已整条删除（2026-09-15 修改.docx ③，SCALE_TRANSITION_SUPPRESSED_IDS）；其余过渡句保留
+    const outpatient = narrationIdsOf(["frail", "mnasf", "fall_3q", "minicog", "depression_2q", "anxiety_2q", "ais"]);
+    expect(outpatient).not.toContain("scale_intro_depression_2q");
+    expect(outpatient).not.toContain("scale_intro_ais");
+    expect(outpatient).toContain("scale_intro_frail");
+    expect(outpatient).not.toContain("scale_intro_anxiety_2q");
+    // 睡眠疼痛包：sleep_1q 在会话 → ais"再细问"有前题，保留；无 minicog → depression_2q 不重复，保留
+    const sleepPain = narrationIdsOf(["sleep_1q", "ais", "pain_1q", "pain_nrs", "pain_behavior", "depression_2q"]);
+    expect(sleepPain).toContain("scale_intro_ais");
+    expect(sleepPain).toContain("scale_intro_depression_2q");
   });
 });

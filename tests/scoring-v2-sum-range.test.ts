@@ -72,14 +72,19 @@ describe("ADL（Barthel，10 题 0–100）", () => {
     expect(r.totalScore).toBe(total);
     expect(r.tags[0].code).toBe(tag);
   });
-  it("正式问题缺失一律阻断（deferClinical 也不豁免）", () => {
+  it("正式问题缺失：strict 阻断；deferClinical 豁免部分计分（2026-08-13 口径：答完一律出报告）", () => {
     const answers = sumAnswers("adl", Object.fromEntries(items.slice(1).map((id) => [id, 0])));
-    const r = scoreScaleV2("adl", answers, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["adl_1"]);
-    expect(r.deferred).toEqual([]);
-    expect(r.tags).toEqual([]);
-    expect(r.totalScore).toBeNull();
+    const strict = scoreScaleV2("adl", answers);
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["adl_1"]);
+    expect(strict.tags).toEqual([]);
+    expect(strict.totalScore).toBeNull();
+    const defer = scoreScaleV2("adl", answers, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["adl_1"]);
+    expect(defer.partial).toBe(true);
+    expect(defer.totalScore).toBe(0);
   });
 });
 
@@ -136,13 +141,17 @@ describe("FRAIL（5 题各 1/0）", () => {
     expect(r.missing).toEqual(["frail_4", "frail_5"]);
     expect(r.tags).toEqual([]);
   });
-  it("系统读取题已答但 Q1（正式问题）缺失 → 仍阻断且不计入 deferred", () => {
+  it("系统读取题已答但 Q1（正式问题）缺失：strict 阻断；deferClinical 计入 deferred 豁免", () => {
     const answers = all(["frail_4"]);
     delete answers["frail_1"];
-    const r = scoreScaleV2("frail", answers, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["frail_1"]);
-    expect(r.deferred).toEqual([]);
+    const strict = scoreScaleV2("frail", answers);
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["frail_1"]);
+    expect(strict.deferred).toEqual([]);
+    const defer = scoreScaleV2("frail", answers, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["frail_1"]);
   });
 });
 
@@ -218,10 +227,15 @@ describe("Mini-Cog（Q2 画钟 0/2 + Q3 延迟回忆 0–3，总分 0–5）", (
     expect(r.ok).toBe(false);
     expect(r.missing).toEqual(["minicog_2"]);
   });
-  it("Q3 缺失 + deferClinical=true 也阻断（正式问题无豁免）", () => {
-    const r = scoreScaleV2("minicog", { minicog_2: optByScore("minicog", "minicog_2", 2) }, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["minicog_3"]);
+  it("Q3 缺失：strict 阻断；deferClinical 豁免部分计分（2026-08-13 口径）", () => {
+    const strict = scoreScaleV2("minicog", { minicog_2: optByScore("minicog", "minicog_2", 2) });
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["minicog_3"]);
+    const defer = scoreScaleV2("minicog", { minicog_2: optByScore("minicog", "minicog_2", 2) }, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["minicog_3"]);
+    expect(defer.partial).toBe(true);
   });
 });
 
@@ -257,12 +271,16 @@ describe("GDS-15（15 题是/否 0–15，Q1/5/7/11/13 反向计分已含在选�
     expect(r.details.find((d) => d.itemId === "gds15_1")!.score).toBe(1);
     expect(r.details.find((d) => d.itemId === "gds15_1")!.answerLabel).toBe("不是（1分）");
   });
-  it("任一正式问题缺失即阻断（GDS-15 无医生侧条目）", () => {
+  it("任一正式问题缺失：strict 阻断；deferClinical 豁免部分计分（2026-08-13 口径）", () => {
     const answers = answersForTotal("gds15", 14);
     delete answers["gds15_15"];
-    const r = scoreScaleV2("gds15", answers, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["gds15_15"]);
+    const strict = scoreScaleV2("gds15", answers);
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["gds15_15"]);
+    const defer = scoreScaleV2("gds15", answers, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["gds15_15"]);
   });
 });
 
@@ -360,9 +378,14 @@ describe("疼痛 NRS（单题 0–10 共 11 档，选项分值取自 label 前�
     expect(r.tags[0].code).toBe(tag);
     expect(r.details).toHaveLength(1);
   });
-  it("未答 → 阻断（正式问题无豁免）", () => {
-    const r = scoreScaleV2("pain_nrs", {}, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["pain_nrs_1"]);
+  it("未答：strict 阻断；deferClinical 豁免但零证据不出标签（全豁免守卫）", () => {
+    const strict = scoreScaleV2("pain_nrs", {});
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["pain_nrs_1"]);
+    const defer = scoreScaleV2("pain_nrs", {}, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["pain_nrs_1"]);
+    expect(defer.tags).toEqual([]);
   });
 });

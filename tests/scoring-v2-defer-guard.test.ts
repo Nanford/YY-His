@@ -46,13 +46,14 @@ describe("A3 全豁免守卫：零条已答计分条目 → 不产任何标签",
   });
 
   it("initialGateSumRange：nrs2002 初筛门控全缺 → 不得出初筛假阴性", () => {
-    // 初筛1/2/4（系统读取）豁免、初筛3（正式问题）仍阻断：ok=false 且零标签
+    // 2026-08-13 起 deferClinical 对全部缺失条目豁免（含初筛3 正式问题）：ok=true，
+    // 但全豁免守卫兜底——零条已答计分条目仍不产任何标签
     const result = scoreScaleV2("nrs2002", {}, { deferClinical: true });
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
     expect(result.tags).toEqual([]);
-    expect(result.missing).toContain("nrs2002_初筛3");
+    expect(result.missing).toEqual([]);
     expect(result.deferred).toEqual(
-      expect.arrayContaining(["nrs2002_初筛1", "nrs2002_初筛2", "nrs2002_初筛4"])
+      expect.arrayContaining(["nrs2002_初筛1", "nrs2002_初筛2", "nrs2002_初筛3", "nrs2002_初筛4"])
     );
   });
 

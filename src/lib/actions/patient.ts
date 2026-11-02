@@ -2,8 +2,9 @@
  * INPUT:  患者端表单提交（FormData）、Prisma 数据库
  * OUTPUT: registerPatient（自助建档 + 首次评估会话）、createSupplementarySession（补充评估会话）
  * POS:    患者端业务流的写入口，与 src/lib/actions/doctor.ts（医生端写入口）分开维护。
- *         产品口径（2026-07-14 建档自助确认；2026-07-15 定型）：患者可以自己建档并开始
- *         评估，不需要医生先录入。自助建档只收姓名/性别/年龄（必填）+ 测量数据（选填）；
+ *         产品口径（2026-07-14 建档自助确认；2026-07-15 定型；2026-08-08 扩展）：患者可以自己建档并开始
+ *         评估，不需要医生先录入。自助建档收姓名/性别/年龄（必填）+ 基础信息全字段选填（基本情况/
+ *         疾病与用药/人体测量三块，与医生端完整建档共用 buildV2ProfileExtensions 校验）；
  *         身份证/手机/住址/住院号/门诊号等医疗管理信息留给医生后续在患者详情页补充。
  *         量表由患者在建档页自选（2026-07-15 修订，覆盖当日早先"固定 FRAIL+跌倒"的锁定口径）：
  *         FRAIL/跌倒不含观察题，能纯自助跑完直接出完整报告；MNA-SF/中医体质含舌象等需临床
@@ -16,11 +17,13 @@
  */
 "use server";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
   PATIENT_SESSION_COOKIE,
+  buildV2ProfileExtensions,
   generatePatientCode,
   parseMeasurements,
   parseScaleSelection,
@@ -38,28 +41,69 @@ export async function registerPatient(formData: FormData): Promise<void> {
   if (!identity.success) {
     redirect("/patient/register?error=required");
   }
-  // 患者自选量表（见文件头 POS）：含观察题的量表按 deferClinical 豁免计分先出报告，不在此阻塞。
-  const scaleIds = parseScaleSelection(formData);
-  if (!scaleIds) {
-    redirect("/patient/register?error=scales");
-  }
   const measurements = parseMeasurements(formData);
   if (!measurements) {
     redirect("/patient/register?error=measurements");
   }
+  // V2 基础信息扩展（2026-08-08 用户拍板扩展到患者端）：基本情况/疾病用药/测量补充全选填，
+  // 与医生端完整建档共用 buildV2ProfileExtensions 校验；任一非法整体拒绝回 error=profile。
+  const profileExtensions = buildV2ProfileExtensions(formData);
+  if (!profileExtensions) {
+    redirect("/patient/register?error=profile");
+  }
 
-  const session = await prisma.$transaction(async (tx) => {
-    const patient = await tx.patient.create({
-      data: {
-        code: await generatePatientCode(),
-        ...identity.data,
-        ...measurements,
-      },
-    });
-    const created = await tx.assessmentSession.create({
-      data: { patientId: patient.id, scaleIds, status: "in_progress" },
-    });
-    return created;
+  const patient = await prisma.patient.create({
+    data: {
+      code: await generatePatientCode(),
+      ...identity.data,
+      ...measurements,
+      education: profileExtensions.education,
+      maritalStatus: profileExtensions.maritalStatus,
+      livingSituation: profileExtensions.livingSituation,
+      careSituation: profileExtensions.careSituation,
+      calfLeftCm: profileExtensions.calfLeftCm,
+      calfRightCm: profileExtensions.calfRightCm,
+      gripStrengthKg: profileExtensions.gripStrengthKg,
+      gaitSpeed6mSec: profileExtensions.gaitSpeed6mSec,
+      // Json 字段缺省时键缺省（Prisma Json? 不接受顶层 null）；与医生端 createPatient 同一写法
+      ...(profileExtensions.diagnoses ? { diagnoses: profileExtensions.diagnoses } : {}),
+      ...(profileExtensions.pastHistory ? { pastHistory: profileExtensions.pastHistory } : {}),
+      ...(profileExtensions.recentAcute ? { recentAcute: profileExtensions.recentAcute } : {}),
+      ...(profileExtensions.medications
+        ? { medications: profileExtensions.medications as unknown as Prisma.InputJsonValue }
+        : {}),
+      ...(profileExtensions.weightHistory
+        ? { weightHistory: profileExtensions.weightHistory as unknown as Prisma.InputJsonValue }
+        : {}),
+    },
+  });
+
+  // 第一步完成后进入第二步量表选择；患者标识通过 URL 参数传递，量表页再创建会话。
+  redirect(`/patient/select-scales?patientId=${patient.id}`);
+}
+
+/**
+ * 患者自助选择量表并创建首次评估会话。
+ * INPUT:  患者 id、量表选择表单（scaleIds）
+ * OUTPUT: 创建 AssessmentSession，设置"我的会话"cookie，进入问询。
+ */
+export async function startAssessment(patientId: string, formData: FormData): Promise<void> {
+  const scaleIds = parseScaleSelection(formData);
+  if (!scaleIds) {
+    // 按提交来源方式页回跳（2026-08-08 四方式页：routine/emr/followup/custom），未知方式回方式选择页
+    const mode = formData.get("mode");
+    const modePath =
+      typeof mode === "string" && ["routine", "emr", "followup", "custom"].includes(mode) ? `/${mode}` : "";
+    redirect(`/patient/select-scales${modePath}?patientId=${patientId}&error=scales`);
+  }
+
+  const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+  if (!patient) {
+    redirect("/patient/register?error=required");
+  }
+
+  const session = await prisma.assessmentSession.create({
+    data: { patientId: patient.id, scaleIds, status: "in_progress" },
   });
 
   // 数据隔离（demo 级）：cookie 记住"本次会话"，患者首页据此只显示自己的，看不到别人的。

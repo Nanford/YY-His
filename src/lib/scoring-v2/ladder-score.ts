@@ -79,7 +79,7 @@ export function scoreLadderScore(
   }
 
   // 只把"尚未结束前"的缺失当作真实缺失；阶梯结束后的题已 excluded
-  const { blocking, deferred } = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);
+  const { blocking, deferred } = partitionMissingV2(missingIds, opts.deferClinical ?? false);
   const ok = blocking.length === 0 && total !== null;
   // 复用 sumRange 的区间解析（ranges 形状一致）；此处构造最小判定壳
   const tagCode =

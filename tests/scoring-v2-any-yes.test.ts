@@ -36,11 +36,17 @@ describe.each([
     const r = scoreScaleV2(scaleId, twoQAnswers(scaleId, a1 as string, a2 as string));
     expect(r.tags[0].code).toBe(positive);
   });
-  it("缺任一题 → 阻断不出标签（正式问题无豁免）", () => {
-    const r = scoreScaleV2(scaleId, twoQAnswers(scaleId, NO, null), { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual([`${scaleId}_2`]);
-    expect(r.tags).toEqual([]);
+  it("缺任一题：strict 阻断；deferClinical 豁免（2026-08-13 口径：部分计分，按已答题判定）", () => {
+    const strict = scoreScaleV2(scaleId, twoQAnswers(scaleId, NO, null));
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual([`${scaleId}_2`]);
+    expect(strict.tags).toEqual([]);
+    const defer = scoreScaleV2(scaleId, twoQAnswers(scaleId, NO, null), { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual([`${scaleId}_2`]);
+    expect(defer.partial).toBe(true);
+    expect(defer.tags[0].code).toBe(negative);
   });
   it("答案 label 不在合法选项内 → 抛错（确定性红线）", () => {
     expect(() =>
@@ -75,10 +81,16 @@ describe.each([
   it("答阴性选项 → 阴性标签", () => {
     expect(tagCode(scoreScaleV2(scaleId, { [`${scaleId}_1`]: optByLabel(scaleId, `${scaleId}_1`, no) }))).toBe(negative);
   });
-  it("未答 → 阻断不出标签（正式问题无豁免）", () => {
-    const r = scoreScaleV2(scaleId, {}, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual([`${scaleId}_1`]);
-    expect(r.tags).toEqual([]);
+  it("未答：strict 阻断；deferClinical 豁免但零证据不出标签（全豁免守卫）", () => {
+    const strict = scoreScaleV2(scaleId, {});
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual([`${scaleId}_1`]);
+    expect(strict.tags).toEqual([]);
+    const defer = scoreScaleV2(scaleId, {}, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual([`${scaleId}_1`]);
+    // 全豁免守卫（guardFullyDeferred）：零条已答计分条目 → 不产任何标签
+    expect(defer.tags).toEqual([]);
   });
 });

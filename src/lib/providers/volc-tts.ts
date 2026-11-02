@@ -34,9 +34,12 @@ function resourceId(): string {
   return process.env.VOLC_TTS_RESOURCE_ID || DEFAULT_RESOURCE_ID;
 }
 
-/** 缓存键：音色 + 文本 的哈希。换音色不会命中旧缓存 */
-export function ttsCacheKey(text: string): string {
-  return createHash("sha256").update(`${voiceType()}|${text}`).digest("hex");
+/** 全局默认语速：取值 [-50,100]，-10 ≈ 0.9 倍速：面向老年患者放缓语速 */
+const DEFAULT_SPEECH_RATE = -10;
+
+/** 缓存键：音色 + 语速 + 文本 的哈希。换音色/换语速不会命中旧缓存 */
+export function ttsCacheKey(text: string, speechRate: number = DEFAULT_SPEECH_RATE): string {
+  return createHash("sha256").update(`${voiceType()}|rate=${speechRate}|${text}`).digest("hex");
 }
 
 export class TtsError extends Error {
@@ -96,9 +99,15 @@ function parseStreamedAudio(rawBody: string): Buffer {
 /**
  * 合成播报音频（mp3）。优先返回缓存；未命中时调用豆包 TTS 并写缓存。
  * 调用方保证 text 不含患者姓名等 PII（话术模板统一出自 src/lib/dialogue/prompts.ts）。
+ * speechRate：豆包 speech_rate [-50,100]，缺省 DEFAULT_SPEECH_RATE（-10）；
+ * 认知指令播报传更低值放慢语速（2026-09-04 修改意见 3，见 cognitive-flow.INSTRUCTION_SPEECH_RATE）。
  */
-export async function synthesizeSpeech(text: string): Promise<{ audio: Buffer; cached: boolean }> {
-  const key = ttsCacheKey(text);
+export async function synthesizeSpeech(
+  text: string,
+  options?: { speechRate?: number }
+): Promise<{ audio: Buffer; cached: boolean }> {
+  const speechRate = options?.speechRate ?? DEFAULT_SPEECH_RATE;
+  const key = ttsCacheKey(text, speechRate);
   const cachedAudio = await readCache(key);
   if (cachedAudio) return { audio: cachedAudio, cached: true };
 
@@ -127,7 +136,7 @@ export async function synthesizeSpeech(text: string): Promise<{ audio: Buffer; c
         audio_params: {
           format: "mp3",
           sample_rate: 24000,
-          speech_rate: -10, // 取值 [-50,100]，-10 ≈ 0.9 倍速：面向老年患者放缓语速
+          speech_rate: speechRate,
         },
       },
     },
@@ -137,7 +146,28 @@ export async function synthesizeSpeech(text: string): Promise<{ audio: Buffer; c
   });
 
   if (!response.ok) {
-    const detail = response.headers.get("X-Api-Message") ?? `HTTP ${response.status}`;
+    // 403 时错误明细常在响应体首行 JSON（如 45000030 = 资源未开通），解析出来便于排障
+    const bodyText = await response.text().catch(() => "");
+    let bodyMessage: string | undefined;
+    for (const line of bodyText.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        bodyMessage = (JSON.parse(trimmed) as { header?: { message?: string } }).header?.message;
+      } catch {
+        // 忽略非 JSON 行
+      }
+      if (bodyMessage) break;
+    }
+    // 45000030 = 资源未开通（2026-09-14 实测：volc.seedtts.default not granted）：
+    // 重试不会自愈，按 unavailable 归类（与 ASR 同口径），开通指引只落服务端日志
+    if (bodyMessage?.includes("not granted")) {
+      throw new TtsError(
+        `语音合成服务未开通：请在火山引擎控制台开通 语音合成大模型（seed-tts-2.0）。明细：${bodyMessage}`,
+        "unavailable"
+      );
+    }
+    const detail = bodyMessage ?? response.headers.get("X-Api-Message") ?? `HTTP ${response.status}`;
     throw new TtsError(`TTS 服务返回错误：${detail}`, "upstream");
   }
   const audio = parseStreamedAudio(await response.text());

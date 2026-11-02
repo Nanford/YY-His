@@ -214,14 +214,14 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
     await expect(reviewSection.getByRole("heading", { name: category, exact: true })).toBeVisible();
   }
   // V2 展示形态：YD01/YD02 视频素材已就位（卡内 <video> 播放，共 2 项）；
-  // SS02/SS03 膳食图片已就位（可放大查看，共 2 项）；QT12 视频未上线回退文字要点（1 项）；
-  // ZY01 图片素材待补齐（1 项）；JZ/QT 文本项正文即文字卡（3 项）
+  // SS02/SS03 膳食图片已就位（可放大查看，共 2 项）；ZY01 图片素材待补齐（1 项）；
+  // v2.1 起 QT12 视频未上线不再显示"待上线"占位条、JZ/QT 文本项直接展示正文（共 3 项）
   await expect(reviewSection.locator("video")).toHaveCount(2);
   await expect(reviewSection.getByRole("button", { name: /放大查看/ })).toHaveCount(2);
-  await expect(reviewSection.getByText("视频教程待上线，请先参考下方动作要点", { exact: true })).toHaveCount(1);
+  await expect(reviewSection.getByText(/视频教程待上线/)).toHaveCount(0);
+  await expect(reviewSection.getByText(/· 文字说明/)).toHaveCount(0);
+  await expect(reviewSection.getByText(/每天固定时间一起看日期/)).toBeVisible();
   await expect(reviewSection.getByText("该项图文教程素材待补齐（不以其他干预图片替代）", { exact: true })).toHaveCount(1);
-  await expect(reviewSection.getByText("老年综合诊疗建议 · 文字说明", { exact: true })).toBeVisible();
-  await expect(reviewSection.getByText("照护者支持方案 · 文字说明", { exact: true })).toBeVisible();
   // 积分来源明细逐项下钻：9 项各有明细；JZ02 老年综合诊疗建议累加总分最高（32）
   await expect(reviewSection.getByText("积分来源：", { exact: true })).toHaveCount(9);
   await expect(reviewSection.getByText("匹配分 32", { exact: true })).toHaveCount(1);

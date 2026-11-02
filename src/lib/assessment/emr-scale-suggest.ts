@@ -13,8 +13,19 @@ export interface EmrSuggestResult {
   scaleIds: string[];
   /** 本地规则或模型给出的简短中文说明（不含 PII） */
   reason: string;
+  /**
+   * 提取的风险关键词（2026-08-08 设计图·病历智能评估「提取的风险关键词」chips）：
+   * 规则兜底为实际命中的关键词；DeepSeek 为模型输出（缺失时回落规则关键词）。不含 PII。
+   */
+  keywords: string[];
   method: "deepseek" | "rules";
 }
+
+/**
+ * 「可补充」推荐池（2026-08-08 设计图·病历智能评估：Barthel / IADL / 多重用药评估）。
+ * 前端展示时剔除已被推荐的量表；均为基础生活能力与用药安全项，适合按需增补。
+ */
+export const EMR_SUPPLEMENT_POOL: readonly string[] = ["adl", "iadl", "polypharmacy"];
 
 /** 关键词 → 量表 id（规则兜底，无密钥/模型失败时用） */
 const KEYWORD_SCALE_HINTS: { keywords: string[]; scaleIds: string[] }[] = [
@@ -56,14 +67,18 @@ export function redactEmrText(text: string, patientName?: string): string {
     .replace(/\b\d{8,14}\b/g, "[号码已脱敏]");
 }
 
-/** 纯规则建议：关键词命中并集，保持 01 表可评分顺序 */
+/** 纯规则建议：关键词命中并集，保持 01 表可评分顺序；keywords 为实际命中的关键词（去重，≤8 个） */
 export function suggestScalesByRules(emrText: string): EmrSuggestResult {
   const hit = new Set<string>();
+  const keywords: string[] = [];
   for (const rule of KEYWORD_SCALE_HINTS) {
-    if (rule.keywords.some((kw) => emrText.includes(kw))) {
-      for (const id of rule.scaleIds) {
-        if (SCORABLE.has(id)) hit.add(id);
-      }
+    const matched = rule.keywords.filter((kw) => emrText.includes(kw));
+    if (matched.length === 0) continue;
+    for (const kw of matched) {
+      if (!keywords.includes(kw)) keywords.push(kw);
+    }
+    for (const id of rule.scaleIds) {
+      if (SCORABLE.has(id)) hit.add(id);
     }
   }
   // 无命中时给常规综合评估包核心子集，避免空推荐
@@ -80,6 +95,7 @@ export function suggestScalesByRules(emrText: string): EmrSuggestResult {
     reason: hitCount
       ? `根据病历关键词匹配到 ${scaleIds.length} 个量表（规则兜底）`
       : "未识别到明确线索，已给出常规筛查组合",
+    keywords: keywords.slice(0, 8),
     method: "rules",
   };
 }
@@ -95,7 +111,7 @@ export async function suggestScalesFromEmr(
 ): Promise<EmrSuggestResult> {
   const trimmed = emrText.trim();
   if (trimmed.length < 8) {
-    return { scaleIds: [], reason: "病历内容过短，请粘贴更完整的病史摘要", method: "rules" };
+    return { scaleIds: [], reason: "病历内容过短，请粘贴更完整的病史摘要", keywords: [], method: "rules" };
   }
   const rules = suggestScalesByRules(trimmed);
   if (!deepseekAvailable()) return rules;
@@ -109,8 +125,9 @@ export async function suggestScalesFromEmr(
   const piiValues = patientName && patientName.trim().length >= 2 ? [patientName.trim()] : [];
   const system = [
     "你是老年综合评估量表推荐助手。根据脱敏后的病历摘要，从给定量表清单中选出最合适的量表 id。",
-    "只输出 JSON：{\"scaleIds\":string[],\"reason\":string}。",
+    "只输出 JSON：{\"scaleIds\":string[],\"reason\":string,\"keywords\":string[]}。",
     "scaleIds 必须全部来自给定清单；reason 为简短中文、不得包含姓名/身份证/手机号。",
+    "keywords 为从病历中提取的风险关键词（如 体重下降/睡眠差/记忆下降/跌倒史），简短中文词、至多 8 个、不得包含 PII。",
     "优先覆盖：衰弱、营养、跌倒、认知、情绪；有明确专科线索再加专科量表。",
   ].join("\n");
 
@@ -148,15 +165,20 @@ export async function suggestScalesFromEmr(
     };
     const content = data.choices?.[0]?.message?.content;
     if (!content) return rules;
-    const parsed = JSON.parse(content) as { scaleIds?: unknown; reason?: unknown };
+    const parsed = JSON.parse(content) as { scaleIds?: unknown; reason?: unknown; keywords?: unknown };
     if (!Array.isArray(parsed.scaleIds)) return rules;
     const ids = parsed.scaleIds
       .filter((id): id is string => typeof id === "string" && SCORABLE.has(id));
     const ordered = SCORABLE_SCALE_IDS.filter((id) => ids.includes(id));
     if (ordered.length === 0) return rules;
+    // 风险关键词：模型输出校验（字符串数组、≤8、不含 PII 由脱敏输入与提示词保证）；缺失时回落规则关键词
+    const modelKeywords = Array.isArray(parsed.keywords)
+      ? parsed.keywords.filter((kw): kw is string => typeof kw === "string" && kw.trim() !== "").slice(0, 8)
+      : [];
     return {
       scaleIds: ordered,
       reason: typeof parsed.reason === "string" ? parsed.reason.slice(0, 200) : "模型根据病历推荐",
+      keywords: modelKeywords.length > 0 ? modelKeywords : rules.keywords,
       method: "deepseek",
     };
   } catch {
