@@ -1493,3 +1493,332 @@ a.v2-pipeline-card:hover {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* =========================================================================
+ * 下载版评估报告（/patient/sessions/[id]/report，2026-11-10，参考「报告输出的样式.png」）
+ * 屏幕上是一张 A4 纸张预览；打印/另存 PDF 时只输出 .report-doc 本体。
+ * 字号用 pt：与纸面尺寸一致，不走患者端大屏的适老化放大（.patient-main 规则不作用于此）。
+ * ========================================================================= */
+.report-doc-page {
+  padding: 20px 16px 48px;
+  background: #e9eff8;
+}
+
+.report-doc-toolbar {
+  display: flex;
+  width: min(100%, 210mm);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 auto 16px;
+}
+
+.report-doc-toolbar p {
+  flex: 1 1 16rem;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* 窄屏下纸张保持 A4 宽度、横向滚动查看，不压缩版式 */
+.report-doc-scroll {
+  overflow-x: auto;
+}
+
+.report-doc {
+  width: 210mm;
+  margin: 0 auto;
+  border-collapse: collapse;
+  background: #ffffff;
+  box-shadow: var(--shadow-md);
+  color: #1f2430;
+  font-size: 9pt;
+  line-height: 1.5;
+  /* 表头/标签列的底色属于版式本身，打印时必须保留 */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.report-doc-cell {
+  padding: 0 12mm;
+}
+
+.report-doc thead .report-doc-cell {
+  padding-top: 10mm;
+}
+
+.report-doc tbody > tr > .report-doc-cell {
+  padding-bottom: 12mm;
+}
+
+.report-doc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6pt;
+  border-bottom: 1px solid #d9dde6;
+}
+
+.report-doc-head h1 {
+  margin: 0;
+  font-size: 16pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.report-doc-head span {
+  color: #8a91a0;
+  font-size: 8pt;
+}
+
+.report-doc-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4pt 22pt;
+  margin: 0;
+  padding: 7pt 0 8pt;
+  border-bottom: 1px solid #d9dde6;
+}
+
+.report-doc-identity dt {
+  position: relative;
+  padding-left: 9pt;
+  color: #5d6473;
+  font-size: 8pt;
+  font-weight: 700;
+}
+
+/* 参考图身份项前的小方块标记 */
+.report-doc-identity dt::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 5pt;
+  height: 5pt;
+  border-radius: 1pt;
+  background: #3b4252;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.report-doc-identity dd {
+  margin: 1pt 0 0;
+  padding-left: 9pt;
+  font-size: 9pt;
+}
+
+.report-doc-section {
+  margin-top: 10pt;
+}
+
+.report-doc-section h2 {
+  margin: 0 0 7pt;
+  padding-bottom: 4pt;
+  border-bottom: 1px solid #d9dde6;
+  font-size: 10pt;
+  font-weight: 800;
+}
+
+/* 基本情况 / 干预建议：左标签列浅底、右内容列 */
+.report-doc-basic {
+  margin: 0;
+  border: 1px solid #e3e6ee;
+  border-radius: 4pt;
+  overflow: hidden;
+}
+
+.report-doc-basic > div {
+  display: grid;
+  grid-template-columns: 62pt 1fr;
+  border-bottom: 1px solid #e3e6ee;
+  break-inside: avoid;
+}
+
+.report-doc-basic > div:last-child {
+  border-bottom: 0;
+}
+
+.report-doc-basic dt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5pt 6pt;
+  background: #f1f3f9;
+  font-weight: 700;
+  text-align: center;
+}
+
+.report-doc-basic dd {
+  margin: 0;
+  padding: 5pt 10pt;
+  overflow-wrap: anywhere;
+}
+
+.report-doc-problems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6pt 8pt;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-doc-problems li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5pt;
+  padding: 3pt 12pt 3pt 9pt;
+  border-radius: 999px;
+  font-weight: 700;
+  break-inside: avoid;
+}
+
+.report-doc-problems li::before {
+  width: 5pt;
+  height: 5pt;
+  border-radius: 999px;
+  content: "";
+}
+
+.report-doc-problems li.is-blue {
+  background: #e4ecfb;
+}
+
+.report-doc-problems li.is-blue::before {
+  background: #4f7fe0;
+}
+
+.report-doc-problems li.is-yellow {
+  background: #fdf2cf;
+}
+
+.report-doc-problems li.is-yellow::before {
+  background: #e3ae22;
+}
+
+.report-doc-results {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.report-doc-results th {
+  padding: 5pt 6pt;
+  border: 2pt solid #ffffff;
+  background: #eceafb;
+  font-weight: 800;
+  text-align: center;
+}
+
+.report-doc-results td {
+  padding: 5pt 6pt;
+  border-bottom: 1px solid #eceef3;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.report-doc-results tr {
+  break-inside: avoid;
+}
+
+.report-doc-results .col-title {
+  width: 31%;
+  text-align: left;
+}
+
+.report-doc-results .col-result {
+  width: 13%;
+  text-align: center;
+}
+
+.report-doc-results .col-range {
+  width: 28%;
+  text-align: center;
+}
+
+.report-doc-results .col-hint {
+  width: 28%;
+  text-align: left;
+}
+
+.report-doc-results th.col-title,
+.report-doc-results th.col-hint {
+  text-align: center;
+}
+
+/* 参考图「正常范围」列为橙色 */
+.report-doc-results th.col-range {
+  background: #fdebd9;
+  color: #e5822a;
+}
+
+.report-doc-results td.col-range {
+  color: #e5822a;
+}
+
+.report-doc-results .hint {
+  display: block;
+}
+
+.report-doc-results .hint.is-abnormal {
+  color: #d5352f;
+  font-weight: 700;
+}
+
+.report-doc-results .hint.is-note {
+  color: #8a91a0;
+  font-size: 8pt;
+}
+
+.report-doc-muted {
+  margin: 6pt 0 0;
+  color: #6b7280;
+  font-size: 8.5pt;
+}
+
+.report-doc-footnote {
+  margin: 6pt 0 0;
+  color: #8a91a0;
+  font-size: 8pt;
+}
+
+@page {
+  size: A4;
+  margin: 12mm 0;
+}
+
+@media print {
+  /* 只输出报告本体：隐藏患者端顶栏、工具条与纸张外的底色/阴影 */
+  .patient-shell > header,
+  .report-doc-toolbar {
+    display: none !important;
+  }
+
+  .patient-shell,
+  .report-doc-page {
+    min-height: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .report-doc-scroll {
+    overflow: visible;
+  }
+
+  .report-doc {
+    width: 100%;
+    box-shadow: none;
+  }
+
+  /* 页边距交给 @page；每页重复的页头不再额外留顶部空白 */
+  .report-doc thead .report-doc-cell {
+    padding-top: 0;
+  }
+
+  .report-doc tbody > tr > .report-doc-cell {
+    padding-bottom: 0;
+  }
+}

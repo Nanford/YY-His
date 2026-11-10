@@ -8,11 +8,9 @@
  *         并可对尚未完成的量表发起补充评估；历史报告互访按"同患者"放宽数据隔离。
  *         2026-11-10 报告版式：身份条（姓名脱敏）与基本情况由 report-profile 从档案派生后传入报告。
  */
-import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { scaleById, scales } from "@/lib/rules";
-import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 import { completedScaleIds, scaleComparisons, scaleNeedsClinician, scaleScopes } from "@/lib/assessment/supplementary";
 import { buildBasicInfoRows, buildIdentityItems } from "@/lib/assessment/report-profile";
 import { firstQueryValue } from "@/lib/query";
@@ -21,6 +19,7 @@ import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { DeferredScale } from "./patient-report";
 import { InterviewScreen } from "./interview-screen";
 import { PatientReport } from "./patient-report";
+import { ensureSamePatientAccess } from "./session-access";
 import { PipelineProgressUpdater } from "@/components/pipeline-progress-updater";
 
 export const dynamic = "force-dynamic";
@@ -70,17 +69,8 @@ export default async function PatientSessionPage({
   });
   if (!session) notFound();
 
-  // 数据隔离（demo 级）：本机建过档就只能看自己（同患者）的会话，手打别人的 URL 会被挡回首页。
-  // V2.0 §3 补充评估会产生同患者的多个会话，历史报告互访按 patientId 放行；
-  // 无 cookie 时不拦（可能是刚建档跳转/新设备），避免误伤演示流程；真正的鉴权是 V2。
-  const myId = (await cookies()).get(PATIENT_SESSION_COOKIE)?.value;
-  if (myId && myId !== id) {
-    const mine = await prisma.assessmentSession.findUnique({
-      where: { id: myId },
-      select: { patientId: true },
-    });
-    if (!mine || mine.patientId !== session.patientId) redirect("/patient");
-  }
+  // 数据隔离（demo 级，口径见 session-access.ts）：与下载报告页共用同一校验
+  await ensureSamePatientAccess(id, session.patientId);
 
   const honorific = session.patient.gender === "女" ? "奶奶" : "爷爷";
   const patientLabel = `${session.patient.name}${honorific}（${session.patient.age} 岁）`;

@@ -9,10 +9,10 @@
  *         （医生端 draft→confirmed 审核流程保留）。
  *         V2.0 §3：报告必须可识别评估范围（新增/复评量表）与生成时间，保留历史报告入口，
  *         并可对尚未完成的量表直接发起补充评估（复评属医生授权，不在患者自助入口出现）。
- *         2026-11-10 版式改版（用户拍板，参考「报告输出的样式.png」）：X-Age 品牌页头 +
- *         身份条（编号/脱敏姓名/性别/年龄/身高/体重/测试时间）+ 基本情况 + 既存问题；
- *         「综合评分」「吸烟饮酒史」本版不做（无计分规则/档案无字段）。字号保持适老化大字，
- *         不照搬参考图的 A4 密度。
+ *         2026-11-10 版式改版（用户拍板，参考「报告输出的样式.png」）：本组件是大屏「预览报告」——
+ *         身份条（编号/脱敏姓名/性别/年龄/身高/体重/测试时间）+ 基本情况 + 既存问题，字号保持
+ *         适老化大字；与参考图同版式的 A4「下载报告」在 ./report 子路由（页头「下载报告」按钮进入）。
+ *         「综合评分」「吸烟饮酒史」本版不做（无计分规则/档案无字段）；X-Age 为第三方品牌，不得使用。
  */
 import Link from "next/link";
 import {
@@ -20,6 +20,7 @@ import {
   IconCalendarClock,
   IconCheck,
   IconClipboardCheck,
+  IconDownload,
   IconHeartHandshake,
   IconHistory,
   IconUserHeart,
@@ -28,6 +29,8 @@ import type { ReportField } from "@/lib/assessment/report-profile";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
+// 异常标签判定（M11.2 异常置顶 / 既存问题）：按 02 表标签编码显式分级，不再用标签名关键词猜测
+import { isAbnormalTag } from "@/lib/assessment/tag-severity";
 import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 import { SectionHead } from "./section-head";
@@ -116,16 +119,13 @@ export function PatientReport({
       <div className="patient-main space-y-6">
         <header className="patient-panel px-6 py-7 md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* 参考图页头「X-Age｜老年综合评估报告」；患者布局顶栏已含返回入口，报告页不再叠第二条顶栏 */}
-            <h1 className="flex flex-wrap items-center gap-x-4 gap-y-1 text-3xl font-bold text-[var(--ink)]">
-              <span className="font-black tracking-wide">X-Age</span>
-              <span className="hidden h-7 w-px bg-[var(--line-strong)] sm:block" aria-hidden="true" />
-              <span>老年综合评估报告</span>
-            </h1>
-            <span className="ui-badge">
-              <IconClipboardCheck size={17} stroke={1.9} aria-hidden="true" />
-              评估已生成
-            </span>
+            {/* 患者布局顶栏已含品牌与返回入口，报告页不再叠第二条顶栏；页头不使用第三方品牌字样 */}
+            <h1 className="text-3xl font-bold text-[var(--ink)]">老年综合评估报告</h1>
+            {/* 下载版报告（A4 版式，含综合评估结果表）：进入后可另存为 PDF */}
+            <Link href={`/patient/sessions/${sessionId}/report`} className="ui-button ui-button-primary">
+              <IconDownload size={20} stroke={2} aria-hidden="true" />
+              下载报告
+            </Link>
           </div>
           {/* 身份条（参考图页头）：姓名已脱敏；V2.0 §3 要求的报告生成时间即「测试时间」项 */}
           {/* 各项按内容自适应宽度换行（编号、测试时间较长，等宽栅格会把它们折成两行） */}
@@ -374,18 +374,6 @@ function ComparisonCard({ comparison }: { comparison: ScaleComparison }) {
         </div>
       )}
     </article>
-  );
-}
-
-/** M11.2：异常标签优先（风险/阳性/依赖等）；阴性/正常后置 */
-function isAbnormalTag(tag: AssessmentTag): boolean {
-  if (tag.level === "倾向是" || tag.level === "基本是") return true;
-  const text = `${tag.tag}${tag.code}`;
-  if (/阴性|正常|无依赖|良好|未提示|NONE|NORMAL|NEGATIVE|GOOD|NO_|_NONE|_NORMAL/.test(text)) {
-    return false;
-  }
-  return /阳性|风险|重度|高|差|障碍|依赖|衰弱|营养不良|谵妄|失禁|疼痛|下降|受损|阳性|PRESENT|RISK|SEVERE|POOR|POSITIVE|DECLINE|IMPAIR/.test(
-    text
   );
 }
 
