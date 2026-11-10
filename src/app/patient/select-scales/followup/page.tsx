@@ -77,7 +77,7 @@ export default async function PatientFollowupScalesPage({
   });
 
   return (
-    <main className="patient-main flex-1">
+    <main className="patient-main assessment-page flex-1">
       <Link
         href={`/patient/select-scales?patientId=${patientId}`}
         className="ui-button ui-button-quiet -ml-2 mb-6"
@@ -86,14 +86,15 @@ export default async function PatientFollowupScalesPage({
         返回方式选择
       </Link>
 
-      <section className="patient-panel">
+      <section>
         <PatientPageHeading
+          plain
           icon={<History className="size-6" />}
           title="随访对比评估"
           description="调取上次评估结果，只复评需要更新的项目。"
         />
 
-        <div className="p-4 sm:px-7 sm:py-6">
+        <div>
           {reportedSessions.length === 0 ? (
             <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] px-6 py-12 text-center">
               <p className="text-lg font-extrabold text-[#173766]">还没有已完成的评估记录</p>

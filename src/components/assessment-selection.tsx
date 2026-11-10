@@ -5,40 +5,89 @@
  */
 import type { ChangeEventHandler, ReactNode } from "react";
 import {
-  Accessibility, Activity, ArrowRight, Brain, ClipboardList, House, LayoutGrid, Leaf, type LucideIcon,
+  Accessibility, ArrowRight, Brain, ClipboardList, Footprints, Frown, HeartPulse, House,
+  LayoutGrid, Leaf, Moon, Smile, Soup, type LucideIcon,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 const categoryIcons: Record<string, LucideIcon> = {
   躯体功能: Accessibility,
   精神心理: Brain,
   社会环境: House,
-  老年综合征: Activity,
+  老年综合征: Accessibility,
   中医: Leaf,
 };
 
-export function ScaleGroup({ title, count, children }: {
+const scaleIcons: Record<string, LucideIcon> = {
+  frail: HeartPulse,
+  mnasf: Soup,
+  fall_3q: Footprints,
+  morse: Footprints,
+  ais: Moon,
+  sleep_1q: Moon,
+  minicog: Brain,
+  mmse: Brain,
+  depression_2q: Smile,
+  anxiety_2q: Frown,
+};
+
+/** 只改动当前操作范围，保留其他组的勾选。 */
+export function updateAssessmentSelection(current: ReadonlySet<string>, ids: readonly string[], checked: boolean) {
+  const next = new Set(current);
+  for (const id of ids) {
+    if (checked) next.add(id);
+    else next.delete(id);
+  }
+  return next;
+}
+
+export function AssessmentBulkActions({ ids, selected, onChange, group, selectLabel, clearLabel }: {
+  ids: readonly string[];
+  selected: Pick<ReadonlySet<string>, "has">;
+  onChange: (ids: readonly string[], checked: boolean) => void;
+  group?: string;
+  selectLabel?: string;
+  clearLabel?: string;
+}) {
+  const select = selectLabel ?? (group ? "全选本组" : "全选");
+  const clear = clearLabel ?? (group ? "清除本组" : "清除已选");
+  return (
+    <div className={group ? "assessment-bulk assessment-bulk-group" : "assessment-bulk"}>
+      <button type="button" className="assessment-bulk-button"
+        disabled={ids.every((id) => selected.has(id))}
+        aria-label={group ? `${select}（${group}）` : undefined}
+        onClick={() => onChange(ids, true)}>{select}</button>
+      <button type="button" className="assessment-bulk-button"
+        disabled={!ids.some((id) => selected.has(id))}
+        aria-label={group ? `${clear}（${group}）` : undefined}
+        onClick={() => onChange(ids, false)}>{clear}</button>
+    </div>
+  );
+}
+
+export function ScaleGroup({ title, count, actions, children }: {
   title: string;
   count: number;
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   const Icon = categoryIcons[title] ?? LayoutGrid;
   return (
-    <section className="@container overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="flex items-center gap-3 border-b border-border bg-accent/55 px-4 py-3 sm:px-5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-card text-primary" aria-hidden="true">
-          <Icon className="size-4" />
-        </span>
-        <h3 className="flex-1 font-bold text-foreground">{title}</h3>
-        <Badge variant="secondary">{count} 项</Badge>
+    <section className="assessment-band" aria-label={title}>
+      <div className="assessment-band-body">
+        <div className="assessment-band-label">
+          <Icon className="assessment-band-icon" aria-hidden="true" />
+          <h3>{title}</h3>
+          <span className="assessment-band-count">{count} 项</span>
+          {actions}
+        </div>
+        <div className="assessment-tiles">{children}</div>
       </div>
-      <div className="grid gap-2.5 p-3 @min-[24rem]:grid-cols-2 @min-[48rem]:grid-cols-3 sm:p-4">{children}</div>
     </section>
   );
 }
 
-export function ScaleOption({ title, description, needsAssist, showDetails, checked, onChange, name, value }: {
+export function ScaleOption({ title, description, needsAssist, showDetails, checked, onChange, name, value, scaleId }: {
   title: string;
   description?: string;
   needsAssist?: boolean;
@@ -47,22 +96,26 @@ export function ScaleOption({ title, description, needsAssist, showDetails, chec
   onChange: ChangeEventHandler<HTMLInputElement>;
   name?: string;
   value?: string;
+  scaleId?: string;
 }) {
+  const Icon = scaleIcons[scaleId ?? value ?? ""] ?? ClipboardList;
   return (
-    <label className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-border p-3 hover:border-primary/50 has-checked:border-primary/50 has-checked:bg-accent/55 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring">
-      <input type="checkbox" name={name} value={value} checked={checked} onChange={onChange}
-        className="mt-1 size-5 shrink-0 accent-primary" />
-      <span className="min-w-0">
-        <span className="block leading-snug font-bold text-foreground">{title}</span>
+    <label className="assessment-tile">
+      <span className="assessment-tile-top">
+        <Icon className="assessment-tile-icon" aria-hidden="true" />
+        <input type="checkbox" name={name} value={value} checked={checked} onChange={onChange}
+          className="size-5 shrink-0 accent-primary" />
+      </span>
+      <span className="assessment-tile-copy">
+        <span className="assessment-tile-title">{title}</span>
         {description && (
           <span className={showDetails ? "mt-1 block text-sm text-muted-foreground" : "sr-only"}>
             {description}
           </span>
         )}
         {needsAssist && (
-          <span className="mt-1 block font-medium text-[#825000]">
-            <span className={showDetails ? "text-sm" : "text-xs"}>部分题目需医护协助</span>
-            {showDetails && <span className="text-sm">，报告按已答内容计分</span>}
+          <span className="assessment-assist">
+            需医护协助{showDetails && "，报告按已答内容计分"}
           </span>
         )}
       </span>
@@ -75,7 +128,7 @@ export function ScaleDetailsToggle({ checked, onChange }: {
   onChange: ChangeEventHandler<HTMLInputElement>;
 }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-border bg-card px-3 font-semibold text-foreground">
+    <label className="assessment-details-toggle">
       <input type="checkbox" checked={checked} onChange={onChange} className="size-5 accent-primary" />
       显示项目说明
     </label>
@@ -89,13 +142,13 @@ export function AssessmentSubmitBar({ count, label, supporting, disabled }: {
   disabled?: boolean;
 }) {
   return (
-    <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-lg shadow-blue-950/10 sm:bottom-3 sm:px-4">
+    <div className="assessment-submit">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-foreground" aria-live="polite">
         <ClipboardList className="size-5 text-primary" aria-hidden="true" />
         已选 <span className="text-primary tabular-nums">{count}</span> 项
         {supporting && <span className="text-sm font-normal text-muted-foreground">{supporting}</span>}
       </p>
-      <Button type="submit" disabled={disabled || count === 0} className="min-h-12 w-full gap-2 px-4 text-base font-bold sm:w-auto">
+      <Button type="submit" disabled={disabled || count === 0} className="min-h-12 w-full gap-2 px-5 text-base font-bold sm:w-auto">
         {label}
         <ArrowRight aria-hidden="true" />
       </Button>

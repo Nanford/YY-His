@@ -9,7 +9,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { CircleAlert, ClipboardList, FileSearch, Sparkles, Upload } from "lucide-react";
-import { AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption } from "@/components/assessment-selection";
+import { AssessmentBulkActions, AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption, updateAssessmentSelection } from "@/components/assessment-selection";
 import { SectionDisclosure } from "@/components/section-disclosure";
 
 export interface EmrScaleItem {
@@ -179,19 +179,13 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
     }
   };
 
-  const toggle = (scaleId: string, on: boolean) => {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (on) next.add(scaleId);
-      else next.delete(scaleId);
-      return next;
-    });
-  };
+  const toggle = (ids: readonly string[], on: boolean) =>
+    setChecked((prev) => updateAssessmentSelection(prev, ids, on));
 
   const renderScaleCheck = (scale: EmrScaleItem) => (
     <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle}
       name="scaleIds" value={scale.id} checked={checked.has(scale.id)} showDetails={showDetails}
-      onChange={(e) => toggle(scale.id, e.target.checked)} />
+      onChange={(e) => toggle([scale.id], e.target.checked)} />
   );
 
   return (
@@ -313,12 +307,20 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
               )}
 
               {/* 推荐重点（默认全选，可手动增减） */}
-              <ScaleGroup title="优先推荐" count={recommended.length}>{recommended.map(renderScaleCheck)}</ScaleGroup>
+              <ScaleGroup title="优先推荐" count={recommended.length}
+                actions={<AssessmentBulkActions ids={recommended.map((scale) => scale.id)}
+                  selected={checked} onChange={toggle} group="优先推荐" />}>
+                {recommended.map(renderScaleCheck)}
+              </ScaleGroup>
 
               {/* 可补充池（按需勾选） */}
               {supplements.length > 0 && (
                 <SectionDisclosure title="可补充项目" summary={`${supplements.length} 项`}>
-                  <div className="grid gap-2 sm:grid-cols-2">{supplements.map(renderScaleCheck)}</div>
+                  <div className="space-y-3">
+                    <AssessmentBulkActions ids={supplements.map((scale) => scale.id)}
+                      selected={checked} onChange={toggle} group="可补充项目" />
+                    <div className="grid gap-2 sm:grid-cols-2">{supplements.map(renderScaleCheck)}</div>
+                  </div>
                 </SectionDisclosure>
               )}
             </>

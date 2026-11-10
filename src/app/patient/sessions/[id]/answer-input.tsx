@@ -222,7 +222,7 @@ function OptionButtons({
           disabled={disabled}
           onClick={() => onSelect(option.label)}
           className={[
-            "patient-choice w-full justify-between text-left sm:justify-center sm:text-center",
+            "patient-choice patient-choice-single w-full justify-between text-left sm:justify-center sm:text-center",
             compact
               ? "min-h-[64px] px-4 py-3 text-[clamp(18px,1.8vw,24px)]"
               : "min-h-[80px]",

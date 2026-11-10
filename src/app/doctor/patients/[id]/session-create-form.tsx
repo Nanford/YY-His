@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { ClipboardList, History, Sparkles } from "lucide-react";
-import { ScaleDetailsToggle, ScaleGroup as ScaleGroupCard } from "@/components/assessment-selection";
+import { AssessmentBulkActions, ScaleDetailsToggle, ScaleGroup as ScaleGroupCard, ScaleOption, updateAssessmentSelection } from "@/components/assessment-selection";
 import type { ScalePackage } from "@/lib/assessment/scale-packages";
 
 export interface ScaleGroup {
@@ -38,11 +38,18 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
   // 选择模式：套餐 key / "custom" / "emr" / "followup"
   const [mode, setMode] = useState<string>(packages[0]?.key ?? CUSTOM_KEY);
   const [showDetails, setShowDetails] = useState(false);
+  const [customSelected, setCustomSelected] = useState<ReadonlySet<string>>(new Set());
   const [emrText, setEmrText] = useState("");
   const [emrLoading, setEmrLoading] = useState(false);
   const [emrReason, setEmrReason] = useState<string | null>(null);
-  const [emrSelected, setEmrSelected] = useState<Set<string>>(new Set());
+  const [emrSelected, setEmrSelected] = useState<ReadonlySet<string> | null>(null);
   const [emrError, setEmrError] = useState<string | null>(null);
+  const allScales = groups.flatMap((group) => group.scales);
+  const allIds = allScales.map((scale) => scale.id);
+  const toggleCustom = (ids: readonly string[], on: boolean) =>
+    setCustomSelected((prev) => updateAssessmentSelection(prev, ids, on));
+  const toggleEmr = (ids: readonly string[], on: boolean) =>
+    setEmrSelected((prev) => prev && updateAssessmentSelection(prev, ids, on));
 
   const runEmrSuggest = async () => {
     setEmrLoading(true);
@@ -171,19 +178,16 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
 
             {mode === CUSTOM_KEY && (
               <div className="space-y-3">
+                <AssessmentBulkActions ids={allIds} selected={customSelected} onChange={toggleCustom} />
                 {groups.map((group) => (
-                  <ScaleGroupCard key={group.category} title={group.category} count={group.scales.length}>
-                      {group.scales.map((scale) => (
-                        <label key={scale.id} className="ui-choice text-sm">
-                          <input type="checkbox" name={`scale.${scale.id}`} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block font-bold">{scale.name}</span>
-                            <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                              {scale.questionCount} 题
-                            </span>
-                          </span>
-                        </label>
-                      ))}
+                  <ScaleGroupCard key={group.category} title={group.category} count={group.scales.length}
+                    actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)}
+                      selected={customSelected} onChange={toggleCustom} group={group.category} />}>
+                    {group.scales.map((scale) => (
+                      <ScaleOption key={scale.id} scaleId={scale.id} name={`scale.${scale.id}`}
+                        title={scale.name} description={`${scale.questionCount} 题`} showDetails={showDetails}
+                        checked={customSelected.has(scale.id)} onChange={(e) => toggleCustom([scale.id], e.target.checked)} />
+                    ))}
                   </ScaleGroupCard>
                 ))}
               </div>
@@ -216,30 +220,18 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                   {emrReason && <p className="text-xs text-[#62779a]">{emrReason}</p>}
                   {emrError && <p className="text-xs text-red-600">{emrError}</p>}
                 </div>
-                {emrSelected.size > 0 && (
+                {emrSelected !== null && (
                   <div className="space-y-3 border-t border-[#dbe7f6] pt-4">
-                    <p className="text-xs font-extrabold text-[#62779a]">推荐结果（可再勾选调整）</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-foreground">已选 {emrSelected.size} 项</p>
+                      <AssessmentBulkActions ids={allIds} selected={emrSelected} onChange={toggleEmr} />
+                    </div>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      {groups.flatMap((g) =>
-                        g.scales.map((scale) => (
-                          <label key={scale.id} className="ui-choice text-sm">
-                            <input
-                              type="checkbox"
-                              name={`scale.${scale.id}`}
-                              checked={emrSelected.has(scale.id)}
-                              onChange={(e) => {
-                                setEmrSelected((prev) => {
-                                  const next = new Set(prev);
-                                  if (e.target.checked) next.add(scale.id);
-                                  else next.delete(scale.id);
-                                  return next;
-                                });
-                              }}
-                            />
-                            <span className="font-bold">{scale.name}</span>
-                          </label>
-                        ))
-                      )}
+                      {allScales.map((scale) => (
+                        <ScaleOption key={scale.id} scaleId={scale.id} name={`scale.${scale.id}`}
+                          title={scale.name} description={`${scale.questionCount} 题`} showDetails={showDetails}
+                          checked={emrSelected.has(scale.id)} onChange={(e) => toggleEmr([scale.id], e.target.checked)} />
+                      ))}
                     </div>
                   </div>
                 )}
@@ -249,7 +241,9 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
         )}
 
         <div className="sticky bottom-3 z-10 flex justify-end rounded-xl border border-border bg-card p-2.5 shadow-lg shadow-blue-950/10">
-          <button className="ui-button ui-button-primary ui-button-lg" type="submit">
+          <button className="ui-button ui-button-primary ui-button-lg" type="submit"
+            disabled={(mode === CUSTOM_KEY && customSelected.size === 0)
+              || (mode === EMR_KEY && (emrLoading || !emrSelected?.size))}>
             <ClipboardList size={19} strokeWidth={2.1} aria-hidden="true" />
             创建评估会话
           </button>

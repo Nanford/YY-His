@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { ChevronUp, ClipboardPlus } from "lucide-react";
-import { AssessmentSubmitBar, ScaleOption } from "@/components/assessment-selection";
+import { AssessmentBulkActions, AssessmentSubmitBar, ScaleOption, updateAssessmentSelection } from "@/components/assessment-selection";
 import { Button } from "@/components/ui/button";
 import { createSupplementarySession } from "@/lib/actions/patient";
 import type { RemainingScale } from "./patient-report";
@@ -20,6 +20,8 @@ export function SupplementarySection({ sessionId, remainingScales, defaultOpen =
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (ids: readonly string[], on: boolean) =>
+    setSelected((prev) => updateAssessmentSelection(prev, ids, on));
 
   if (!open) {
     return (
@@ -45,6 +47,7 @@ export function SupplementarySection({ sessionId, remainingScales, defaultOpen =
       />
       <p className="text-sm text-muted-foreground">如需复评已完成的项目，请联系医生。</p>
       <form action={createSupplementarySession.bind(null, sessionId)} className="space-y-4">
+        <AssessmentBulkActions ids={remainingScales.map((scale) => scale.id)} selected={selected} onChange={toggle} />
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {remainingScales.map((scale) => (
             <ScaleOption
@@ -55,15 +58,7 @@ export function SupplementarySection({ sessionId, remainingScales, defaultOpen =
               needsAssist={scale.needsClinician}
               showDetails
               checked={selected.has(scale.id)}
-              onChange={(event) => {
-                const checked = event.target.checked;
-                setSelected((previous) => {
-                  const next = new Set(previous);
-                  if (checked) next.add(scale.id);
-                  else next.delete(scale.id);
-                  return next;
-                });
-              }}
+              onChange={(event) => toggle([scale.id], event.target.checked)}
             />
           ))}
         </div>

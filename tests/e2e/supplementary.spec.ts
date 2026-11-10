@@ -107,6 +107,6 @@ test("报告页可识别评估范围，患者可发起补充评估且历史报�
   // 历史报告仍可访问：cookie 已切到新会话，但同患者旧报告直接打开不被挡回首页
   await page.goto(`/patient/sessions/${firstSessionId}`);
   await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible();
-  await page.getByRole("button", { name: /查看完整评估结果/ }).click();
+  await expect(page.getByRole("heading", { name: "综合评估结果" })).toBeVisible();
   await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
 });

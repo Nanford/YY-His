@@ -542,8 +542,11 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               </div>
             </aside>
 
-            {/* 右侧：按阶段渲染；问询阶段对话区 flex 吃满，作答区固定比例 */}
-            <div className="patient-interview-main">
+            {/* 短选项题紧邻题干，画钟等专用题型保留各自的可用高度。 */}
+            <div className="patient-interview-main"
+              data-short-choice={state.phase === "in_question" && state.prompt
+                && (state.prompt.answerType === "boolean" || state.prompt.answerType === "choice")
+                && state.prompt.options.length === 2 ? "" : undefined}>
               {state.phase === "not_started" && (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:px-12">
                   <span className="ui-badge">

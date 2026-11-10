@@ -43,9 +43,9 @@ export default async function DoctorHomePage() {
         </Button>
       </header>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="doctor-metrics grid grid-cols-3">
         {metrics.map(({ label, value, icon: Icon }) => (
-          <Card key={label} className="gap-0 p-2.5 ring-border sm:p-5">
+          <Card key={label} className="gap-0 rounded-none bg-transparent p-2.5 ring-0 sm:p-5">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-primary sm:size-11 sm:rounded-xl">
                 <Icon className="size-5" aria-hidden="true" />

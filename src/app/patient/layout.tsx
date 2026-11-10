@@ -7,10 +7,11 @@
 import Link from "next/link";
 import { ArrowLeft, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import "../assessment-design.css";
 
 export default function PatientLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="patient-shell flex min-h-screen flex-col">
+    <div className="patient-shell care-shell flex min-h-screen flex-col">
       <header className="border-b border-border bg-card">
         <div className="patient-topbar">
           <Link href="/patient" className="patient-brand" aria-label="返回患者评估首页">

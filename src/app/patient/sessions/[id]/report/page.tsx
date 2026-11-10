@@ -77,6 +77,7 @@ export default async function PatientReportDownloadPage({
   ) as unknown as PlanCandidateItemV2[];
 
   const tags = latestResult.tags as unknown as AssessmentTag[];
+  const scaleIds = session.scaleIds as string[];
   const deferredScales = (latestResult.deferred ?? []) as unknown as DeferredScaleRef[];
   const identityItems = buildIdentityItems(
     session.patient,
@@ -103,7 +104,8 @@ export default async function PatientReportDownloadPage({
           identityItems={identityItems}
           basicInfoRows={basicInfoRows}
           problems={listExistingProblems(tags)}
-          rows={buildReportRows(session.scaleIds as string[], tags, deferredScales)}
+          scaleCount={new Set(scaleIds).size}
+          rows={buildReportRows(scaleIds, tags, deferredScales)}
           categoryOrder={scoringCategories.map((category) => category.label)}
           planEntries={planItems.map((item) => ({
             code: item.code,

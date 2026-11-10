@@ -42,7 +42,7 @@ export default async function PatientEmrScalesPage({
   }));
 
   return (
-    <main className="patient-main flex-1">
+    <main className="patient-main assessment-page flex-1">
       <Link
         href={`/patient/select-scales?patientId=${patientId}`}
         className="ui-button ui-button-quiet -ml-2 mb-6"
@@ -51,14 +51,15 @@ export default async function PatientEmrScalesPage({
         返回方式选择
       </Link>
 
-      <section className="patient-panel">
+      <section>
         <PatientPageHeading
+          plain
           icon={<ClipboardList className="size-6" />}
           title="病历智能评估"
           description="粘贴病历或上传文件，系统自动推荐评估项目。"
         />
 
-        <div className="p-4 sm:px-7 sm:py-6">
+        <div>
           <EmrForm
             patientId={patientId}
             catalog={catalog}

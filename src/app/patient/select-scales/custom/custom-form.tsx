@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { Brain, Check, CircleAlert, ClipboardList, CookingPot, Dumbbell, Moon, X } from "lucide-react";
-import { AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption } from "@/components/assessment-selection";
+import { AssessmentBulkActions, AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption } from "@/components/assessment-selection";
 import { minutesFromAskable } from "@/lib/assessment/patient-scale-packages";
 
 export interface CustomScaleItem {
@@ -74,6 +74,18 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
         for (const s of pkg.scales) next.delete(s.id);
       } else {
         for (const s of pkg.scales) next.set(s.id, pkg.key);
+      }
+      return next;
+    });
+  };
+
+  const toggleCustomScales = (ids: readonly string[], on: boolean) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const id of ids) {
+        // 批量补选时保留已选项目的套餐来源。
+        if (!on) next.delete(id);
+        else if (!next.has(id)) next.set(id, "custom");
       }
       return next;
     });
@@ -182,16 +194,25 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
             </div>
           )}
 
-          {tab === "custom" &&
-            customGroups.map((group) => (
-              <ScaleGroup key={group.category} title={group.category} count={group.scales.length}>
-                {group.scales.map((scale) => (
-                  <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle}
-                    checked={selected.has(scale.id)} showDetails={showDetails}
-                    onChange={(e) => toggleScale(scale.id, "custom", e.target.checked)} />
-                ))}
-              </ScaleGroup>
-            ))}
+          {tab === "custom" && (
+            <>
+              <AssessmentBulkActions
+                ids={customGroups.flatMap((group) => group.scales.map((scale) => scale.id))}
+                selected={selected} onChange={toggleCustomScales}
+              />
+              {customGroups.map((group) => (
+                <ScaleGroup key={group.category} title={group.category} count={group.scales.length}
+                  actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)}
+                    selected={selected} onChange={toggleCustomScales} group={group.category} />}>
+                  {group.scales.map((scale) => (
+                    <ScaleOption key={scale.id} scaleId={scale.id} title={scale.label} description={scale.subtitle}
+                      checked={selected.has(scale.id)} showDetails={showDetails}
+                      onChange={(e) => toggleCustomScales([scale.id], e.target.checked)} />
+                  ))}
+                </ScaleGroup>
+              ))}
+            </>
+          )}
         </div>
 
         {/* 右栏：已选评估项目（sticky 保持） */}

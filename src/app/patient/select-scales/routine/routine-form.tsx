@@ -6,8 +6,10 @@
 "use client";
 
 import { useState } from "react";
-import { CircleAlert, Clock3, ListTodo } from "lucide-react";
-import { AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption } from "@/components/assessment-selection";
+import { CircleAlert } from "lucide-react";
+import {
+  AssessmentBulkActions, AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption, updateAssessmentSelection,
+} from "@/components/assessment-selection";
 
 export interface RoutineScaleItem {
   id: string;
@@ -53,19 +55,13 @@ export default function RoutineForm({ packages, error, action }: Props) {
     setSelectedKey(pkg.key);
     setChecked(new Set(pkg.scaleIds));
   };
-  const toggleScale = (scaleId: string, on: boolean) => {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (on) next.add(scaleId);
-      else next.delete(scaleId);
-      return next;
-    });
-  };
+  const toggleScales = (ids: readonly string[], on: boolean) =>
+    setChecked((prev) => updateAssessmentSelection(prev, ids, on));
 
   if (!selected) return null;
 
   return (
-    <form action={action} className="space-y-7">
+    <form action={action} className="assessment-form">
       <input type="hidden" name="mode" value="routine" />
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
@@ -75,10 +71,10 @@ export default function RoutineForm({ packages, error, action }: Props) {
       )}
 
       <fieldset>
-        <legend className="mb-3 font-bold text-foreground">选择套餐</legend>
-        <div className="grid gap-3 lg:grid-cols-3">
+        <legend className="sr-only">选择套餐</legend>
+        <div className="assessment-packages">
           {packages.map((pkg) => (
-            <label key={pkg.key} className="flex min-h-24 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-card p-4 hover:border-primary/50 has-checked:border-primary has-checked:bg-accent/55 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring">
+            <label key={pkg.key} className="assessment-package">
               <input
                 type="radio"
                 name="routinePackage"
@@ -88,14 +84,9 @@ export default function RoutineForm({ packages, error, action }: Props) {
                 className="mt-1 size-5 shrink-0 accent-primary"
               />
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-foreground">{pkg.name}</span>
-                  {pkg.recommended && <span className="ui-badge ui-badge-success">推荐</span>}
-                </span>
-                <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><ListTodo className="size-4" aria-hidden="true" /> {pkg.scaleIds.length} 项</span>
-                  <span className="inline-flex items-center gap-1"><Clock3 className="size-4" aria-hidden="true" /> 约 {pkg.minutes} 分钟</span>
-                </span>
+                <span className="assessment-package-title">{pkg.name}</span>
+                {pkg.recommended && <span className="sr-only">推荐</span>}
+                <span className="mt-1.5 block text-sm text-muted-foreground">{pkg.scaleIds.length} 项 · 约 {pkg.minutes} 分钟</span>
                 {showDetails && <span className="mt-2 block text-sm text-muted-foreground">{pkg.description} 适用场景：{pkg.scene}</span>}
               </span>
             </label>
@@ -103,17 +94,22 @@ export default function RoutineForm({ packages, error, action }: Props) {
         </div>
       </fieldset>
 
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">本次评估项目</h2>
-          <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+      <section className="assessment-groups">
+        <div className="assessment-toolbar">
+          <h2>本次评估项目</h2>
+          <div className="assessment-toolbar-actions">
+            <AssessmentBulkActions ids={selected.scaleIds} selected={checked} onChange={toggleScales} />
+            <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+          </div>
         </div>
         {selected.groups.map((group) => (
-          <ScaleGroup key={group.category} title={group.category} count={group.scales.length}>
+          <ScaleGroup key={group.category} title={group.category} count={group.scales.length}
+            actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)} selected={checked}
+              onChange={toggleScales} group={group.category} />}>
             {group.scales.map((scale) => (
               <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle} needsAssist={scale.needsAssist}
                 name="scaleIds" value={scale.id} checked={checked.has(scale.id)} showDetails={showDetails}
-                onChange={(e) => toggleScale(scale.id, e.target.checked)} />
+                onChange={(e) => toggleScales([scale.id], e.target.checked)} />
             ))}
           </ScaleGroup>
         ))}

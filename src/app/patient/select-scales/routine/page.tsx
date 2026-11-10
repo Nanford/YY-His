@@ -62,7 +62,7 @@ export default async function PatientRoutineScalesPage({
   }));
 
   return (
-    <main className="patient-main flex-1">
+    <main className="patient-main assessment-page flex-1">
       <Link
         href={`/patient/select-scales?patientId=${patientId}`}
         className="ui-button ui-button-quiet -ml-2 mb-6"
@@ -71,14 +71,15 @@ export default async function PatientRoutineScalesPage({
         返回方式选择
       </Link>
 
-      <section className="patient-panel">
+      <section>
         <PatientPageHeading
+          plain
           icon={<ListTodo className="size-6" />}
           title="常规综合评估"
           description="请选择评估套餐，确认后开始评估。"
         />
 
-        <div className="p-4 sm:px-7 sm:py-6">
+        <div>
           <RoutineForm
             packages={packageOptions}
             error={error}

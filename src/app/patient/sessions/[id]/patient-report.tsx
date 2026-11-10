@@ -10,26 +10,25 @@
  *         V2.0 §3：报告必须可识别评估范围（新增/复评量表）与生成时间，保留历史报告入口，
  *         并可对尚未完成的量表直接发起补充评估（复评属医生授权，不在患者自助入口出现）。
  *         2026-11-10 版式改版（用户拍板，参考「报告输出的样式.png」）：本组件是大屏「预览报告」——
- *         身份条（编号/脱敏姓名/性别/年龄/身高/体重/测试时间）+ 基本情况 + 既存问题，字号保持
- *         适老化大字；与参考图同版式的 A4「下载报告」在 ./report 子路由（页头「下载报告」按钮进入）。
- *         「综合评分」「吸烟饮酒史」本版不做（无计分规则/档案无字段）；X-Age 为第三方品牌，不得使用。
+ *         身份条、基本情况与概览、既存问题、四列结果使用清晰的适老字号；
+ *         同一信息顺序的 A4「下载报告」在 ./report 子路由。
+ *         评估概览使用本次量表与需关注结论的实际数量。
  */
 import Link from "next/link";
 import { TriangleAlert, CalendarClock, Check, ClipboardCheck, Download, HeartHandshake, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionDisclosure } from "@/components/section-disclosure";
 import type { ReportField } from "@/lib/assessment/report-profile";
-import { buildReportRows, type ReportRow } from "@/lib/assessment/report-rows";
+import { buildReportRows, listExistingProblems, type ReportRow } from "@/lib/assessment/report-rows";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
-// 异常标签判定（M11.2 异常置顶 / 既存问题）：按 02 表标签编码显式分级，不再用标签名关键词猜测
-import { isAbnormalTag } from "@/lib/assessment/tag-severity";
 import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 import { SectionHead } from "./section-head";
 import { SupplementarySection } from "./supplementary-section";
 import { ReportResultsTable } from "./report-results-table";
+import { ReportOverview } from "./report-overview";
 
 /** 5 大类固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他（来源：积分数据 categories 顺序） */
 const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
@@ -107,15 +106,16 @@ export function PatientReport({
   error,
 }: PatientReportProps) {
   const hasError = error === "scales" || error === "repeat" || error === "not_reported";
-  const rows = buildReportRows(reportScales.map((scale) => scale.id), tags, deferredScales);
-  const hasProblems = tags.some(isAbnormalTag);
+  const scaleIds = reportScales.map((scale) => scale.id);
+  const rows = buildReportRows(scaleIds, tags, deferredScales);
+  const problems = listExistingProblems(tags);
 
   return (
-    <main className="patient-main max-w-[72rem] flex-1 space-y-5">
-      <header className="patient-panel overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-accent/55 px-5 py-6 sm:px-8">
+    <main className="patient-main care-report max-w-[72rem] flex-1">
+      <header className="care-report-header">
+        <div className="care-report-title flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="hidden size-12 shrink-0 place-items-center rounded-xl bg-card text-primary sm:grid" aria-hidden="true">
+            <span className="hidden size-11 shrink-0 place-items-center rounded-xl bg-[var(--care-band)] text-primary sm:grid" aria-hidden="true">
               <ClipboardCheck className="size-6" />
             </span>
             <h1 className="text-2xl font-bold text-foreground sm:text-3xl">老年综合评估报告</h1>
@@ -129,7 +129,7 @@ export function PatientReport({
         </div>
         {/* 身份条（参考图页头）：姓名已脱敏；V2.0 §3 要求的报告生成时间即「测试时间」项 */}
         {/* 各项按内容自适应宽度换行（编号、测试时间较长，等宽栅格会把它们折成两行） */}
-        <dl className="flex flex-wrap gap-x-7 gap-y-4 px-5 py-5 sm:px-8">
+        <dl className="care-report-identity">
           {identityItems.map((item) => (
             <div key={item.label} className="min-w-0">
               <dt className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
@@ -144,33 +144,30 @@ export function PatientReport({
         </dl>
       </header>
 
-      <div className={hasProblems ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.48fr)]" : "space-y-4"}>
-        <ExistingProblemsSection tags={tags} />
-        <aside className={hasProblems ? "grid gap-3" : "grid gap-3 sm:grid-cols-2"} aria-label="报告档案">
-          <BasicInfoSection rows={basicInfoRows} />
-          <SectionDisclosure title="本次评估项目" summary={`${reportScales.length} 项`}>
-            <ul className="flex flex-wrap items-center gap-2" aria-label="本次评估内容">
-              {reportScales.map((scale) => (
-                <li
-                  key={scale.id}
-                  className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-muted px-3 py-2 font-semibold"
-                >
-                  {scale.name}
-                  <span
-                    className={`ui-badge ${scale.scope === "repeat" ? "ui-badge-warning" : "ui-badge-success"}`}
-                  >
-                    {scale.scope === "repeat" ? "复评" : "新增"}
-                  </span>
-                  {deferredScales.some((d) => d.scaleId === scale.id) && (
-                    <span className="ui-badge ui-badge-warning">部分计分</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </SectionDisclosure>
-        </aside>
+      <div className="care-report-overview">
+        <BasicInfoSection rows={basicInfoRows} />
+        <ReportOverview scaleCount={new Set(scaleIds).size} problemCount={problems.length} />
       </div>
+      <ExistingProblemsSection problems={problems} />
       <ResultsSection rows={rows} deferredScales={deferredScales} />
+      <SectionDisclosure title="本次评估项目" summary={`${reportScales.length} 项`}>
+        <ul className="flex flex-wrap items-center gap-2" aria-label="本次评估内容">
+          {reportScales.map((scale) => (
+            <li
+              key={scale.id}
+              className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-muted px-3 py-2 font-semibold"
+            >
+              {scale.name}
+              <span className={`ui-badge ${scale.scope === "repeat" ? "ui-badge-warning" : "ui-badge-success"}`}>
+                {scale.scope === "repeat" ? "复评" : "新增"}
+              </span>
+              {deferredScales.some((d) => d.scaleId === scale.id) && (
+                <span className="ui-badge ui-badge-warning">部分计分</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </SectionDisclosure>
 
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-lg" role="alert">
@@ -213,50 +210,43 @@ export function PatientReport({
 /** 基本情况（参考图左上区块）：档案里的病史/用药/照护信息，标签列浅底、内容列正文 */
 function BasicInfoSection({ rows }: { rows: readonly ReportField[] }) {
   return (
-    <SectionDisclosure title="基本情况">
-      <dl className="divide-y divide-border">
+    <section className="care-report-section">
+      <h2>基本情况</h2>
+      <dl className="care-report-facts">
         {rows.map((row) => (
-          <div
-            key={row.label}
-            className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr]"
-          >
-            <dt className="font-semibold text-muted-foreground">
-              {row.label}
-            </dt>
-            <dd className="break-words leading-7 text-foreground">{row.value}</dd>
+          <div key={row.label}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
           </div>
         ))}
       </dl>
-    </SectionDisclosure>
+    </section>
   );
 }
 
 /**
  * 既存问题（参考图彩色标签区）：本次评估全部异常标签平铺成一行行胶囊，先让人一眼看到问题清单。
- * 无异常标签时整块不渲染——是否"没有问题"由下方评估结果区按全豁免量表口径如实说明，
- * 这里不做"无异常"断言（避免零证据误导）。
+ * 没有异常标签时指向各项结论。全豁免的量表也可能没有异常标签。
  */
-function ExistingProblemsSection({ tags }: { tags: readonly AssessmentTag[] }) {
-  const problems = tags.filter(isAbnormalTag);
-  if (problems.length === 0) return null;
+function ExistingProblemsSection({ problems }: { problems: readonly string[] }) {
   return (
-    <section className="patient-panel px-5 py-5 sm:px-8 sm:py-6">
-      <SectionHead
-        icon={<TriangleAlert size={16} strokeWidth={1.8} aria-hidden="true" />}
-        title="既存问题"
-      />
-      <ul className="mt-4 flex flex-wrap gap-2">
-        {problems.map((tag) => (
-          <li
-            key={`${tag.scaleId}-${tag.code}`}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-warning-soft px-3 py-1.5 font-semibold text-[#7e4800]"
-          >
-            <span className="size-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />
-            {tag.tag}
-            {LEVEL_LABEL[tag.level] ?? ""}
-          </li>
-        ))}
-      </ul>
+    <section className="care-report-section">
+      <h2>既存问题</h2>
+      {problems.length === 0 ? (
+        <p className="text-muted-foreground">本次评估未标出需重点关注的问题，各项结论见下表。</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {problems.map((problem) => (
+            <li
+              key={problem}
+              className="inline-flex min-h-9 items-center gap-2 rounded-full bg-warning-soft px-3 py-1 font-semibold text-[#7e4800]"
+            >
+              <span className="size-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+              {problem}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -364,13 +354,10 @@ function ResultsSection({ rows, deferredScales }: {
   deferredScales: readonly DeferredScale[];
 }) {
   return (
-    <section className="patient-panel flex flex-col gap-4 px-5 py-5 sm:px-8 sm:py-6">
-      <SectionHead
-        icon={<ClipboardCheck size={16} strokeWidth={1.8} aria-hidden="true" />}
-        title="评估结果"
-      />
+    <section className="care-report-section">
+      <h2>综合评估结果</h2>
       {deferredScales.length > 0 && (
-        <div className="ui-alert ui-alert-warning" role="note">
+        <div className="ui-alert ui-alert-warning mb-4" role="note">
           <TriangleAlert size={21} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
           <p>
             {deferredScales
@@ -380,12 +367,10 @@ function ResultsSection({ rows, deferredScales }: {
           </p>
         </div>
       )}
-      <SectionDisclosure title="查看完整评估结果" summary={`${rows.length} 项`}>
-        <div className="overflow-x-auto rounded-xl focus-visible:outline-2 focus-visible:outline-ring sm:border sm:border-border"
-          role="region" aria-label="评估结果" tabIndex={0}>
-          <ReportResultsTable rows={rows} screen />
-        </div>
-      </SectionDisclosure>
+      <div className="care-report-results overflow-x-auto rounded-xl focus-visible:outline-2 focus-visible:outline-ring"
+        role="region" aria-label="评估结果" tabIndex={0}>
+        <ReportResultsTable rows={rows} screen />
+      </div>
     </section>
   );
 }

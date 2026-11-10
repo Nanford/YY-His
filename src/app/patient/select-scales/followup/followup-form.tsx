@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { CircleAlert } from "lucide-react";
-import { AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption } from "@/components/assessment-selection";
+import { AssessmentBulkActions, AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption, updateAssessmentSelection } from "@/components/assessment-selection";
 import { minutesFromAskable } from "@/lib/assessment/patient-scale-packages";
 
 export interface FollowupScaleItem {
@@ -43,14 +43,8 @@ export default function FollowupForm({
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set(focusScales.map((s) => s.id)));
   const [showDetails, setShowDetails] = useState(false);
 
-  const toggle = (scaleId: string, on: boolean) => {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (on) next.add(scaleId);
-      else next.delete(scaleId);
-      return next;
-    });
-  };
+  const toggle = (ids: readonly string[], on: boolean) =>
+    setChecked((prev) => updateAssessmentSelection(prev, ids, on));
 
   const currentMinutes = useMemo(() => {
     let askable = 0;
@@ -61,8 +55,10 @@ export default function FollowupForm({
   const renderCheck = (scale: FollowupScaleItem) => (
     <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle}
       name="scaleIds" value={scale.id} checked={checked.has(scale.id)} showDetails={showDetails}
-      onChange={(e) => toggle(scale.id, e.target.checked)} />
+      onChange={(e) => toggle([scale.id], e.target.checked)} />
   );
+  const focusIds = focusScales.map((scale) => scale.id);
+  const extraIds = extraScales.map((scale) => scale.id);
 
   return (
     <form action={action} className="space-y-7">
@@ -77,11 +73,20 @@ export default function FollowupForm({
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold">本次复评</h2>
-          <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+          <div className="assessment-toolbar-actions">
+            <AssessmentBulkActions ids={[...focusIds, ...extraIds]} selected={checked} onChange={toggle} />
+            <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+          </div>
         </div>
-        <ScaleGroup title="建议复评" count={focusScales.length}>{focusScales.map(renderCheck)}</ScaleGroup>
+        <ScaleGroup title="建议复评" count={focusScales.length}
+          actions={<AssessmentBulkActions ids={focusIds} selected={checked} onChange={toggle} group="建议复评" />}>
+          {focusScales.map(renderCheck)}
+        </ScaleGroup>
         {extraScales.length > 0 && (
-          <ScaleGroup title="按需补充" count={extraScales.length}>{extraScales.map(renderCheck)}</ScaleGroup>
+          <ScaleGroup title="按需补充" count={extraScales.length}
+            actions={<AssessmentBulkActions ids={extraIds} selected={checked} onChange={toggle} group="按需补充" />}>
+            {extraScales.map(renderCheck)}
+          </ScaleGroup>
         )}
       </section>
 

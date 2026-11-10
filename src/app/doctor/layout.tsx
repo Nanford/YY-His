@@ -5,10 +5,11 @@
  */
 import Link from "next/link";
 import { HeartPulse, House, ShieldCheck, UsersRound } from "lucide-react";
+import "../assessment-design.css";
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="doctor-shell">
+    <div className="doctor-shell care-shell">
       <aside className="doctor-sidebar">
         <Link href="/doctor" className="doctor-brand" aria-label="返回医生工作台首页">
           <span className="doctor-brand-mark" aria-hidden="true">

@@ -1,17 +1,13 @@
 /**
  * INPUT:  身份条/基本情况（report-profile）、既存问题与结果表行（report-rows）、干预方案条目（候选或已确认）
  * OUTPUT: ReportDocument —— A4 版式的下载版评估报告（屏幕上是纸张预览，打印/另存 PDF 时即成品）
- * POS:    版式参考「报告输出的样式.png」（2026-11-10 用户拍板）：页头 + 身份条（每页重复）→ 基本情况 →
- *         既存问题 → 综合评估结果四列表（评估内容/评估结果/正常范围/提示，异常▲标红）→ 干预建议。
- *         与参考图的已知差异（均为用户拍板或合规约束，非遗漏）：
- *         ① 不含「综合评分」（无医学计分规则，禁止自造公式）；② 不含「吸烟饮酒史」（档案无此字段）；
- *         ③ 不使用 X-Age 品牌与水印（第三方品牌）；④ 追加「干预建议」清单（硬约束 5：报告须含干预方案，
- *         完整视频/图文教程在系统报告页）。
- *         整体用外层 table 的 thead 承载页头：Chromium 打印分页时会在每页重复 thead，与参考图每页带页头一致。
+ * POS:    身份条 → 基本情况与评估概览 → 既存问题 → 综合评估结果四列表 → 干预建议。
+ *         外层表格的 thead 使标题与身份条在 Chromium 打印分页时重复出现。
  */
 import type { ReportField } from "@/lib/assessment/report-profile";
 import type { ReportRow } from "@/lib/assessment/report-rows";
 import { ReportResultsTable } from "../report-results-table";
+import { ReportOverview } from "../report-overview";
 
 /** 下载版报告里的一条干预建议（只列名称，正文与素材见系统报告页） */
 export interface ReportPlanEntry {
@@ -26,6 +22,7 @@ interface ReportDocumentProps {
   identityItems: readonly ReportField[];
   basicInfoRows: readonly ReportField[];
   problems: readonly string[];
+  scaleCount: number;
   rows: readonly ReportRow[];
   /** 5 大类固定顺序（运动干预/膳食营养/中医食养/就诊建议/其他） */
   categoryOrder: readonly string[];
@@ -38,6 +35,7 @@ export function ReportDocument({
   identityItems,
   basicInfoRows,
   problems,
+  scaleCount,
   rows,
   categoryOrder,
   planEntries,
@@ -66,17 +64,20 @@ export function ReportDocument({
       <tbody>
         <tr>
           <td className="report-doc-cell">
-            <section className="report-doc-section">
-              <h2>基本情况</h2>
-              <dl className="report-doc-basic">
-                {basicInfoRows.map((row) => (
-                  <div key={row.label}>
-                    <dt>{row.label}</dt>
-                    <dd>{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
+            <div className="report-doc-overview">
+              <section className="report-doc-section">
+                <h2>基本情况</h2>
+                <dl className="report-doc-basic">
+                  {basicInfoRows.map((row) => (
+                    <div key={row.label}>
+                      <dt>{row.label}</dt>
+                      <dd>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+              <ReportOverview scaleCount={scaleCount} problemCount={problems.length} />
+            </div>
 
             <section className="report-doc-section">
               <h2>既存问题</h2>
