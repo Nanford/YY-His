@@ -91,7 +91,7 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
 
   // 报告页：全阴性标签 + frail 系统读取题豁免的"部分计分"标注；积分矩阵无匹配 → 暂无干预
   // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
   await expect(page.getByText("跌倒风险筛查阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("部分计分", { exact: true })).toBeVisible();

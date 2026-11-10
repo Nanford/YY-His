@@ -165,7 +165,7 @@ test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘�
   expect(snapshot?.tagCodes).not.toContain("STOOL_FORM_TYPE_1");
 
   // ---------- 报告页：标签与「部分计分」标注患者可见（2026-08-08 口径：答完自动跳转，无需点击） ----------
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("认知功能初筛阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("便秘筛查阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("便秘筛查阳性", { exact: true })).toHaveCount(0);

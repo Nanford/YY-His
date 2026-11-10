@@ -82,16 +82,18 @@ test("患者自助答完 FRAIL+跌倒后自动生成报告，医生端候选方�
   // 报告生成全程未经过医生任何操作：直接核实 DB 状态
   await expect.poll(() => readSessionStatus(sessionId)).toBe("collected");
 
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
   // 评估范围与时间（V2.0 §3）：两个量表均标"新增"；frail 系统读取题豁免 → "部分计分"如实标注
-  await expect(page.getByText("评估时间：", { exact: false })).toBeVisible();
+  // 2026-11-10 报告版式：生成时间在身份条「测试时间」项
+  await expect(page.getByText("测试时间", { exact: true })).toBeVisible();
   await expect(page.getByText("新增", { exact: true })).toHaveCount(2);
   await expect(page.getByText("部分计分", { exact: true })).toBeVisible();
   await expect(page.getByText("有 2 道需医生查看的题暂未计分", { exact: false })).toBeVisible();
   // V2 标签（fall_3q 的 perQuestionTags 明细标签同步产出：fall_3q_1 是 → 过去一年有跌倒史）
-  await expect(page.getByText("衰弱前期", { exact: true })).toBeVisible();
-  await expect(page.getByText("跌倒风险筛查阳性", { exact: true })).toBeVisible();
-  await expect(page.getByText("过去一年有跌倒史", { exact: true })).toBeVisible();
+  // 2026-11-10 报告版式：异常标签在「既存问题」与「评估结果」各出现一次
+  await expect(page.getByText("衰弱前期", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("跌倒风险筛查阳性", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("过去一年有跌倒史", { exact: true })).toHaveCount(2);
   // 2026-08-11 口径：患者端答完即出报告与干预方案，不再呈现「初步方案·医生确认中」中间态
   await expect(page.getByText("初步方案", { exact: false })).toHaveCount(0);
   await expect(page.getByText("医生确认中", { exact: false })).toHaveCount(0);
