@@ -22,7 +22,6 @@ import {
   IconClipboardCheck,
   IconHeartHandshake,
   IconHistory,
-  IconShieldCheck,
   IconUserHeart,
 } from "@tabler/icons-react";
 import type { ReportField } from "@/lib/assessment/report-profile";
@@ -113,19 +112,24 @@ export function PatientReport({
 
   return (
     <main className="patient-shell flex-1">
-      <PatientReportTopbar />
 
       <div className="patient-main space-y-6">
         <header className="patient-panel px-6 py-7 md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-3xl font-bold text-[var(--ink)]">老年综合评估报告</h1>
+            {/* 参考图页头「X-Age｜老年综合评估报告」；患者布局顶栏已含返回入口，报告页不再叠第二条顶栏 */}
+            <h1 className="flex flex-wrap items-center gap-x-4 gap-y-1 text-3xl font-bold text-[var(--ink)]">
+              <span className="font-black tracking-wide">X-Age</span>
+              <span className="hidden h-7 w-px bg-[var(--line-strong)] sm:block" aria-hidden="true" />
+              <span>老年综合评估报告</span>
+            </h1>
             <span className="ui-badge">
               <IconClipboardCheck size={17} stroke={1.9} aria-hidden="true" />
               评估已生成
             </span>
           </div>
           {/* 身份条（参考图页头）：姓名已脱敏；V2.0 §3 要求的报告生成时间即「测试时间」项 */}
-          <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-[var(--line)] py-5 sm:grid-cols-4 xl:grid-cols-7">
+          {/* 各项按内容自适应宽度换行（编号、测试时间较长，等宽栅格会把它们折成两行） */}
+          <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-4 border-y border-[var(--line)] py-5">
             {identityItems.map((item) => (
               <div key={item.label} className="min-w-0">
                 <dt className="flex items-center gap-1.5 text-sm font-bold text-[var(--ink-muted)]">
@@ -370,26 +374,6 @@ function ComparisonCard({ comparison }: { comparison: ScaleComparison }) {
         </div>
       )}
     </article>
-  );
-}
-
-function PatientReportTopbar() {
-  return (
-    <header className="patient-topbar border-b border-[var(--line)]">
-      <div className="patient-brand">
-        <span className="grid size-10 place-items-center rounded-xl bg-[var(--brand)] text-white shadow-[0_8px_16px_rgb(23_105_232_/_20%)]">
-          <IconHeartHandshake size={24} stroke={1.8} aria-hidden="true" />
-        </span>
-        <span>
-          <span className="block">X-Age</span>
-          <span className="mt-0.5 block text-xs font-semibold text-[var(--ink-faint)]">老年健康评估与干预系统</span>
-        </span>
-      </div>
-      <span className="ui-badge hidden sm:inline-flex">
-        <IconShieldCheck size={16} stroke={1.8} aria-hidden="true" />
-        信息仅用于本次健康服务
-      </span>
-    </header>
   );
 }
 
