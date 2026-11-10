@@ -11,6 +11,7 @@
  */
 import type { ReportField } from "@/lib/assessment/report-profile";
 import type { ReportRow } from "@/lib/assessment/report-rows";
+import { ReportResultsTable } from "../report-results-table";
 
 /** 下载版报告里的一条干预建议（只列名称，正文与素材见系统报告页） */
 export interface ReportPlanEntry {
@@ -91,7 +92,7 @@ export function ReportDocument({
 
             <section className="report-doc-section">
               <h2>综合评估结果</h2>
-              <ResultsTable rows={rows} />
+              <ReportResultsTable rows={rows} />
             </section>
 
             <section className="report-doc-section report-doc-plan-section">
@@ -105,42 +106,6 @@ export function ReportDocument({
             </p>
           </td>
         </tr>
-      </tbody>
-    </table>
-  );
-}
-
-/** 综合评估结果四列表；thead 在跨页时重复（参考图第二页同样带列头） */
-function ResultsTable({ rows }: { rows: readonly ReportRow[] }) {
-  return (
-    <table className="report-doc-results">
-      <thead>
-        <tr>
-          <th className="col-title">评估内容</th>
-          <th className="col-result">评估结果</th>
-          <th className="col-range">正常范围</th>
-          <th className="col-hint">提示</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.key}>
-            <td className="col-title">
-              {row.no}. {row.title}
-            </td>
-            <td className="col-result">{row.resultText}</td>
-            <td className="col-range">{row.normalRange}</td>
-            <td className="col-hint">
-              {row.hints.map((hint) => (
-                <span key={hint.text} className={hint.abnormal ? "hint is-abnormal" : "hint"}>
-                  {hint.abnormal ? "▲ " : ""}
-                  {hint.text}
-                </span>
-              ))}
-              {row.note && <span className="hint is-note">{row.note}</span>}
-            </td>
-          </tr>
-        ))}
       </tbody>
     </table>
   );

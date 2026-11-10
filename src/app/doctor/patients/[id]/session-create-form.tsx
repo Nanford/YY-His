@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { ClipboardList, History, Sparkles } from "lucide-react";
+import { ScaleDetailsToggle, ScaleGroup as ScaleGroupCard } from "@/components/assessment-selection";
 import type { ScalePackage } from "@/lib/assessment/scale-packages";
 
 export interface ScaleGroup {
@@ -36,6 +37,7 @@ const EMR_KEY = "emr";
 export default function SessionCreateForm({ packages, groups, followup, patientId, action }: Props) {
   // 选择模式：套餐 key / "custom" / "emr" / "followup"
   const [mode, setMode] = useState<string>(packages[0]?.key ?? CUSTOM_KEY);
+  const [showDetails, setShowDetails] = useState(false);
   const [emrText, setEmrText] = useState("");
   const [emrLoading, setEmrLoading] = useState(false);
   const [emrReason, setEmrReason] = useState<string | null>(null);
@@ -71,24 +73,22 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
   };
 
   return (
-    <form action={action} className="ui-panel overflow-hidden">
-      <div className="ui-panel-heading">
+    <form action={action} className="ui-panel">
+      <div className="ui-panel-heading flex-wrap rounded-t-[inherit] bg-accent/45">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
             <ClipboardList size={21} strokeWidth={1.9} aria-hidden="true" />
           </span>
           <div>
             <h2 className="ui-panel-title">选择评估内容</h2>
-            <p className="mt-1 text-xs text-[#62779a]">
-              常规综合评估 · 病历智能评估 · 随访对比评估 · 自选组合评估
-            </p>
           </div>
         </div>
-        <span className="ui-badge">默认：常规综合评估</span>
+        <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
       </div>
       <div className="ui-panel-body space-y-5">
         {followup && (
-          <label className="ui-choice">
+          <div className="flex flex-wrap items-center gap-2">
+          <label className="ui-choice min-w-0 flex-1">
             <input
               type="radio"
               name="followup"
@@ -106,13 +106,19 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
               </span>
             </span>
           </label>
+          {mode === "followup" && (
+            <button type="button" className="ui-button ui-button-quiet" onClick={() => setMode(packages[0]?.key ?? CUSTOM_KEY)}>
+              更换评估方式
+            </button>
+          )}
+          </div>
         )}
 
         {mode !== "followup" && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {packages.map((pkg) => (
-                <label key={pkg.key} className="ui-choice">
+                <label key={pkg.key} className="ui-choice min-h-16">
                   <input
                     type="radio"
                     name="package"
@@ -122,7 +128,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold">{pkg.name}</span>
-                    <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">{pkg.description}</span>
+                    {showDetails && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{pkg.description}</span>}
                     <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
                       {pkg.scaleIds.length} 个量表
                     </span>
@@ -139,9 +145,9 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">自选组合 · 临时自定义</span>
-                  <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
+                  {showDetails && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
                     按躯体 / 精神心理 / 社会环境 / 老年综合征 / 中医 分类勾选
-                  </span>
+                  </span>}
                 </span>
               </label>
               <label className="ui-choice">
@@ -156,19 +162,17 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                     <Sparkles size={16} strokeWidth={2} aria-hidden="true" />
                     病历智能评估
                   </span>
-                  <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                    粘贴病历与诊断，系统推荐量表（LLM，出网前脱敏）
-                  </span>
+                  {showDetails && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                    根据脱敏后的病历摘要推荐量表
+                  </span>}
                 </span>
               </label>
             </div>
 
             {mode === CUSTOM_KEY && (
-              <div className="space-y-4 rounded-2xl border border-[#dbe7f6] p-4">
+              <div className="space-y-3">
                 {groups.map((group) => (
-                  <div key={group.category}>
-                    <p className="text-xs font-extrabold tracking-wide text-[#62779a]">{group.category}</p>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <ScaleGroupCard key={group.category} title={group.category} count={group.scales.length}>
                       {group.scales.map((scale) => (
                         <label key={scale.id} className="ui-choice text-sm">
                           <input type="checkbox" name={`scale.${scale.id}`} />
@@ -180,10 +184,8 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                           </span>
                         </label>
                       ))}
-                    </div>
-                  </div>
+                  </ScaleGroupCard>
                 ))}
-                <p className="text-xs text-[#7f94b3]">仅列出已配置判定规则、可直接评分的量表；请至少勾选一项。</p>
               </div>
             )}
 
@@ -246,7 +248,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
           </>
         )}
 
-        <div className="flex justify-end">
+        <div className="sticky bottom-3 z-10 flex justify-end rounded-xl border border-border bg-card p-2.5 shadow-lg shadow-blue-950/10">
           <button className="ui-button ui-button-primary ui-button-lg" type="submit">
             <ClipboardList size={19} strokeWidth={2.1} aria-hidden="true" />
             创建评估会话

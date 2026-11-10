@@ -172,12 +172,6 @@ textarea {
   padding: 32px;
 }
 
-.app-page-narrow {
-  width: min(100%, 840px);
-  margin: 0 auto;
-  padding: 32px;
-}
-
 .page-heading {
   display: flex;
   align-items: flex-start;
@@ -684,7 +678,7 @@ textarea {
   box-shadow: var(--shadow-md);
 }
 
-/* 语音问询主舞台：左形象 / 右对话+作答；固定视口高度（非仅 min-height），
+/* 语音问询主舞台：数字医生状态栏、当前题目和作答区；固定视口高度（非仅 min-height），
    才能让右侧 flex 子项内部滚动，避免对话变长后整页外溢。
    124px = 患者布局顶栏（76px+边线）+ 主区上下留白（12+20px）+ 少量余量；
    2026-09-04 修改意见 4/7：会话页第二条顶栏与六步进度条均已移除，不再为其预留高度 */
@@ -692,7 +686,7 @@ textarea {
   display: grid;
   height: calc(100dvh - 124px);
   min-height: 34rem;
-  grid-template-columns: minmax(260px, 0.92fr) minmax(0, 2.1fr);
+  grid-template-columns: clamp(10rem, 17vw, 14rem) minmax(0, 1fr);
   /* 子项默认 stretch，右侧栏才能拿到确定高度供 flex 分配 */
   align-items: stretch;
 }
@@ -702,11 +696,11 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.25rem;
-  padding: 1.75rem 1.25rem;
+  gap: 0.75rem;
+  padding: 1.25rem 0.75rem;
   text-align: center;
-  background: var(--surface-blue);
-  border-bottom: 1px solid var(--line);
+  background: linear-gradient(165deg, var(--accent), var(--background));
+  border-right: 1px solid var(--line);
   min-height: 0;
   /* 竖向溢出才允许滚动；横向直接裁掉（竖滚动条占位不应再挤出横滚动条，2026-09-04 修改意见 7） */
   overflow-x: hidden;
@@ -736,7 +730,7 @@ textarea {
   overflow-y: auto;
   border-top: 1px solid var(--line);
   padding: 1rem 1.75rem 1.25rem;
-  background: linear-gradient(180deg, #fbfcff 0%, #ffffff 40%);
+  background: var(--surface-subtle);
 }
 
 /* 画钟题自适应布局（2026-09-04 修改意见 4）：不再用静态 vh 算术封顶（题目区高度随题干/视口变，
@@ -833,8 +827,13 @@ textarea {
   }
 
   .patient-interview-aside {
-    padding: 1.25rem 1rem;
-    gap: 0.85rem;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0.65rem 1rem;
+    gap: 0.75rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
     max-height: none;
     overflow: visible;
   }
@@ -857,11 +856,6 @@ textarea {
 }
 
 @media (min-width: 1280px) {
-  .patient-interview-aside {
-    padding: 2rem 1.5rem;
-    gap: 1.5rem;
-  }
-
   .patient-interview-log {
     padding: 1.75rem 2.25rem;
   }
@@ -964,42 +958,6 @@ textarea {
   clip-path: inset(50%);
 }
 
-/* 多选评估项卡片（患者自助建档"选择评估内容"）：左对齐、含说明文字，
-   区别于 .patient-choice 的居中大字单选样式；勾选态复用同一套品牌高亮。 */
-.patient-check {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  border: 2px solid var(--line-strong);
-  border-radius: 16px;
-  padding: 16px 18px;
-  background: #ffffff;
-  cursor: pointer;
-  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
-}
-
-.patient-check:hover {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-  transform: translateY(-1px);
-}
-
-.patient-check:has(input:checked) {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-  box-shadow: 0 0 0 4px var(--brand-ring);
-}
-
-/* 与 .patient-choice 不同，这里的勾选框保持可见（患者需看清选了哪几项）。 */
-.patient-check input[type="checkbox"] {
-  margin-block-start: 3px;
-  inline-size: 22px;
-  block-size: 22px;
-  flex-shrink: 0;
-  accent-color: var(--brand);
-  cursor: pointer;
-}
-
 .patient-primary-action {
   display: inline-flex;
   min-height: 68px;
@@ -1070,8 +1028,7 @@ textarea {
     padding: 7px 18px;
   }
 
-  .app-page,
-  .app-page-narrow {
+  .app-page {
     padding: 24px 18px;
   }
 }
@@ -1260,223 +1217,6 @@ textarea {
     transform: translateY(-4px);
     opacity: 1;
   }
-}
-
-/* ========== Demo V2 六步主流程（来源：Demo_v2更新说明.docx） ========== */
-.v2-pipeline-full {
-  border-radius: 22px;
-  border: 1px solid var(--line);
-  background: linear-gradient(165deg, #ffffff 0%, #f4f9ff 100%);
-  padding: 1.25rem 1.35rem 1.4rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.v2-pipeline-compact {
-  width: 100%;
-}
-
-.v2-pipeline-track {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.35rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-@media (max-width: 960px) {
-  .v2-pipeline-track {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-}
-
-@media (max-width: 560px) {
-  .v2-pipeline-track {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.v2-pipeline-item {
-  position: relative;
-  min-width: 0;
-}
-
-.v2-pipeline-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  min-height: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: #fff;
-  padding: 0.7rem 0.65rem 0.75rem;
-  text-decoration: none;
-  color: inherit;
-  transition:
-    border-color 0.2s var(--ease-rise),
-    box-shadow 0.2s var(--ease-rise),
-    transform 0.2s var(--ease-rise);
-}
-
-a.v2-pipeline-card:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-
-.v2-pipeline-index {
-  display: grid;
-  place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 999px;
-  background: var(--surface-blue);
-  color: var(--brand-strong);
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.v2-pipeline-title {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 800;
-  line-height: 1.3;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-.v2-pipeline-desc {
-  display: block;
-  margin-top: 0.15rem;
-  font-size: 0.7rem;
-  line-height: 1.4;
-  color: var(--ink-muted);
-  font-weight: 500;
-}
-
-.v2-pipeline-current .v2-pipeline-card {
-  border-color: var(--brand);
-  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 70%);
-  box-shadow: 0 0 0 3px var(--brand-ring);
-}
-
-.v2-pipeline-current .v2-pipeline-index {
-  background: var(--brand);
-  color: #fff;
-}
-
-.v2-pipeline-done .v2-pipeline-index {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.v2-pipeline-done .v2-pipeline-title {
-  color: var(--success);
-}
-
-.v2-pipeline-todo .v2-pipeline-card {
-  opacity: 0.72;
-}
-
-.v2-pipeline-locked .v2-pipeline-card {
-  opacity: 1;
-  background: #ffffff;
-  border-color: var(--line);
-}
-
-.v2-pipeline-locked .v2-pipeline-card:hover {
-  transform: none;
-  box-shadow: none;
-  border-color: var(--line);
-}
-
-.v2-pipeline-locked .v2-pipeline-index {
-  color: var(--brand-strong);
-  background: var(--surface-blue);
-}
-
-.v2-pipeline-locked .v2-pipeline-title {
-  color: var(--ink);
-}
-
-.v2-pipeline-locked .v2-pipeline-desc {
-  color: var(--ink-muted);
-}
-
-.v2-pipeline-compact .v2-pipeline-track {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.v2-pipeline-compact .v2-pipeline-card {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.55rem;
-  min-height: 0;
-}
-
-.v2-pipeline-compact .v2-pipeline-index {
-  width: 1.35rem;
-  height: 1.35rem;
-  font-size: 0.68rem;
-}
-
-.v2-pipeline-compact .v2-pipeline-title {
-  font-size: 0.72rem;
-  white-space: nowrap;
-}
-
-/* /patient/flow 六步流程展示卡适老化放大：仅展示、不可点击、无锁定态（2026-08-09 用户拍板） */
-.flow-pipeline-lg .v2-pipeline-card {
-  gap: 0.6rem;
-  padding: 1.1rem 1rem 1.2rem;
-}
-
-.flow-pipeline-lg .v2-pipeline-index {
-  width: 2.6rem;
-  height: 2.6rem;
-  font-size: 1.3rem;
-}
-
-.flow-pipeline-lg .v2-pipeline-title {
-  font-size: 1.25rem;
-}
-
-.flow-pipeline-lg .v2-pipeline-desc {
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-/* 分区标题条：与 Demo_v2 §1/§2 章节对应 */
-.v2-section-banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: linear-gradient(120deg, #f0f7ff 0%, #ffffff 55%);
-  padding: 1rem 1.15rem;
-}
-
-.v2-section-banner strong {
-  display: block;
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-.v2-section-banner p {
-  margin: 0.25rem 0 0;
-  max-width: 42rem;
-  font-size: 0.85rem;
-  line-height: 1.55;
-  color: var(--ink-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1689,7 +1429,7 @@ a.v2-pipeline-card:hover {
   table-layout: fixed;
 }
 
-.report-doc-results th {
+.report-doc-results thead th {
   padding: 5pt 6pt;
   border: 2pt solid #ffffff;
   color: #0e3269;
@@ -1698,11 +1438,16 @@ a.v2-pipeline-card:hover {
   text-align: center;
 }
 
-.report-doc-results td {
+.report-doc-results td,
+.report-doc-results tbody th {
   padding: 5pt 6pt;
   border-bottom: 1px solid #eceef3;
   vertical-align: middle;
   overflow-wrap: anywhere;
+}
+
+.report-doc-results tbody th {
+  font-weight: 600;
 }
 
 .report-doc-results tr {
@@ -1729,8 +1474,8 @@ a.v2-pipeline-card:hover {
   text-align: left;
 }
 
-.report-doc-results th.col-title,
-.report-doc-results th.col-hint {
+.report-doc-results thead th.col-title,
+.report-doc-results thead th.col-hint {
   text-align: center;
 }
 
@@ -1750,6 +1495,87 @@ a.v2-pipeline-card:hover {
 .report-doc-results .hint.is-note {
   color: #8a91a0;
   font-size: 8pt;
+}
+
+/* 屏幕与纸面共用同一张表，手机端按量表逐行卡片化。 */
+.report-results-screen {
+  min-width: 38rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.report-results-screen thead th,
+.report-results-screen tbody th,
+.report-results-screen td {
+  padding: 0.8rem 0.65rem;
+}
+
+.report-results-screen tbody tr:nth-child(even) {
+  background: var(--surface-subtle);
+}
+
+.report-results-screen .hint.is-note {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.report-cell-label {
+  display: none;
+}
+
+@media screen and (max-width: 639px) {
+  .report-results-screen {
+    display: block;
+    min-width: 0;
+  }
+
+  .report-results-screen thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .report-results-screen tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .report-results-screen tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 0.4rem;
+    padding: 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .report-results-screen tbody .col-title,
+  .report-results-screen tbody .col-hint {
+    grid-column: 1 / -1;
+  }
+
+  .report-results-screen tbody :is(.col-title, .col-result, .col-range, .col-hint) {
+    width: auto;
+    border: 0;
+    padding: 0.2rem;
+    text-align: left;
+  }
+
+  .report-results-screen tbody .col-title {
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .report-cell-label {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
 }
 
 .report-doc-muted {

@@ -8,6 +8,7 @@
  */
 import Link from "next/link";
 import { PatientPageHeading } from "@/components/patient-page-heading";
+import { SectionDisclosure } from "@/components/section-disclosure";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, History, Footprints, Salad, Leaf, Stethoscope, ClipboardList } from "lucide-react";
 import { startAssessment } from "@/lib/actions/patient";
@@ -85,14 +86,14 @@ export default async function PatientFollowupScalesPage({
         返回方式选择
       </Link>
 
-      <section className="patient-panel overflow-hidden">
+      <section className="patient-panel">
         <PatientPageHeading
           icon={<History className="size-6" />}
           title="随访对比评估"
           description="调取上次评估结果，只复评需要更新的项目。"
         />
 
-        <div className="px-6 py-7 sm:px-9">
+        <div className="p-4 sm:px-7 sm:py-6">
           {reportedSessions.length === 0 ? (
             <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] px-6 py-12 text-center">
               <p className="text-lg font-extrabold text-[#173766]">还没有已完成的评估记录</p>
@@ -169,36 +170,19 @@ function FollowupContent({
   }
 
   return (
-    <div className="space-y-7">
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.1fr)_minmax(0,1.1fr)]">
-        {/* 左栏：既往评估记录（与中栏同一卡片样式，三栏顶对齐节奏一致） */}
-        <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5">
-          <h2 className="text-lg font-extrabold text-[#173766]">既往评估记录</h2>
-          {sessions.map((session, index) => (
-            <div
-              key={session.id}
-              className={[
-                "rounded-2xl border p-4",
-                index === 0 ? "border-blue-300 bg-blue-50/60" : "border-blue-100 bg-white",
-              ].join(" ")}
-            >
-              <p className="flex flex-wrap items-center gap-2 text-base font-extrabold text-[#173766]">
-                {session.startedAt.toLocaleDateString("zh-CN")}
-                {index === 0 && <span className="ui-badge ui-badge-success">当前记录</span>}
-              </p>
-              <p className="mt-1 text-sm text-[#7f94b3]">{session.scaleIds.length} 个量表</p>
-            </div>
-          ))}
-        </section>
-
-        {/* 中栏：上次评估结果摘要 */}
-        <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5">
-          <h2 className="text-lg font-extrabold text-[#173766]">上次评估结果摘要</h2>
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.65fr)_minmax(0,1.35fr)]">
+      <aside className="space-y-3">
+        <div className="rounded-2xl border border-border bg-accent/45 p-4">
+          <h2 className="font-bold">上次评估</h2>
+          <p className="mt-2 text-2xl font-bold text-primary tabular-nums">{latest.startedAt.toLocaleDateString("zh-CN")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{latestScaleIds.length} 个评估项目</p>
+        </div>
+        <SectionDisclosure title="查看上次评估摘要">
           {latest.tags.length === 0 ? (
-            <p className="text-sm leading-6 text-[#7f94b3]">上次评估未产生异常标签。</p>
+            <p className="text-sm text-muted-foreground">暂无结论记录。</p>
           ) : (
             <ul className="space-y-2">
-              {latest.tags.slice(0, 8).map((tag) => (
+              {latest.tags.map((tag) => (
                 <li
                   key={`${tag.scaleId}-${tag.code ?? tag.tag}`}
                   className="flex items-center justify-between gap-2 rounded-xl border border-blue-100 bg-[#f8fbff] px-3 py-2"
@@ -206,16 +190,16 @@ function FollowupContent({
                   <span className="text-sm font-bold text-[#405a81]">
                     {SCALE_LABELS[tag.scaleId] ?? tag.scaleId}
                   </span>
-                  <span className="ui-badge ui-badge-warning">{tag.tag}</span>
+                  <span className="text-sm font-semibold text-foreground">{tag.tag}</span>
                 </li>
               ))}
             </ul>
           )}
           {latest.interventions.length > 0 && (
-            <div>
+            <div className="mt-4">
               <p className="text-sm font-extrabold tracking-wide text-[#62779a]">上次干预方案</p>
               <div className="mt-2 flex flex-wrap gap-3">
-                {latest.interventions.slice(0, 4).map((item) => {
+                {latest.interventions.map((item) => {
                   const Icon = CATEGORY_ICONS[item.category] ?? ClipboardList;
                   return (
                     <span
@@ -230,21 +214,29 @@ function FollowupContent({
               </div>
             </div>
           )}
-        </section>
+        </SectionDisclosure>
+        <SectionDisclosure title="历次评估记录" summary={`${sessions.length} 次`}>
+          <ul className="divide-y divide-border">
+            {sessions.map((session, index) => (
+              <li key={session.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                <span className="font-semibold tabular-nums">{session.startedAt.toLocaleDateString("zh-CN")}</span>
+                <span className="text-sm text-muted-foreground">{session.scaleIds.length} 项</span>
+                {index === 0 && <span className="ui-badge">本次对照</span>}
+              </li>
+            ))}
+          </ul>
+        </SectionDisclosure>
+      </aside>
 
-        {/* 右栏：建议复评项目 + 提交（客户端表单） */}
-        <div>
-          <FollowupForm
-            focusScales={latestScaleIds.map(toItem)}
-            extraScales={extraIds.map(toItem)}
-            askableCounts={askableCounts}
-            previousCount={latestScaleIds.length}
-            previousMinutes={estimateMinutes(latestScaleIds)}
-            error={error}
-            action={startAssessment.bind(null, patientId)}
-          />
-        </div>
-      </div>
+      <FollowupForm
+        focusScales={latestScaleIds.map(toItem)}
+        extraScales={extraIds.map(toItem)}
+        askableCounts={askableCounts}
+        previousCount={latestScaleIds.length}
+        previousMinutes={estimateMinutes(latestScaleIds)}
+        error={error}
+        action={startAssessment.bind(null, patientId)}
+      />
     </div>
   );
 }

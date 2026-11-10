@@ -13,15 +13,10 @@ import { V2DemoPipeline } from "@/components/v2-pipeline";
 
 export default function PatientFlowPage() {
   return (
-    <main className="patient-main flex flex-1 flex-col justify-center">
-      <section className="w-full">
-        {/* 六步统一展示：unlockedStep=6 无锁定态、不传 links 不可点击、hideDescriptions 只留编号+步骤名；
-            flow-pipeline-lg 适老化放大 */}
-        <div className="flow-pipeline-lg">
-          <V2DemoPipeline current={0} unlockedStep={6} showHeader={false} hideDescriptions />
-        </div>
-
-        <div className="mt-12 flex justify-center">
+    <main className="patient-main flex max-w-[66rem] flex-1 flex-col justify-center">
+      <section className="w-full" aria-label="评估流程">
+        <V2DemoPipeline />
+        <div className="mt-6 flex justify-end">
           <Link href="/patient/register" className="patient-primary-action w-full sm:w-auto">
             开始
             <ArrowRight size={30} strokeWidth={2.2} aria-hidden="true" />

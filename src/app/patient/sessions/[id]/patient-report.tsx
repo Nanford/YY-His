@@ -19,6 +19,7 @@ import { TriangleAlert, CalendarClock, Check, ClipboardCheck, Download, HeartHan
 import { Button } from "@/components/ui/button";
 import { SectionDisclosure } from "@/components/section-disclosure";
 import type { ReportField } from "@/lib/assessment/report-profile";
+import { buildReportRows, type ReportRow } from "@/lib/assessment/report-rows";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
@@ -28,6 +29,7 @@ import { scales, scoringCategories } from "@/lib/rules";
 import { InterventionVideo, InterventionImage, InterventionText } from "@/components/intervention-media";
 import { SectionHead } from "./section-head";
 import { SupplementarySection } from "./supplementary-section";
+import { ReportResultsTable } from "./report-results-table";
 
 /** 5 大类固定展示顺序：运动干预 → 膳食营养 → 中医食养 → 就诊建议 → 其他（来源：积分数据 categories 顺序） */
 const CATEGORY_ORDER = scoringCategories.map((c) => c.label);
@@ -105,11 +107,13 @@ export function PatientReport({
   error,
 }: PatientReportProps) {
   const hasError = error === "scales" || error === "repeat" || error === "not_reported";
+  const rows = buildReportRows(reportScales.map((scale) => scale.id), tags, deferredScales);
+  const hasProblems = tags.some(isAbnormalTag);
 
   return (
     <main className="patient-main max-w-[72rem] flex-1 space-y-5">
       <header className="patient-panel overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-accent/45 px-5 py-6 sm:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-accent/55 px-5 py-6 sm:px-8">
           <div className="flex items-center gap-3">
             <span className="hidden size-12 shrink-0 place-items-center rounded-xl bg-card text-primary sm:grid" aria-hidden="true">
               <ClipboardCheck className="size-6" />
@@ -140,31 +144,33 @@ export function PatientReport({
         </dl>
       </header>
 
-      <ExistingProblemsSection tags={tags} />
-      <TagsSection tags={tags} deferredScales={deferredScales} />
-
-      {/* 同一报告仍保留评估范围和基础档案，患者可按需展开。 */}
-      <SectionDisclosure title="本次评估项目" summary={`${reportScales.length} 项`}>
-        <ul className="flex flex-wrap items-center gap-2" aria-label="本次评估内容">
-          {reportScales.map((scale) => (
-            <li
-              key={scale.id}
-              className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-muted px-3 py-2 font-semibold"
-            >
-              {scale.name}
-              <span
-                className={`ui-badge ${scale.scope === "repeat" ? "ui-badge-warning" : "ui-badge-success"}`}
-              >
-                {scale.scope === "repeat" ? "复评" : "新增"}
-              </span>
-              {deferredScales.some((d) => d.scaleId === scale.id) && (
-                <span className="ui-badge ui-badge-warning">部分计分</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </SectionDisclosure>
-      <BasicInfoSection rows={basicInfoRows} />
+      <div className={hasProblems ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.48fr)]" : "space-y-4"}>
+        <ExistingProblemsSection tags={tags} />
+        <aside className={hasProblems ? "grid gap-3" : "grid gap-3 sm:grid-cols-2"} aria-label="报告档案">
+          <BasicInfoSection rows={basicInfoRows} />
+          <SectionDisclosure title="本次评估项目" summary={`${reportScales.length} 项`}>
+            <ul className="flex flex-wrap items-center gap-2" aria-label="本次评估内容">
+              {reportScales.map((scale) => (
+                <li
+                  key={scale.id}
+                  className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-muted px-3 py-2 font-semibold"
+                >
+                  {scale.name}
+                  <span
+                    className={`ui-badge ${scale.scope === "repeat" ? "ui-badge-warning" : "ui-badge-success"}`}
+                  >
+                    {scale.scope === "repeat" ? "复评" : "新增"}
+                  </span>
+                  {deferredScales.some((d) => d.scaleId === scale.id) && (
+                    <span className="ui-badge ui-badge-warning">部分计分</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </SectionDisclosure>
+        </aside>
+      </div>
+      <ResultsSection rows={rows} deferredScales={deferredScales} />
 
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-lg" role="alert">
@@ -353,59 +359,16 @@ function ComparisonCard({ comparison }: { comparison: ScaleComparison }) {
   );
 }
 
-function TagsSection({
-  tags,
-  deferredScales,
-}: {
-  tags: readonly AssessmentTag[];
+function ResultsSection({ rows, deferredScales }: {
+  rows: readonly ReportRow[];
   deferredScales: readonly DeferredScale[];
 }) {
-  // 按量表分组；组内异常标签置顶；量表顺序按首个标签出现顺序
-  const byScale = new Map<string, AssessmentTag[]>();
-  for (const tag of tags) {
-    const list = byScale.get(tag.scaleId) ?? [];
-    list.push(tag);
-    byScale.set(tag.scaleId, list);
-  }
-  const groups = [...byScale.entries()].map(([scaleId, scaleTags]) => {
-    const ordered = [...scaleTags].sort((a, b) => {
-      const aa = isAbnormalTag(a) ? 0 : 1;
-      const bb = isAbnormalTag(b) ? 0 : 1;
-      if (aa !== bb) return aa - bb;
-      return a.tag.localeCompare(b.tag, "zh-CN");
-    });
-    return {
-      scaleId,
-      scaleName: scales.find((s) => s.id === scaleId)?.name ?? scaleId,
-      tags: ordered,
-      hasAbnormal: ordered.some(isAbnormalTag),
-    };
-  });
-  // 有异常的量表组置顶
-  groups.sort((a, b) => Number(b.hasAbnormal) - Number(a.hasAbnormal));
-
-  // 全豁免量表（计分项目全为医生检查题、deferClinical 下零标签）：没有标签组可展示，
-  // 若按"没有发现问题"口径呈现属于误导，须如实说明这些量表本次暂无结论。
-  const taggedScaleIds = new Set(tags.map((tag) => tag.scaleId));
-  const silentDeferred = deferredScales.filter((d) => !taggedScaleIds.has(d.scaleId));
-  const silentNote = silentDeferred.length > 0 && (
-    <div className="ui-alert ui-alert-warning mt-6" role="note">
-      <TriangleAlert size={21} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-      <p>
-        {silentDeferred.map((d) => `「${d.scaleName}」`).join("、")}
-        的计分项目均需医护测量/查看后评定，本次暂无结论，不计入上面的「无异常」范围。
-      </p>
-    </div>
-  );
-
   return (
     <section className="patient-panel flex flex-col gap-4 px-5 py-5 sm:px-8 sm:py-6">
       <SectionHead
         icon={<ClipboardCheck size={16} strokeWidth={1.8} aria-hidden="true" />}
         title="评估结果"
       />
-
-      {/* Demo 口径：医生检查题（舌象/测量等）暂未计分的量表如实标注，医生补录重评后结论可能更新 */}
       {deferredScales.length > 0 && (
         <div className="ui-alert ui-alert-warning" role="note">
           <TriangleAlert size={21} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
@@ -417,52 +380,12 @@ function TagsSection({
           </p>
         </div>
       )}
-
-      {tags.length === 0 ? (
-        silentNote ? (
-          silentNote
-        ) : (
-          <div className="ui-alert">
-            <Check size={21} strokeWidth={2} aria-hidden="true" />
-            <p>本次评估没有发现需要关注的问题，请继续保持良好的生活习惯。</p>
-          </div>
-        )
-      ) : (
-        <>
-        {silentNote}
-        <SectionDisclosure title="查看完整评估结果" summary={`${groups.length} 组`}>
-          <div className="space-y-5">
-          {groups.map((group) => (
-            <div key={group.scaleId}>
-              {/* 组头与 chips 节奏统一：组间距 24px、组头距 chips 12px，chips 保持 min-h-12 大胶囊 */}
-              <p className="mb-3 text-sm font-extrabold tracking-wide text-[var(--ink-muted)]">
-                {group.scaleName}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {group.tags.map((tag) => {
-                  const abnormal = isAbnormalTag(tag);
-                  return (
-                    <span
-                      key={`${tag.scaleId}-${tag.tag}-${tag.code}`}
-                      className={[
-                        "inline-flex min-h-12 items-center rounded-2xl border px-4 py-2 text-lg font-bold",
-                        abnormal
-                          ? "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]"
-                          : "border-[var(--line-strong)] bg-[var(--brand-soft)] text-[var(--brand-strong)]",
-                      ].join(" ")}
-                    >
-                      {tag.tag}
-                      {LEVEL_LABEL[tag.level] ?? ""}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          </div>
-        </SectionDisclosure>
-        </>
-      )}
+      <SectionDisclosure title="查看完整评估结果" summary={`${rows.length} 项`}>
+        <div className="overflow-x-auto rounded-xl focus-visible:outline-2 focus-visible:outline-ring sm:border sm:border-border"
+          role="region" aria-label="评估结果" tabIndex={0}>
+          <ReportResultsTable rows={rows} screen />
+        </div>
+      </SectionDisclosure>
     </section>
   );
 }
@@ -504,20 +427,16 @@ function PlanSection({
             const items = plan.filter((item) => item.categoryLabel === category);
             if (items.length === 0) return null;
             return (
-              <div key={category}>
-                <h3 className="border-l-4 border-[var(--brand)] pl-3 text-lg font-bold text-[var(--brand-strong)]">
-                  {category}
-                </h3>
-                {/* 单项独占整行，保留完整教程和安全提示。 */}
-                  <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {items.map((item) => (
-                      <PlanCard
-                        key={item.code}
-                        item={item}
-                        className={items.length === 1 ? "xl:col-span-2" : undefined}
-                      />
-                    ))}
-                  </div>
+              <div key={category} className="overflow-hidden rounded-2xl border border-border">
+                <div className="flex items-center justify-between gap-3 border-b border-border bg-accent/45 px-4 py-2.5">
+                  <h3 className="font-bold text-foreground">{category}</h3>
+                  <span className="ui-badge">{items.length} 项</span>
+                </div>
+                <div className="grid gap-3 p-3 xl:grid-cols-2">
+                  {items.map((item) => (
+                    <PlanCard key={item.code} item={item} className={items.length === 1 ? "xl:col-span-2" : undefined} />
+                  ))}
+                </div>
               </div>
             );
           })}

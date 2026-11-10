@@ -185,13 +185,10 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
   const editedCount = answers.filter((answer) => answer.editHistory.length > 0).length;
 
   return (
-    <section className="ui-panel overflow-hidden">
-      {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），保留浅蓝底作模块识别 */}
-      <div className="ui-panel-heading flex-wrap bg-[#eff6ff]">
+    <section id="answer-trace" className="ui-panel scroll-mt-20 overflow-hidden">
+      <div className="ui-panel-heading flex-wrap bg-accent/45">
         <div>
-          <p className="page-eyebrow">AUDIT TRACE</p>
-          <h2 className="ui-panel-title mt-1">答案与采集追溯</h2>
-          <p className="mt-2 text-sm leading-6 text-[#6b82a4]">逐题核对标准化结果、原始回答、修改记录与录音存储状态。</p>
+          <h2 className="ui-panel-title">答案与采集追溯</h2>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="ui-badge">{answers.length} 道答案</span>
@@ -216,13 +213,14 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
               const relatedTurns = turnsByQuestion.get(answer.questionId) ?? [];
 
               return (
-                <details key={answer.questionId} className="group overflow-hidden rounded-xl border border-slate-200 open:shadow-md">
+                <details key={answer.questionId} className="group overflow-hidden rounded-xl border border-border open:border-primary/35">
                   <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3.5 transition hover:bg-slate-50">
                     <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
                       {question?.no ?? answer.questionId}
                     </span>
-                    <span className="min-w-0 flex-1 text-sm font-medium leading-6 text-slate-800">
-                      {question?.standardText ?? "题目规则已更新，请按题目编号核对历史记录"}
+                    <span className="min-w-0 flex-1 text-sm font-semibold leading-6 text-foreground">
+                      <span className="block text-xs font-normal text-muted-foreground">{scale?.name ?? "历史量表"}</span>
+                      {question?.standardText ?? "按题目编号核对历史记录"}
                     </span>
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${sourceMeta.cls}`}>
                       {sourceMeta.label}
@@ -235,9 +233,7 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
                   </summary>
 
                   <div className="space-y-5 border-t border-slate-100 bg-slate-50/60 p-4">
-                    <p className="text-xs text-slate-500">
-                      所属量表：{scale?.name ?? "历史量表"} · 最近更新：{formatDate(answer.updatedAt)}
-                    </p>
+                    <p className="text-xs text-muted-foreground">最近更新 {formatDate(answer.updatedAt)}</p>
 
                     <div className="grid gap-3 md:grid-cols-3">
                       <div className="rounded-lg border border-slate-200 bg-white p-3">
@@ -247,9 +243,14 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white p-3 md:col-span-2">
                         <p className="text-xs font-medium text-slate-500">原始回答文本</p>
-                        <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                          {answer.rawText || "未记录原始文本"}
-                        </p>
+                        {answer.rawText && /^data:image\/(png|jpeg|webp);base64,/.test(answer.rawText) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={answer.rawText} alt="患者提交的画作" className="mt-2 max-h-60 max-w-full rounded-lg object-contain" loading="lazy" />
+                        ) : (
+                          <p className="mt-1 whitespace-pre-wrap text-sm leading-6 wrap-anywhere text-slate-700">
+                            {answer.rawText || "未记录原始文本"}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -270,9 +271,7 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
           </div>
         )}
 
-        <p className="mt-4 text-xs leading-5 text-slate-400">
-          本视图不主动拼接患者基础身份字段；原始回答可能包含患者自主陈述的信息，仅限本地医生端查看。
-        </p>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">原始回答和录音仅在本机医生端查看。</p>
       </div>
     </section>
   );

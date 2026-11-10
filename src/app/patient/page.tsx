@@ -1,134 +1,87 @@
 /**
- * INPUT:  Prisma（仅本机 cookie 记住的"我的会话"）、患者会话 cookie
- * OUTPUT: 患者端入口页：新患者自助建档，或继续/查看自己本次的评估
- * POS:    演示动线：患者自助建档直接开始评估（/patient/register）。
- *         数据隔离：只按 cookie 显示患者自己的会话，不列出别人的（患者看不到他人信息）；
- *         医生端才看全部。demo 级隔离，正式版用真实登录（AGENTS.md：Demo 不做鉴权）。
+ * INPUT:  本机患者会话 cookie 与对应的评估会话
+ * OUTPUT: 新建档案、继续评估和查看报告的患者入口
+ * POS:    只展示 cookie 对应会话。
  */
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowRight, ChevronRight, FileText, HeartPulse, UserPlus } from "lucide-react";
+import { ArrowRight, ClipboardCheck, FileText, UserRoundPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SectionDisclosure } from "@/components/section-disclosure";
 import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
 import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 
 export const dynamic = "force-dynamic";
 
-const assessmentSteps = [
-  {
-    icon: UserPlus,
-    title: "建立健康档案",
-    description: "填写姓名、性别、年龄",
-  },
-  {
-    icon: HeartPulse,
-    title: "完成健康问询",
-    description: "可语音或手动选择作答",
-  },
-  {
-    icon: FileText,
-    title: "查看评估报告",
-    description: "了解评估结论与干预建议",
-  },
-];
-
 export default async function PatientHomePage() {
-  // 数据隔离：只取本机 cookie 记住的"我自己的会话"，不再列出所有人的会话。
   const mySessionId = (await cookies()).get(PATIENT_SESSION_COOKIE)?.value;
   const mySession = mySessionId
     ? await prisma.assessmentSession.findUnique({
         where: { id: mySessionId },
-        include: { patient: { select: { name: true, gender: true, age: true, code: true } } },
+        select: {
+          id: true,
+          status: true,
+          scaleIds: true,
+          patient: { select: { name: true, gender: true, age: true, code: true } },
+        },
       })
     : null;
+  const inProgress = mySession?.status === "in_progress";
+  const scaleNames = (mySession?.scaleIds as string[] | undefined)?.map((id) => scaleById.get(id)?.name ?? id);
 
   return (
-    <main className="patient-main flex-1 u-stagger">
-      <section className="patient-panel overflow-hidden">
-        <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[minmax(0,1.12fr)_minmax(290px,0.88fr)] lg:items-center lg:p-12">
-          <div>
-            <h1 className="patient-display-title">健康评估</h1>
-            <p className="patient-display-copy max-w-2xl">
-              完成健康问询后，可查看评估报告与干预建议。
-            </p>
-            <div className="mt-7 flex flex-col items-stretch gap-4 sm:items-start">
-              <Link href="/patient/register" className="patient-primary-action w-full sm:w-auto">
-                <UserPlus size={28} strokeWidth={2.1} aria-hidden="true" />
-                新建健康档案
-                <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
-              </Link>
+    <main className="patient-main max-w-[66rem] flex-1 space-y-5">
+      <h1 className="patient-display-title">健康评估</h1>
+      <div className={mySession ? "grid items-start gap-4 lg:grid-cols-2" : "max-w-2xl"}>
+        <section className="rounded-2xl border border-border bg-card">
+          <div className="flex items-start gap-4 rounded-t-[inherit] bg-accent/55 p-5 sm:p-6">
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-card text-primary" aria-hidden="true">
+              <UserRoundPlus className="size-6" />
+            </span>
+            <div>
+              <h2 className="text-xl font-bold">开始评估</h2>
+              <p className="mt-1 text-sm text-muted-foreground">填写基本信息，选择本次评估项目。</p>
             </div>
           </div>
-
-          <aside className="rounded-[20px] border border-blue-100 bg-[#f8fbff] p-5 sm:p-6" aria-label="评估流程">
-            <p className="text-sm font-extrabold tracking-[0.12em] text-blue-700">评估流程</p>
-            <ol className="mt-5 grid gap-4">
-              {assessmentSteps.map(({ icon: Icon, title, description }, index) => (
-                <li key={title} className="flex items-center gap-4">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
-                    <Icon size={23} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-base font-extrabold text-[#173766]">
-                      {index + 1}. {title}
-                    </span>
-                    <span className="mt-1 block text-sm leading-6 text-[#6c83a5]">{description}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </aside>
-        </div>
-      </section>
-
-      {mySession ? (
-        <section className="mt-8">
-          <div className="mb-4">
-            <p className="text-sm font-bold tracking-[0.08em] text-blue-700">我的评估</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-[-0.025em] text-[#173766]">继续或查看我的评估</h2>
-          </div>
-          <Link
-            href={`/patient/sessions/${mySession.id}`}
-            className="patient-choice group min-h-[112px] justify-between gap-5 p-5 text-left shadow-[0_8px_22px_rgba(33,87,160,0.06)] focus-visible:outline-none"
-          >
-            <span className="flex min-w-0 items-center gap-4">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 transition duration-200 group-hover:bg-blue-600 group-hover:text-white">
-                <HeartPulse size={25} strokeWidth={1.9} aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-2xl font-extrabold leading-tight text-[#173766]">
-                  {mySession.patient.name}
-                  <span className="ml-3 text-base font-semibold text-[#62779a]">
-                    {mySession.patient.gender} · {mySession.patient.age} 岁
-                  </span>
-                </span>
-                <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium leading-6 text-[#62779a]">
-                  <span className="font-mono text-[#466187]">{mySession.patient.code}</span>
-                  <span>
-                    {(mySession.scaleIds as string[]).map((id) => scaleById.get(id)?.name ?? id).join("、")}
-                  </span>
-                </span>
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1 text-base font-extrabold text-blue-600">
-              <span className="hidden sm:inline">
-                {mySession.status === "in_progress" ? "继续评估" : "查看我的报告"}
-              </span>
-              <ChevronRight size={23} strokeWidth={2.2} aria-hidden="true" />
-            </span>
-          </Link>
-        </section>
-      ) : (
-        <section className="ui-panel-subtle mt-7 flex min-h-36 flex-col items-center justify-center px-6 py-7 text-center sm:flex-row sm:text-left">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
-            <HeartPulse size={25} strokeWidth={1.9} aria-hidden="true" />
-          </span>
-          <div className="mt-4 sm:mt-0 sm:ml-4">
-            <h2 className="text-xl font-extrabold text-[#173766]">还没有您的评估</h2>
-            <p className="mt-1 text-base leading-7 text-[#62779a]">点击上方按钮建立健康档案，即可开始。</p>
+          <div className="p-5 sm:p-6">
+            <Button asChild className="min-h-12 w-full gap-2 px-4 text-base font-bold sm:w-auto">
+              <Link href="/patient/register">
+                新建健康档案 <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
           </div>
         </section>
-      )}
+
+        {mySession && (
+          <section className="rounded-2xl border border-border bg-card">
+            <div className="flex items-start gap-4 rounded-t-[inherit] bg-accent/55 p-5 sm:p-6">
+              <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-card text-primary" aria-hidden="true">
+                {inProgress ? <ClipboardCheck className="size-6" /> : <FileText className="size-6" />}
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold">我的评估</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {mySession.patient.name} · {mySession.patient.gender} · {mySession.patient.age} 岁
+                </p>
+                <p className="mt-1 font-mono text-xs text-muted-foreground">{mySession.patient.code}</p>
+              </div>
+            </div>
+            <div className="space-y-3 p-5 sm:p-6">
+              <Button asChild variant="outline" className="min-h-12 w-full gap-2 px-4 text-base font-bold sm:w-auto">
+                <Link href={`/patient/sessions/${mySession.id}`}>
+                  {inProgress ? "继续评估" : "查看我的报告"} <ArrowRight aria-hidden="true" />
+                </Link>
+              </Button>
+              {scaleNames && scaleNames.length > 0 && (
+                <SectionDisclosure title="评估项目" summary={`${scaleNames.length} 项`}>
+                  <p className="text-sm text-muted-foreground">{scaleNames.join("、")}</p>
+                </SectionDisclosure>
+              )}
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

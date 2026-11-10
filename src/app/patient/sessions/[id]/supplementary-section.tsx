@@ -1,95 +1,73 @@
 /**
- * INPUT:  当前会话 ID、尚未完成的量表列表、是否默认展开（提交报错回跳时）
- * OUTPUT: 补充评估两层入口（v2.1）：第一层仅「补充评估」大按钮，点击展开第二层量表勾选清单
- * POS:    患者报告页底部；只列"尚未完成的量表"（复评需医生在工作台发起），勾选提交走
- *         Server Action createSupplementarySession（独立新会话，不影响本次报告）。
- *         来源：V2.0 §3 补充评估；v2.1修改思路.pptx 第10~12页（补充评估分 2 层展示）。
+ * INPUT: 当前会话、尚未完成的量表、是否在提交出错时展开
+ * OUTPUT: 患者报告的补充评估入口与量表卡片
+ * POS: 只提交尚未完成的项目，既往报告与复评权限由服务端校验。
  */
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronUp, ClipboardPlus, Plus, Stethoscope } from "lucide-react";
+import { ChevronUp, ClipboardPlus } from "lucide-react";
+import { AssessmentSubmitBar, ScaleOption } from "@/components/assessment-selection";
+import { Button } from "@/components/ui/button";
 import { createSupplementarySession } from "@/lib/actions/patient";
 import type { RemainingScale } from "./patient-report";
 import { SectionHead } from "./section-head";
 
-export function SupplementarySection({
-  sessionId,
-  remainingScales,
-  defaultOpen = false,
-}: {
+export function SupplementarySection({ sessionId, remainingScales, defaultOpen = false }: {
   sessionId: string;
   remainingScales: RemainingScale[];
-  /** 提交报错回跳（?error=…）时默认展开第二层，让患者直接看到勾选清单 */
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 
-  // 第一层：仅「补充评估」入口按钮，保持报告页简洁（v2.1 第11页）
   if (!open) {
     return (
-      <section className="patient-panel px-6 py-7 md:px-8">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="patient-primary-action w-full sm:w-auto"
-        >
-          <ClipboardPlus size={26} strokeWidth={2} aria-hidden="true" />
-          <span>补充评估</span>
-        </button>
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-accent/45 p-4 sm:p-5">
+        <span className="text-sm text-muted-foreground">{remainingScales.length} 个项目可补充</span>
+        <Button type="button" onClick={() => setOpen(true)} className="min-h-11 gap-2 px-4 font-bold">
+          <ClipboardPlus aria-hidden="true" /> 补充评估
+        </Button>
       </section>
     );
   }
 
-  // 第二层：量表勾选清单（v2.1 第12页）；卡头与报告页其他分区同一结构（SectionHead）
   return (
-    <section className="patient-panel px-6 py-7 md:px-8">
+    <section className="patient-panel space-y-4 px-4 py-5 sm:px-6">
       <SectionHead
-        icon={<ClipboardPlus size={16} strokeWidth={1.8} aria-hidden="true" />}
+        icon={<ClipboardPlus size={16} aria-hidden="true" />}
         title="选择补充评估项目"
-        aside="如需复评已完成的项目，请联系医生。"
+        aside={
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="min-h-10 gap-1 px-2">
+            <ChevronUp aria-hidden="true" /> 收起
+          </Button>
+        }
       />
-      <form action={createSupplementarySession.bind(null, sessionId)} className="mt-6 space-y-5">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <p className="text-sm text-muted-foreground">如需复评已完成的项目，请联系医生。</p>
+      <form action={createSupplementarySession.bind(null, sessionId)} className="space-y-4">
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {remainingScales.map((scale) => (
-            <label key={scale.id} className="patient-check">
-              <input type="checkbox" name="scaleIds" value={scale.id} />
-              <span className="min-w-0">
-                <span className="block text-lg font-extrabold leading-tight text-[var(--ink)]">{scale.name}</span>
-                <span
-                  className={`mt-2 flex items-start gap-1.5 text-sm font-semibold leading-6 ${
-                    scale.needsClinician ? "text-[var(--warning)]" : "text-[var(--success)]"
-                  }`}
-                >
-                  {scale.needsClinician ? (
-                    <Stethoscope size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  ) : (
-                    <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-                  )}
-                  <span>
-                    {scale.needsClinician
-                      ? "含舌象、测量等需医生查看的项，这些题暂不计分，答完先出部分计分报告"
-                      : "可当场生成评估报告"}
-                  </span>
-                </span>
-              </span>
-            </label>
+            <ScaleOption
+              key={scale.id}
+              name="scaleIds"
+              value={scale.id}
+              title={scale.name}
+              needsAssist={scale.needsClinician}
+              showDetails
+              checked={selected.has(scale.id)}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setSelected((previous) => {
+                  const next = new Set(previous);
+                  if (checked) next.add(scale.id);
+                  else next.delete(scale.id);
+                  return next;
+                });
+              }}
+            />
           ))}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button type="submit" className="patient-primary-action w-full sm:w-auto">
-            <Plus size={26} strokeWidth={2} aria-hidden="true" />
-            <span>开始补充评估</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="ui-button ui-button-quiet self-center"
-          >
-            <ChevronUp size={19} strokeWidth={2} aria-hidden="true" />
-            收起
-          </button>
-        </div>
+        <AssessmentSubmitBar count={selected.size} label="开始补充评估" />
       </form>
     </section>
   );

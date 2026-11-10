@@ -515,21 +515,20 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
       )}
 
       <div className="patient-main patient-main-interview">
-        <section className="patient-panel overflow-hidden u-rise-in">
-          <div className="patient-interview-stage lg:border-0">
-            {/* 左侧：数字医生主视觉；栏宽约 1:2.1，形象与状态文案垂直居中 */}
-            <aside className="patient-interview-aside lg:border-r lg:border-b-0">
+        <section className="patient-panel overflow-hidden" aria-label="健康问询">
+          <div className="patient-interview-stage">
+            <aside className="patient-interview-aside">
               <DoctorAvatar
                 speaking={speaking}
                 mouthLevel={mouthLevel}
                 mode={state.capabilities.avatarMode}
-                size="xl"
+                size="rail"
               />
-              <div className="w-full max-w-[16rem] xl:max-w-[18rem]">
-                <p className="text-2xl font-extrabold tracking-tight text-[var(--ink)] xl:text-[1.65rem]">
+              <div className="min-w-0">
+                <p className="text-lg font-bold text-foreground">
                   数字医生
                 </p>
-                <p className="mt-1.5 text-base leading-7 text-[var(--ink-muted)] xl:text-lg xl:leading-8">
+                <p className="text-sm text-muted-foreground">
                   {speaking
                     ? state.phase === "intro"
                       ? "正在为您讲解…"
@@ -538,35 +537,9 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         : "正在为您播报问题…"
                     : voiceReady
                       ? "请开口回答就行"
-                      : state.phase === "in_question" ? "请选择或输入答案" : ""}
+                      : state.phase === "in_question" ? "请选择或输入答案" : "健康问询"}
                 </p>
               </div>
-              {state.phase === "in_question" && (
-                <div className="w-full max-w-[16rem] xl:max-w-[18rem]">
-                  <div className="mb-1.5 flex items-center justify-between text-sm font-semibold text-[var(--ink-muted)]">
-                    <span>进度</span>
-                    <span>
-                      {state.progress.answered} / {state.progress.total} 题
-                    </span>
-                  </div>
-                  <div
-                    className="h-2 overflow-hidden rounded-full bg-white"
-                    role="progressbar"
-                    aria-label="评估完成进度"
-                    aria-valuemin={0}
-                    aria-valuemax={state.progress.total}
-                    aria-valuenow={state.progress.answered}
-                  >
-                    <span
-                      className="block h-full rounded-full bg-[var(--brand)] transition-[width] duration-300"
-                      style={{
-                        width:
-                          (state.progress.total ? (state.progress.answered / state.progress.total) * 100 : 0) + "%",
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
             </aside>
 
             {/* 右侧：按阶段渲染；问询阶段对话区 flex 吃满，作答区固定比例 */}
@@ -693,6 +666,23 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
               {state.phase === "in_question" && state.prompt && (
                 <>
+                  <div className="shrink-0 border-b border-border bg-card px-4 py-2 sm:px-7">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="font-bold text-foreground tabular-nums">
+                        第 {state.progress.answered + 1} / {state.progress.total} 题
+                      </span>
+                      <button type="button" onClick={replay} className="ui-button ui-button-quiet ui-button-sm">
+                        <Volume2 size={18} aria-hidden="true" />
+                        再听一遍
+                      </button>
+                    </div>
+                    <progress
+                      className="block h-1.5 w-full overflow-hidden rounded-full bg-accent [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-accent [&::-webkit-progress-value]:bg-primary"
+                      aria-label="评估完成进度"
+                      max={Math.max(1, state.progress.total)}
+                      value={state.progress.answered}
+                    />
+                  </div>
                   {/* 当前题大字展示（2026-08-08 设计口径：只展示当前这一条问题，不留聊天记录）。
                       displayText 优先（MMSE 复述题目标句不上屏，2026-09-04 修改意见 6）；
                       例外：本次未播出语音时展示完整题干兜底（2026-09-12，同旁白口径）。
@@ -707,20 +697,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
 
                   {/* 作答区：语音为主视觉，按钮/文字为兜底；高度上限避免挤掉对话 */}
                   <div className="patient-interview-answer">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={replay}
-                        className="ui-button ui-button-quiet px-0 text-base underline decoration-dotted underline-offset-4"
-                      >
-                        <Volume2 size={20} strokeWidth={1.8} aria-hidden="true" />
-                        <span>再听一遍</span>
-                      </button>
-                      <span className="text-sm font-semibold text-[var(--ink-muted)] sm:text-base">
-                        第 {state.progress.answered + 1} / {state.progress.total} 题
-                      </span>
-                    </div>
-
                     {/* 语音未激活但 ASR 可用（如刷新/重进会话丢了麦克风流）时，常驻找回入口。
                         多选/图片/画钟等专用控件题不收语音作答（多选只点选、画钟交卷），
                         展示语音入口没有意义，反而挤占作答区高度（2026-09-04 修改意见 4/7） */}
@@ -736,9 +712,6 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                           <Mic size={26} strokeWidth={1.8} aria-hidden="true" />
                           <span>用语音回答</span>
                         </button>
-                        <p className="mt-2 text-sm leading-6 text-[var(--ink-faint)]">
-                          点一下后自动听您回答；也可以直接用下面的按钮或文字作答。
-                        </p>
                       </div>
                     )}
 
@@ -964,7 +937,7 @@ function resolutionNotice(resolution: SubmitAnswerResult["resolution"]): string 
 
 /**
  * 当前条目大字展示（2026-08-08 设计口径：主区只展示当前这一条问题/旁白，不累积聊天记录）。
- * 沿用原"当前题"医生气泡样式；旁白带「说明」徽章；播报中显示呼吸点提示。
+ * 题目使用大字阅读区，旁白带「说明」徽章，播报中显示状态。
  */
 function CurrentPrompt({
   text,
@@ -983,18 +956,11 @@ function CurrentPrompt({
       <div
         className={
           compact
-            ? "u-rise-in rounded-2xl rounded-tl-md bg-[var(--surface-blue)] px-4 py-2 leading-normal text-[var(--ink)] shadow-[0_10px_24px_rgb(23_105_232_/_10%)]"
-            : "u-rise-in rounded-3xl rounded-tl-md bg-[var(--surface-blue)] px-5 py-3.5 leading-relaxed text-[var(--ink)] shadow-[0_10px_24px_rgb(23_105_232_/_10%)] xl:px-6 xl:py-4"
+            ? "border-l-4 border-primary px-3 py-1 leading-snug text-foreground"
+            : "border-l-4 border-primary px-4 py-2 leading-relaxed text-foreground sm:px-6"
         }
       >
-        <p className={`${compact ? "mb-0.5 text-xs" : "mb-1 text-sm"} font-bold tracking-wide text-[var(--ink-faint)]`}>
-          数字医生
-          {badge && (
-            <span className="ml-2 inline-block rounded-full bg-[var(--brand)] px-2 py-0.5 align-middle text-xs font-bold text-white">
-              {badge}
-            </span>
-          )}
-        </p>
+        {badge && <p className="mb-2 text-sm font-bold text-primary">{badge}</p>}
         <p className={compact ? "text-[clamp(17px,1.5vw,21px)] font-bold" : "text-[clamp(22px,2.2vw,30px)] font-bold"}>
           {text}
         </p>

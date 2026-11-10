@@ -82,7 +82,7 @@ export default async function PatientRegisterPage({
   });
 
   return (
-    <main className="patient-main max-w-[56rem] flex-1">
+    <main className="patient-main max-w-[68rem] flex-1">
       <Link href="/patient" className="ui-button ui-button-quiet -ml-2 mb-6">
         <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
         返回评估首页
@@ -140,8 +140,8 @@ export default async function PatientRegisterPage({
             </div>
           )}
 
-          <form action={registerPatient} className="space-y-6">
-            <div className="grid gap-5 sm:grid-cols-2">
+          <form action={registerPatient} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+            <div className="grid gap-4 rounded-2xl bg-muted/45 p-4 sm:grid-cols-2 sm:p-5">
               <label className="block space-y-2">
                 <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
                   您的姓名 <span className="text-[#c23b4a]">*</span>
@@ -149,7 +149,7 @@ export default async function PatientRegisterPage({
                 <input name="name" type="text" required placeholder="请输入姓名" className={inputCls} />
               </label>
 
-              <fieldset className="row-start-2 space-y-2 sm:col-span-2">
+              <fieldset className="space-y-2 sm:col-span-2 sm:row-start-2">
                 <legend className="text-lg font-extrabold text-[#173766]">
                   性别 <span className="text-[#c23b4a]">*</span>
                 </legend>
@@ -184,6 +184,7 @@ export default async function PatientRegisterPage({
 
             </div>
             <div className="grid gap-3">
+              <h2 className="text-base font-bold text-foreground">补充资料</h2>
               <SectionDisclosure title="生活与照护情况" summary="选填" defaultOpen={error === "profile"}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <OptionalSelect label="文化程度" name="education" options={EDUCATION_LEVELS} />
@@ -227,7 +228,7 @@ export default async function PatientRegisterPage({
               </SectionDisclosure>
             </div>
 
-            <div className="flex justify-end border-t border-border pt-5">
+            <div className="flex justify-end border-t border-border pt-4 lg:col-span-2">
               <Button type="submit" className="min-h-14 w-full gap-3 px-5 text-lg font-bold sm:w-auto">
                 下一步：选择评估内容
                 <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />

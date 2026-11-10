@@ -73,16 +73,16 @@ export default function MeasurementSection() {
   const bmiText = useMemo(() => formatBmi(heightCm, weightKg), [heightCm, weightKg]);
 
   return (
-    <section className="border-t border-[#dbe7f6]">
+    <section className="ui-panel overflow-hidden">
       {/* 栏头与前两段（基本情况/疾病用药）保持同一结构：标题 + 说明 + 右侧徽标 */}
-      <div className="ui-panel-heading">
+      <div className="ui-panel-heading flex-wrap bg-accent/45">
         <div>
-          <h2 className="ui-panel-title">三、人体测量与客观指标</h2>
+          <h2 className="ui-panel-title">人体测量与客观指标</h2>
           <p className="mt-1 text-xs text-[#62779a]">
-            身高、体重（现在及 1/2/3/6/12 月前）可填，BMI 由系统自动计算；小腿围、握力、步速可现场测量后填入
+            BMI 根据身高和当前体重计算。
           </p>
         </div>
-        <span className="ui-badge">测量指标</span>
+        <span className="ui-badge">选填</span>
       </div>
       <div className="ui-panel-body space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">

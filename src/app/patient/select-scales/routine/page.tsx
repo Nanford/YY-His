@@ -71,14 +71,14 @@ export default async function PatientRoutineScalesPage({
         返回方式选择
       </Link>
 
-      <section className="patient-panel overflow-hidden">
+      <section className="patient-panel">
         <PatientPageHeading
           icon={<ListTodo className="size-6" />}
           title="常规综合评估"
           description="请选择评估套餐，确认后开始评估。"
         />
 
-        <div className="px-6 py-7 sm:px-9">
+        <div className="p-4 sm:px-7 sm:py-6">
           <RoutineForm
             packages={packageOptions}
             error={error}

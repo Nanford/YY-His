@@ -137,265 +137,266 @@ export default async function PatientDetailPage({
         </div>
       )}
 
-      <SessionCreateForm
-        packages={SCALE_PACKAGES}
-        groups={scaleGroups}
-        followup={followup}
-        patientId={patient.id}
-        action={createSession.bind(null, patient.id)}
-      />
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
-        {/* 档案信息 */}
-        <section className="ui-panel overflow-hidden">
-          <div className="ui-panel-heading">
-            <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                <CircleUserRound size={21} strokeWidth={1.9} aria-hidden="true" />
-              </span>
-              <div>
-                <h2 className="ui-panel-title">档案信息</h2>
-                <p className="mt-1 text-xs text-[#62779a]">本地医疗敏感信息</p>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,0.46fr)]">
+        <div className="min-w-0 space-y-5">
+          <SessionCreateForm
+            packages={SCALE_PACKAGES}
+            groups={scaleGroups}
+            followup={followup}
+            patientId={patient.id}
+            action={createSession.bind(null, patient.id)}
+          />
+          <section className="ui-table-wrap">
+            <div className="ui-panel-heading">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                  <CalendarClock size={21} strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="ui-panel-title">评估记录</h2>
+                  <p className="mt-1 text-xs text-[#62779a]">每次采集、评分与方案审核均保留记录</p>
+                </div>
               </div>
+              <span className="ui-badge">{patient.sessions.length} 条记录</span>
             </div>
-            <span className="ui-badge">已建档</span>
-          </div>
-          <div className="ui-panel-body">
-            <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-bold text-[#62779a]">性别 / 年龄</dt>
-                <dd className="mt-1.5 font-semibold text-[#173766]">
-                  {patient.gender} / {patient.age} 岁
-                </dd>
+            {patient.sessions.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600">
+                  <CalendarClock size={23} strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                <p className="mt-3 text-sm font-bold text-[#405a81]">暂无评估记录</p>
+                <p className="mt-1 text-xs text-[#7f94b3]">创建评估会话后，记录将显示在这里。</p>
               </div>
-              <div>
-                <dt className="text-xs font-bold text-[#62779a]">手机号</dt>
-                <dd className="mt-1.5 font-semibold text-[#173766]">{patient.phone ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-[#62779a]">住院号 / 门诊号</dt>
-                <dd className="mt-1.5 font-semibold text-[#173766]">
-                  {patient.admissionNo ?? "—"} / {patient.outpatientNo ?? "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-[#62779a]">住址</dt>
-                <dd className="mt-1.5 font-semibold text-[#173766]">{patient.address ?? "—"}</dd>
-              </div>
-            </dl>
-            <div className="mt-6 flex items-start gap-2 border-t border-[#dbe7f6] pt-4 text-xs leading-5 text-[#62779a]">
-              <Lock className="mt-0.5 shrink-0 text-blue-600" size={16} strokeWidth={2} aria-hidden="true" />
-              <p>身份信息仅存本地；出网调用一律使用患者编号 {patient.code}。</p>
-            </div>
-          </div>
-        </section>
-
-        {/* 测量数据 */}
-        <form action={updateMeasurements.bind(null, patient.id)} className="ui-panel overflow-hidden">
-          <div className="ui-panel-heading">
-            <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                <Ruler size={21} strokeWidth={1.9} aria-hidden="true" />
-              </span>
-              <div>
-                <h2 className="ui-panel-title">测量数据</h2>
-                <p className="mt-1 text-xs text-[#62779a]">用于量表自动换算</p>
-              </div>
-            </div>
-            {bmi && <span className="ui-badge">BMI：{bmi}</span>}
-          </div>
-          <div className="ui-panel-body space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="ui-field">
-                <span className="ui-label">身高（cm）</span>
-                <input name="heightCm" type="number" step="any" defaultValue={patient.heightCm ?? ""} className={inputCls} />
-              </label>
-              <label className="ui-field">
-                <span className="ui-label">体重（kg）</span>
-                <input name="weightKg" type="number" step="any" defaultValue={patient.weightKg ?? ""} className={inputCls} />
-              </label>
-              <label className="ui-field">
-                <span className="ui-label">腹围（cm）</span>
-                <input name="waistCm" type="number" step="any" defaultValue={patient.waistCm ?? ""} className={inputCls} />
-              </label>
-              <label className="ui-field">
-                <span className="ui-label">小腿围（cm）</span>
-                <input name="calfCm" type="number" step="any" defaultValue={patient.calfCm ?? ""} className={inputCls} />
-              </label>
-            </div>
-            <div className="flex justify-end">
-              <button className="ui-button ui-button-secondary" type="submit">
-                <Save size={17} strokeWidth={2} aria-hidden="true" />
-                保存
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      {/* V2 补充档案（docx §1）：仅在已填写时显示 */}
-      {(hasBasicExtras || hasDiseaseExtras || hasMeasureExtras) && (
-        <SectionDisclosure title="补充档案">
-          <div className="space-y-6">
-            {hasBasicExtras && (
-              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                {patient.education && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">文化程度</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.education}</dd>
-                  </div>
-                )}
-                {patient.maritalStatus && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">婚姻状况</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.maritalStatus}</dd>
-                  </div>
-                )}
-                {patient.livingSituation && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">居住情况</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.livingSituation}</dd>
-                  </div>
-                )}
-                {patient.careSituation && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">照护情况</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.careSituation}</dd>
-                  </div>
-                )}
-              </dl>
-            )}
-            {hasDiseaseExtras && (
-              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
-                {diagnoses.length > 0 && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">现有诊断</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{diagnoses.join("、")}</dd>
-                  </div>
-                )}
-                {pastHistory.length > 0 && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">既往病史</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{pastHistory.join("、")}</dd>
-                  </div>
-                )}
-                {recentAcute.length > 0 && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">近期急性疾病</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{recentAcute.join("、")}</dd>
-                  </div>
-                )}
-                {medications.length > 0 && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">当前用药</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">
-                      {medications
-                        .map(
-                          (med) =>
-                            `${med.name}（${[med.category, med.dose, med.frequency].filter(Boolean).join("，")}）`
-                        )
-                        .join("；")}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            )}
-            {hasMeasureExtras && (
-              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                {weightHistoryEntries.length > 0 && (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-bold text-[#62779a]">历史体重</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">
-                      {weightHistoryEntries.map(([label, value]) => `${label} ${value}kg`).join("，")}
-                    </dd>
-                  </div>
-                )}
-                {(patient.calfLeftCm != null || patient.calfRightCm != null) && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">小腿围（左 / 右）</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">
-                      {patient.calfLeftCm ?? "—"} cm / {patient.calfRightCm ?? "—"} cm
-                    </dd>
-                  </div>
-                )}
-                {patient.gripStrengthKg != null && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">握力</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">{patient.gripStrengthKg} kg</dd>
-                  </div>
-                )}
-                {patient.gaitSpeed6mSec != null && (
-                  <div>
-                    <dt className="text-xs font-bold text-[#62779a]">6 米步行</dt>
-                    <dd className="mt-1.5 font-semibold text-[#173766]">
-                      {patient.gaitSpeed6mSec} 秒（{gaitSpeed} m/s）
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            )}
-          </div>
-        </SectionDisclosure>
-      )}
-
-      {/* 会话历史 */}
-      <section className="ui-table-wrap">
-        <div className="ui-panel-heading">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-              <CalendarClock size={21} strokeWidth={1.9} aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="ui-panel-title">评估记录</h2>
-              <p className="mt-1 text-xs text-[#62779a]">每次采集、评分与方案审核均保留记录</p>
-            </div>
-          </div>
-          <span className="ui-badge">{patient.sessions.length} 条记录</span>
-        </div>
-        {patient.sessions.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-              <CalendarClock size={23} strokeWidth={1.9} aria-hidden="true" />
-            </span>
-            <p className="mt-3 text-sm font-bold text-[#405a81]">暂无评估记录</p>
-            <p className="mt-1 text-xs text-[#7f94b3]">创建评估会话后，记录将显示在这里。</p>
-          </div>
-        ) : (
-          <table className="ui-table">
-            <thead>
-              <tr>
-                <th>发起时间</th>
-                <th>量表</th>
-                <th>状态</th>
-                <th aria-label="操作" className="text-right" />
-              </tr>
-            </thead>
-            <tbody>
-              {patient.sessions.map((session) => {
-                const meta = SESSION_STATUS_META[session.status] ?? { label: session.status, cls: "ui-badge" };
-                return (
-                  <tr key={session.id}>
-                    <td>{session.startedAt.toLocaleString("zh-CN")}</td>
-                    {/* V2.0 §3：评估范围需可识别（量表名称），新旧结果按时间分别展示可下钻 */}
-                    <td className="text-[#62779a]">
-                      {(session.scaleIds as string[]).map((scaleId) => scaleById.get(scaleId)?.name ?? scaleId).join("、")}
-                    </td>
-                    <td>
-                      <span className={meta.cls}>{meta.label}</span>
-                    </td>
-                    <td className="text-right">
-                      <Link href={`/doctor/sessions/${session.id}`} className="ui-button ui-button-quiet">
-                        进入
-                        <ArrowRight size={17} strokeWidth={2} aria-hidden="true" />
-                      </Link>
-                    </td>
+            ) : (
+              <table className="ui-table">
+                <thead>
+                  <tr>
+                    <th>发起时间</th>
+                    <th>量表</th>
+                    <th>状态</th>
+                    <th aria-label="操作" className="text-right" />
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {patient.sessions.map((session) => {
+                    const meta = SESSION_STATUS_META[session.status] ?? { label: session.status, cls: "ui-badge" };
+                    return (
+                      <tr key={session.id}>
+                        <td>{session.startedAt.toLocaleString("zh-CN")}</td>
+                        {/* V2.0 §3：评估范围需可识别（量表名称），新旧结果按时间分别展示可下钻 */}
+                        <td className="text-[#62779a]">
+                          {(session.scaleIds as string[]).map((scaleId) => scaleById.get(scaleId)?.name ?? scaleId).join("、")}
+                        </td>
+                        <td>
+                          <span className={meta.cls}>{meta.label}</span>
+                        </td>
+                        <td className="text-right">
+                          <Link href={`/doctor/sessions/${session.id}`} className="ui-button ui-button-quiet">
+                            进入
+                            <ArrowRight size={17} strokeWidth={2} aria-hidden="true" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </div>
+        <aside className="min-w-0 space-y-4">
+          {/* 档案信息 */}
+          <section className="ui-panel overflow-hidden">
+            <div className="ui-panel-heading">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                  <CircleUserRound size={21} strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="ui-panel-title">档案信息</h2>
+                  <p className="mt-1 text-xs text-[#62779a]">本地医疗敏感信息</p>
+                </div>
+              </div>
+              <span className="ui-badge">已建档</span>
+            </div>
+            <div className="ui-panel-body">
+              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-bold text-[#62779a]">性别 / 年龄</dt>
+                  <dd className="mt-1.5 font-semibold text-[#173766]">
+                    {patient.gender} / {patient.age} 岁
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-[#62779a]">手机号</dt>
+                  <dd className="mt-1.5 font-semibold text-[#173766]">{patient.phone ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-[#62779a]">住院号 / 门诊号</dt>
+                  <dd className="mt-1.5 font-semibold text-[#173766]">
+                    {patient.admissionNo ?? "—"} / {patient.outpatientNo ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-[#62779a]">住址</dt>
+                  <dd className="mt-1.5 font-semibold text-[#173766]">{patient.address ?? "—"}</dd>
+                </div>
+              </dl>
+              <div className="mt-6 flex items-start gap-2 border-t border-[#dbe7f6] pt-4 text-xs leading-5 text-[#62779a]">
+                <Lock className="mt-0.5 shrink-0 text-blue-600" size={16} strokeWidth={2} aria-hidden="true" />
+                <p>身份信息仅存本地；出网调用一律使用患者编号 {patient.code}。</p>
+              </div>
+            </div>
+          </section>
+
+          {/* 测量数据 */}
+          <form action={updateMeasurements.bind(null, patient.id)} className="ui-panel overflow-hidden">
+            <div className="ui-panel-heading">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                  <Ruler size={21} strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="ui-panel-title">测量数据</h2>
+                  <p className="mt-1 text-xs text-[#62779a]">用于量表自动换算</p>
+                </div>
+              </div>
+              {bmi && <span className="ui-badge">BMI：{bmi}</span>}
+            </div>
+            <div className="ui-panel-body space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="ui-field">
+                  <span className="ui-label">身高（cm）</span>
+                  <input name="heightCm" type="number" step="any" defaultValue={patient.heightCm ?? ""} className={inputCls} />
+                </label>
+                <label className="ui-field">
+                  <span className="ui-label">体重（kg）</span>
+                  <input name="weightKg" type="number" step="any" defaultValue={patient.weightKg ?? ""} className={inputCls} />
+                </label>
+                <label className="ui-field">
+                  <span className="ui-label">腹围（cm）</span>
+                  <input name="waistCm" type="number" step="any" defaultValue={patient.waistCm ?? ""} className={inputCls} />
+                </label>
+                <label className="ui-field">
+                  <span className="ui-label">小腿围（cm）</span>
+                  <input name="calfCm" type="number" step="any" defaultValue={patient.calfCm ?? ""} className={inputCls} />
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button className="ui-button ui-button-secondary" type="submit">
+                  <Save size={17} strokeWidth={2} aria-hidden="true" />
+                  保存
+                </button>
+              </div>
+            </div>
+          </form>
+
+        {/* V2 补充档案（docx §1）：仅在已填写时显示 */}
+        {(hasBasicExtras || hasDiseaseExtras || hasMeasureExtras) && (
+          <SectionDisclosure title="补充档案">
+            <div className="space-y-6">
+              {hasBasicExtras && (
+                <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  {patient.education && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">文化程度</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{patient.education}</dd>
+                    </div>
+                  )}
+                  {patient.maritalStatus && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">婚姻状况</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{patient.maritalStatus}</dd>
+                    </div>
+                  )}
+                  {patient.livingSituation && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">居住情况</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{patient.livingSituation}</dd>
+                    </div>
+                  )}
+                  {patient.careSituation && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">照护情况</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{patient.careSituation}</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+              {hasDiseaseExtras && (
+                <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+                  {diagnoses.length > 0 && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">现有诊断</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{diagnoses.join("、")}</dd>
+                    </div>
+                  )}
+                  {pastHistory.length > 0 && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">既往病史</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{pastHistory.join("、")}</dd>
+                    </div>
+                  )}
+                  {recentAcute.length > 0 && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">近期急性疾病</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{recentAcute.join("、")}</dd>
+                    </div>
+                  )}
+                  {medications.length > 0 && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">当前用药</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">
+                        {medications
+                          .map(
+                            (med) =>
+                              `${med.name}（${[med.category, med.dose, med.frequency].filter(Boolean).join("，")}）`
+                          )
+                          .join("；")}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+              {hasMeasureExtras && (
+                <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  {weightHistoryEntries.length > 0 && (
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs font-bold text-[#62779a]">历史体重</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">
+                        {weightHistoryEntries.map(([label, value]) => `${label} ${value}kg`).join("，")}
+                      </dd>
+                    </div>
+                  )}
+                  {(patient.calfLeftCm != null || patient.calfRightCm != null) && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">小腿围（左 / 右）</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">
+                        {patient.calfLeftCm ?? "—"} cm / {patient.calfRightCm ?? "—"} cm
+                      </dd>
+                    </div>
+                  )}
+                  {patient.gripStrengthKg != null && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">握力</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">{patient.gripStrengthKg} kg</dd>
+                    </div>
+                  )}
+                  {patient.gaitSpeed6mSec != null && (
+                    <div>
+                      <dt className="text-xs font-bold text-[#62779a]">6 米步行</dt>
+                      <dd className="mt-1.5 font-semibold text-[#173766]">
+                        {patient.gaitSpeed6mSec} 秒（{gaitSpeed} m/s）
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+            </div>
+          </SectionDisclosure>
         )}
-      </section>
+        </aside>
+      </div>
     </div>
   );
 }

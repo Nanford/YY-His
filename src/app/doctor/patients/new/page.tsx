@@ -7,7 +7,7 @@
  *         全部选填，仅医生端完整表单可见，患者自助建档保持简版。
  */
 import Link from "next/link";
-import { ArrowLeft, CircleAlert, UserPlus } from "lucide-react";
+import { ArrowLeft, CircleAlert, UserPlus, UserRound } from "lucide-react";
 import { createPatient } from "@/lib/actions/doctor";
 import {
   CARE_SITUATIONS,
@@ -94,7 +94,7 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
   const error = firstQueryValue((await searchParams).error);
 
   return (
-    <div className="app-page-narrow space-y-6">
+    <div className="app-page space-y-5">
       <div className="page-heading">
         <div className="page-heading-copy">
           <h1 className="page-title">新建患者档案</h1>
@@ -128,13 +128,12 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
         </div>
       )}
 
-      <form action={createPatient} className="ui-panel overflow-hidden">
+      <form action={createPatient} className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         {/* §1 基本情况：姓名、性别、年龄、文化程度、婚姻、居住、照护 + 就诊标识 */}
-        <section>
-          <div className="ui-panel-heading">
-            <div>
-              <h2 className="ui-panel-title">一、基本情况</h2>
-            </div>
+        <section className="ui-panel overflow-hidden">
+          <div className="ui-panel-heading justify-start gap-2 bg-accent/45">
+            <UserRound className="size-5 text-primary" aria-hidden="true" />
+            <h2 className="ui-panel-title">基本情况</h2>
           </div>
           <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
             <Field label="姓名" name="name" required placeholder="张三" />
@@ -151,11 +150,15 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
               </select>
             </label>
             <Field label="年龄" name="age" required type="number" placeholder="75" />
-            <SelectField label="文化程度" name="education" options={EDUCATION_LEVELS} />
-            <SelectField label="婚姻状况" name="maritalStatus" options={MARITAL_STATUSES} />
-            <SelectField label="居住情况" name="livingSituation" options={LIVING_SITUATIONS} />
-            <SelectField label="照护情况" name="careSituation" options={CARE_SITUATIONS} />
-            <div className="sm:col-span-2">
+            <div className="space-y-2 sm:col-span-2">
+              <SectionDisclosure title="生活与照护" summary="选填" defaultOpen={error === "profile"}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <SelectField label="文化程度" name="education" options={EDUCATION_LEVELS} />
+                  <SelectField label="婚姻状况" name="maritalStatus" options={MARITAL_STATUSES} />
+                  <SelectField label="居住情况" name="livingSituation" options={LIVING_SITUATIONS} />
+                  <SelectField label="照护情况" name="careSituation" options={CARE_SITUATIONS} />
+                </div>
+              </SectionDisclosure>
               <SectionDisclosure title="联系方式与就诊编号" summary="选填">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="手机号" name="phone" />
@@ -169,14 +172,10 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
           </div>
         </section>
 
-        <section className="border-t border-[#dbe7f6]">
-          <div className="ui-panel-heading">
-            <div>
-              <h2 className="ui-panel-title">二、疾病与用药情况</h2>
-            </div>
-            <span className="ui-badge">选填</span>
-          </div>
-          <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
+        <div className="space-y-4">
+          <MeasurementSection />
+          <SectionDisclosure title="疾病与用药情况" summary="选填" defaultOpen={error === "profile"}>
+          <div className="grid gap-4 sm:grid-cols-2">
             <TextareaField
               label="现有诊断"
               name="diagnoses"
@@ -202,12 +201,10 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
               hint='每行一条："药名，类别，剂量，频次"（剂量/频次可省）；类别限 西药 / 中成药 / 保健品'
             />
           </div>
-        </section>
+          </SectionDisclosure>
+        </div>
 
-        {/* §1 人体测量与客观指标：身高体重 BMI、体重史、小腿围、握力、步速；DXA/BIA 暂不接入 */}
-        <MeasurementSection />
-
-        <div className="flex justify-end border-t border-border px-[22px] py-4">
+        <div className="sticky bottom-3 z-10 flex justify-end rounded-xl border border-border bg-card p-3 shadow-lg shadow-blue-950/10 xl:col-span-2">
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
             <UserPlus size={19} strokeWidth={2.1} aria-hidden="true" />
             保存档案并继续

@@ -51,14 +51,14 @@ export default async function PatientEmrScalesPage({
         返回方式选择
       </Link>
 
-      <section className="patient-panel overflow-hidden">
+      <section className="patient-panel">
         <PatientPageHeading
           icon={<ClipboardList className="size-6" />}
           title="病历智能评估"
           description="粘贴病历或上传文件，系统自动推荐评估项目。"
         />
 
-        <div className="px-6 py-7 sm:px-9">
+        <div className="p-4 sm:px-7 sm:py-6">
           <EmrForm
             patientId={patientId}
             catalog={catalog}

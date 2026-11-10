@@ -5,9 +5,9 @@
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ClipboardList, MonitorCheck, ExternalLink, Info, User } from "lucide-react";
+import { ArrowLeft, ChevronRight, ClipboardList, MonitorCheck, ExternalLink, Info } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { scaleById } from "@/lib/rules";
+import { scaleById, scales } from "@/lib/rules";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
 import type { PlanDecision } from "@/lib/assessment/plan-review";
@@ -144,10 +144,21 @@ export default async function SessionPage({
       return question ? `${scale?.name}第 ${question.no} 题（${question.title}）` : questionId;
     })
     .join("、");
+  const collecting = session.status === "in_progress";
+  const selectedScales = scales.filter((scale) => scaleIds.includes(scale.id));
+  const directory = collecting
+    ? selectedScales.map((scale) => ({ id: `collect-${scale.id}`, label: scale.name }))
+    : latestResult && latestPlan
+      ? [
+          { id: "assessment-results", label: "评估结果" },
+          { id: "intervention-plan", label: session.status === "confirmed" ? "最终干预方案" : "干预方案审核" },
+        ]
+      : [];
+  if (traceAnswers.length > 0) directory.push({ id: "answer-trace", label: "答案与采集追溯" });
 
   return (
     <div className="app-page space-y-6">
-      <div className="page-heading">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
         <div className="page-heading-copy">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="page-title inline-flex items-center gap-2">
@@ -157,10 +168,9 @@ export default async function SessionPage({
             <span className={meta.cls}>{meta.label}</span>
           </div>
           <p className="page-description inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-            <User size={17} className="text-blue-500" aria-hidden="true" />
-            患者：{session.patient.name}（{session.patient.gender}，{session.patient.age} 岁）
+            <strong className="font-semibold text-foreground">{session.patient.name}</strong>
+            <span>{session.patient.gender} · {session.patient.age} 岁</span>
             <span className="font-mono text-xs">{session.patient.code}</span>
-            <span>量表：{scaleIds.map((scaleId) => scaleById.get(scaleId)?.name ?? scaleId).join("、")}</span>
           </p>
         </div>
         <Link href={`/doctor/patients/${session.patientId}`} className="ui-button ui-button-secondary">
@@ -185,60 +195,76 @@ export default async function SessionPage({
         </div>
       )}
 
-      {session.status === "in_progress" && (
-        <div className="ui-alert flex-wrap justify-between gap-3">
-          <span className="inline-flex items-start gap-2">
-            <MonitorCheck size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-            患者可在大屏上由数字医生语音问询；语音不可用时会自动降级为按钮或文字作答。
-          </span>
-          <Link href={`/patient/sessions/${session.id}`} target="_blank" className="ui-button ui-button-primary min-h-9 px-3 py-1.5 text-xs">
-            打开患者端采集大屏
-            <ExternalLink size={15} aria-hidden="true" />
-          </Link>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+        <aside className="space-y-3 xl:sticky xl:top-20">
+          {collecting && (
+            <Link href={`/patient/sessions/${session.id}`} target="_blank" className="ui-button ui-button-primary w-full justify-between px-3">
+              <MonitorCheck size={17} aria-hidden="true" />
+              打开患者端采集大屏
+              <ExternalLink size={14} aria-hidden="true" />
+            </Link>
+          )}
+          {directory.length > 0 && (
+            <nav aria-label="会话目录" className="rounded-2xl border border-border bg-card p-2.5">
+              <p className="px-2 py-1.5 text-sm font-bold text-muted-foreground">{collecting ? "量表目录" : "会话目录"}</p>
+              <ol className="flex flex-wrap gap-1 xl:block xl:max-h-[62vh] xl:space-y-1 xl:overflow-y-auto">
+                {directory.map(({ id, label }) => (
+                  <li key={id}>
+                    <a href={`#${id}`} className="flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
+                      <ChevronRight className="size-3.5 shrink-0 text-primary" aria-hidden="true" /> {label}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
+        </aside>
+
+        <div className="min-w-0 space-y-5">
+          {collecting && (
+            <CollectForm
+              sessionId={session.id}
+              patientId={session.patientId}
+              scaleIds={scaleIds}
+              savedLabels={savedLabels}
+              savedRawTexts={savedRawTexts}
+            />
+          )}
+
+          {session.status === "collected" && latestResult && latestPlan && (
+            <>
+              <div className="ui-alert ui-alert-warning">
+                <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                评估报告与候选方案，患者已可在大屏上直接看到。请核对干预项目与禁忌提示后确认方案。
+              </div>
+              <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
+              <PlanReview
+                sessionId={session.id}
+                candidates={(latestPlan.candidates as unknown as PlanCandidatesV2).items}
+                forbidden={(latestPlan.candidates as unknown as PlanCandidatesV2).forbidden ?? []}
+              />
+            </>
+          )}
+
+          {session.status === "confirmed" && latestResult && latestPlan && (
+            <>
+              <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
+              <FinalPlan
+                finalPlan={(latestPlan.finalPlan ?? []) as unknown as PlanCandidateItemV2[]}
+                decisions={(latestPlan.decisions ?? []) as unknown as PlanDecision[]}
+                confirmedAt={latestPlan.confirmedAt}
+              />
+              <form action={reopenSession.bind(null, session.id)} className="flex justify-start">
+                <button className="ui-button ui-button-secondary">
+                  重新打开并修正答案（保留历史版本）
+                </button>
+              </form>
+            </>
+          )}
+
+          {traceAnswers.length > 0 && <TraceView answers={traceAnswers} dialogueTurns={traceTurns} />}
         </div>
-      )}
-      {session.status === "in_progress" && (
-        <CollectForm
-          sessionId={session.id}
-          patientId={session.patientId}
-          scaleIds={scaleIds}
-          savedLabels={savedLabels}
-          savedRawTexts={savedRawTexts}
-        />
-      )}
-
-      {session.status === "collected" && latestResult && latestPlan && (
-        <>
-          <div className="ui-alert ui-alert-warning">
-            <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-            评估报告与以下候选方案，患者已可在大屏上直接看到（含禁忌提示原文）。请尽快核实并确认最终方案。
-          </div>
-          <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
-          <PlanReview
-            sessionId={session.id}
-            candidates={(latestPlan.candidates as unknown as PlanCandidatesV2).items}
-            forbidden={(latestPlan.candidates as unknown as PlanCandidatesV2).forbidden ?? []}
-          />
-        </>
-      )}
-
-      {session.status === "confirmed" && latestResult && latestPlan && (
-        <>
-          <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />
-          <FinalPlan
-            finalPlan={(latestPlan.finalPlan ?? []) as unknown as PlanCandidateItemV2[]}
-            decisions={(latestPlan.decisions ?? []) as unknown as PlanDecision[]}
-            confirmedAt={latestPlan.confirmedAt}
-          />
-          <form action={reopenSession.bind(null, session.id)} className="flex justify-start">
-            <button className="ui-button ui-button-secondary">
-              重新打开并修正答案（保留历史版本）
-            </button>
-          </form>
-        </>
-      )}
-
-      {traceAnswers.length > 0 && <TraceView answers={traceAnswers} dialogueTurns={traceTurns} />}
+      </div>
     </div>
   );
 }
