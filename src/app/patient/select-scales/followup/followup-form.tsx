@@ -7,12 +7,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  IconAlertCircle,
-  IconArrowRight,
-  IconBulb,
-  IconHistory,
-} from "@tabler/icons-react";
+import { CircleAlert, ArrowRight, Lightbulb, History } from "lucide-react";
 import { minutesFromAskable } from "@/lib/assessment/patient-scale-packages";
 
 export interface FollowupScaleItem {
@@ -82,14 +77,14 @@ export default function FollowupForm({
       <input type="hidden" name="mode" value="followup" />
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
-          <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>请至少保留一项复评内容。</span>
         </div>
       )}
 
       <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-          <IconHistory size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
+          <History size={22} strokeWidth={1.9} className="text-blue-600" aria-hidden="true" />
           本次建议复评项目
         </h2>
         <div>
@@ -103,7 +98,7 @@ export default function FollowupForm({
           </div>
         )}
         <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2 text-sm leading-6 text-[#405a81]">
-          <IconBulb size={19} stroke={2} className="mt-0.5 shrink-0 text-blue-600" aria-hidden="true" />
+          <Lightbulb size={19} strokeWidth={2} className="mt-0.5 shrink-0 text-blue-600" aria-hidden="true" />
           <span>
             <span className="font-extrabold">系统建议：</span>
             以上次存在异常或需要观察变化的项目为主，减少重复采集。
@@ -128,7 +123,7 @@ export default function FollowupForm({
       <div className="space-y-2">
         <button type="submit" className="patient-primary-action w-full" disabled={checked.size === 0}>
           确认并进入复评（{checked.size} 项）
-          <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
+          <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
         </button>
         <p className="text-center text-sm leading-6 text-[#62779a]">提交后将直接进入健康问询。</p>
       </div>

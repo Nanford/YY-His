@@ -7,17 +7,9 @@
  *         报告页补充评估的 guard（createSupplementarySession）不受影响。
  */
 import Link from "next/link";
+import { PatientPageHeading } from "@/components/patient-page-heading";
 import { notFound, redirect } from "next/navigation";
-import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconHistory,
-  IconWalk,
-  IconSalad,
-  IconLeaf,
-  IconStethoscope,
-  IconClipboardText,
-} from "@tabler/icons-react";
+import { ArrowLeft, ArrowRight, History, Footprints, Salad, Leaf, Stethoscope, ClipboardList } from "lucide-react";
 import { startAssessment } from "@/lib/actions/patient";
 import { prisma } from "@/lib/db";
 import { firstQueryValue } from "@/lib/query";
@@ -46,11 +38,11 @@ interface SnapshotCandidates {
 }
 
 /** 干预大类图标（上次干预方案行展示用） */
-const CATEGORY_ICONS: Record<string, typeof IconWalk> = {
-  运动: IconWalk,
-  膳食营养: IconSalad,
-  中医食养: IconLeaf,
-  就诊建议: IconStethoscope,
+const CATEGORY_ICONS: Record<string, typeof Footprints> = {
+  运动: Footprints,
+  膳食营养: Salad,
+  中医食养: Leaf,
+  就诊建议: Stethoscope,
 };
 
 /** 按需补充候选的优先顺序（设计图：居家环境筛查表等上次未做项目） */
@@ -89,23 +81,16 @@ export default async function PatientFollowupScalesPage({
         href={`/patient/select-scales?patientId=${patientId}`}
         className="ui-button ui-button-quiet -ml-2 mb-6"
       >
-        <IconArrowLeft size={19} stroke={2} aria-hidden="true" />
+        <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
         返回方式选择
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
-          <div className="flex items-start gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
-              <IconHistory size={26} stroke={1.9} aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 随访对比评估</p>
-              <h1 className="patient-display-title mt-1">随访对比评估</h1>
-              <p className="patient-display-copy max-w-2xl">调取上次评估结果，只复评需要更新的项目。</p>
-            </div>
-          </div>
-        </div>
+        <PatientPageHeading
+          icon={<History className="size-6" />}
+          title="随访对比评估"
+          description="调取上次评估结果，只复评需要更新的项目。"
+        />
 
         <div className="px-6 py-7 sm:px-9">
           {reportedSessions.length === 0 ? (
@@ -119,7 +104,7 @@ export default async function PatientFollowupScalesPage({
                 className="patient-primary-action mx-auto mt-6 w-full sm:w-auto"
               >
                 前往常规综合评估
-                <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
+                <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
               </Link>
             </div>
           ) : (
@@ -231,13 +216,13 @@ function FollowupContent({
               <p className="text-sm font-extrabold tracking-wide text-[#62779a]">上次干预方案</p>
               <div className="mt-2 flex flex-wrap gap-3">
                 {latest.interventions.slice(0, 4).map((item) => {
-                  const Icon = CATEGORY_ICONS[item.category] ?? IconClipboardText;
+                  const Icon = CATEGORY_ICONS[item.category] ?? ClipboardList;
                   return (
                     <span
                       key={item.code}
                       className="inline-flex flex-col items-center gap-1 rounded-2xl border border-blue-100 bg-[#f8fbff] px-3 py-2 text-center"
                     >
-                      <Icon size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
+                      <Icon size={22} strokeWidth={1.9} className="text-blue-600" aria-hidden="true" />
                       <span className="max-w-24 text-xs font-bold leading-4 text-[#405a81]">{item.name}</span>
                     </span>
                   );

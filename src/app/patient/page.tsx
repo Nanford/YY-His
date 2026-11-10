@@ -7,15 +7,7 @@
  */
 import Link from "next/link";
 import { cookies } from "next/headers";
-import {
-  IconArrowRight,
-  IconCalendarClock,
-  IconChevronRight,
-  IconClipboardHeart,
-  IconFileDescription,
-  IconHeartRateMonitor,
-  IconUserPlus,
-} from "@tabler/icons-react";
+import { ArrowRight, ChevronRight, FileText, HeartPulse, UserPlus } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
 import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
@@ -24,17 +16,17 @@ export const dynamic = "force-dynamic";
 
 const assessmentSteps = [
   {
-    icon: IconUserPlus,
+    icon: UserPlus,
     title: "建立健康档案",
     description: "填写姓名、性别、年龄",
   },
   {
-    icon: IconHeartRateMonitor,
+    icon: HeartPulse,
     title: "完成健康问询",
     description: "可语音或手动选择作答",
   },
   {
-    icon: IconFileDescription,
+    icon: FileText,
     title: "查看评估报告",
     description: "了解评估结论与干预建议",
   },
@@ -55,24 +47,16 @@ export default async function PatientHomePage() {
       <section className="patient-panel overflow-hidden">
         <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[minmax(0,1.12fr)_minmax(290px,0.88fr)] lg:items-center lg:p-12">
           <div>
-            <span className="ui-badge">
-              <IconHeartRateMonitor size={17} stroke={2.1} aria-hidden="true" />
-              患者自助评估
-            </span>
-            <h1 className="patient-display-title mt-5">从健康档案开始，完成一次安心的评估</h1>
+            <h1 className="patient-display-title">健康评估</h1>
             <p className="patient-display-copy max-w-2xl">
-              填写基础信息后即可开始健康问询，完成后可直接查看评估结论与个性化干预建议。
+              完成健康问询后，可查看评估报告与干预建议。
             </p>
             <div className="mt-7 flex flex-col items-stretch gap-4 sm:items-start">
               <Link href="/patient/register" className="patient-primary-action w-full sm:w-auto">
-                <IconUserPlus size={28} stroke={2.1} aria-hidden="true" />
+                <UserPlus size={28} strokeWidth={2.1} aria-hidden="true" />
                 新建健康档案
-                <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
+                <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
               </Link>
-              <p className="flex items-center gap-2 text-base font-medium leading-6 text-[#62779a]">
-                <IconCalendarClock size={20} stroke={2} className="shrink-0 text-blue-600" aria-hidden="true" />
-                只需填写基础信息，即可开始健康评估。
-              </p>
             </div>
           </div>
 
@@ -82,7 +66,7 @@ export default async function PatientHomePage() {
               {assessmentSteps.map(({ icon: Icon, title, description }, index) => (
                 <li key={title} className="flex items-center gap-4">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
-                    <Icon size={23} stroke={1.9} aria-hidden="true" />
+                    <Icon size={23} strokeWidth={1.9} aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
                     <span className="block text-base font-extrabold text-[#173766]">
@@ -109,7 +93,7 @@ export default async function PatientHomePage() {
           >
             <span className="flex min-w-0 items-center gap-4">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 transition duration-200 group-hover:bg-blue-600 group-hover:text-white">
-                <IconClipboardHeart size={25} stroke={1.9} aria-hidden="true" />
+                <HeartPulse size={25} strokeWidth={1.9} aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block text-2xl font-extrabold leading-tight text-[#173766]">
@@ -130,14 +114,14 @@ export default async function PatientHomePage() {
               <span className="hidden sm:inline">
                 {mySession.status === "in_progress" ? "继续评估" : "查看我的报告"}
               </span>
-              <IconChevronRight size={23} stroke={2.2} aria-hidden="true" />
+              <ChevronRight size={23} strokeWidth={2.2} aria-hidden="true" />
             </span>
           </Link>
         </section>
       ) : (
         <section className="ui-panel-subtle mt-7 flex min-h-36 flex-col items-center justify-center px-6 py-7 text-center sm:flex-row sm:text-left">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
-            <IconClipboardHeart size={25} stroke={1.9} aria-hidden="true" />
+            <HeartPulse size={25} strokeWidth={1.9} aria-hidden="true" />
           </span>
           <div className="mt-4 sm:mt-0 sm:ml-4">
             <h2 className="text-xl font-extrabold text-[#173766]">还没有您的评估</h2>

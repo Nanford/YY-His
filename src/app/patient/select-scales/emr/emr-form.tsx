@@ -8,14 +8,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import {
-  IconAlertCircle,
-  IconArrowRight,
-  IconBulb,
-  IconClipboardText,
-  IconSparkles,
-  IconUpload,
-} from "@tabler/icons-react";
+import { CircleAlert, ArrowRight, Lightbulb, ClipboardList, Sparkles, Upload } from "lucide-react";
 
 export interface EmrScaleItem {
   id: string;
@@ -213,7 +206,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
       <input type="hidden" name="mode" value="emr" />
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
-          <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>请至少保留一项推荐项目。</span>
         </div>
       )}
@@ -222,7 +215,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
         {/* 左栏：病历与诊断输入 */}
         <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-            <IconClipboardText size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
+            <ClipboardList size={22} strokeWidth={1.9} className="text-blue-600" aria-hidden="true" />
             病历与诊断输入
           </h2>
           <label className="block">
@@ -257,7 +250,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
               disabled={uploading}
               onClick={() => fileInputRef.current?.click()}
             >
-              <IconUpload size={20} aria-hidden="true" />
+              <Upload size={20} aria-hidden="true" />
               {uploading ? "正在读取文件…" : "上传病历文件或图片"}
             </button>
             <p className="mt-1.5 text-sm leading-6 text-[#7f94b3]">
@@ -285,7 +278,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
             disabled={loading || emrText.trim().length < 8}
             onClick={() => void runSuggest()}
           >
-            <IconSparkles size={20} aria-hidden="true" />
+            <Sparkles size={20} aria-hidden="true" />
             {loading ? "智能解析中…" : "智能解析"}
           </button>
           {fetchError && <p className="text-sm font-bold text-red-600">{fetchError}</p>}
@@ -294,7 +287,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
         {/* 右栏：系统推荐评估项目 */}
         <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-            <IconSparkles size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
+            <Sparkles size={22} strokeWidth={1.9} className="text-blue-600" aria-hidden="true" />
             系统推荐评估项目
           </h2>
 
@@ -340,7 +333,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
 
               {reason && (
                 <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2.5 text-sm leading-6 text-[#405a81]">
-                  <IconBulb size={19} stroke={2} className="mt-1 shrink-0 text-blue-600" aria-hidden="true" />
+                  <Lightbulb size={19} strokeWidth={2} className="mt-1 shrink-0 text-blue-600" aria-hidden="true" />
                   <span>
                     <span className="font-extrabold">系统判断：</span>
                     {reason}
@@ -359,7 +352,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
       <div className="space-y-2">
         <button type="submit" className="patient-primary-action w-full" disabled={!analyzed || checked.size === 0}>
           确认推荐项目（{checked.size} 项）
-          <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
+          <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
         </button>
         <p className="text-center text-sm leading-6 text-[#62779a]">提交后将直接进入健康问询。</p>
       </div>

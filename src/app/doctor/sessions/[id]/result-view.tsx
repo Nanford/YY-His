@@ -3,7 +3,7 @@
  * OUTPUT: 评估标签摘要与可展开的逐题确定性评分明细
  * POS:    评估结果下钻组件（M11.2 对齐患者报告：按量表分组 + 异常标签置顶）
  */
-import { IconChevronDown, IconClipboardData } from "@tabler/icons-react";
+import { ChevronDown, ClipboardList } from "lucide-react";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import { scaleById } from "@/lib/rules";
 
@@ -61,7 +61,7 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
         <div>
           <p className="page-eyebrow">评估结果</p>
           <h2 className="ui-panel-title mt-1 inline-flex items-center gap-2">
-            <IconClipboardData size={21} className="text-blue-600" aria-hidden="true" />
+            <ClipboardList size={21} className="text-blue-600" aria-hidden="true" />
             评估标签
           </h2>
           <p className="mt-2 text-sm leading-6 text-[#6b82a4]">
@@ -104,7 +104,7 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
                           {abnormal && <span className="ui-badge ui-badge-warning">关注</span>}
                           <span className="ml-auto inline-flex items-center gap-2 text-right text-xs leading-5 text-[#6b82a4]">
                             {tag.score} 分
-                            <IconChevronDown
+                            <ChevronDown
                               size={16}
                               className="text-blue-600 transition group-open:rotate-180"
                               aria-hidden="true"

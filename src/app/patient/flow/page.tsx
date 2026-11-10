@@ -8,7 +8,7 @@
  *         共 6 步徽标/步骤描述/返回链接），「开始第一步：填写基础信息」按钮改为「开始」。
  */
 import Link from "next/link";
-import { IconArrowRight } from "@tabler/icons-react";
+import { ArrowRight } from "lucide-react";
 import { V2DemoPipeline } from "@/components/v2-pipeline";
 
 export default function PatientFlowPage() {
@@ -24,7 +24,7 @@ export default function PatientFlowPage() {
         <div className="mt-12 flex justify-center">
           <Link href="/patient/register" className="patient-primary-action w-full sm:w-auto">
             开始
-            <IconArrowRight size={30} stroke={2.2} aria-hidden="true" />
+            <ArrowRight size={30} strokeWidth={2.2} aria-hidden="true" />
           </Link>
         </div>
       </section>

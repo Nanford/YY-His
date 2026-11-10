@@ -42,6 +42,15 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await page.goto("/patient");
   await page.getByRole("link", { name: "新建健康档案" }).click();
   await expect(page).toHaveURL(/\/patient\/register$/);
+  const profile = page.getByRole("button", { name: /疾病与用药/ });
+  const diagnosis = page.locator('textarea[name="diagnoses"]');
+  await expect(profile).toHaveAttribute("aria-expanded", "false");
+  await expect(diagnosis).toBeHidden();
+  await profile.click();
+  await diagnosis.fill("高血压");
+  await profile.click();
+  await expect(diagnosis).toBeHidden();
+  await expect(diagnosis).toHaveValue("高血压");
 
   await page.locator('input[name="name"]').fill("E2E 自助建档患者");
   // 性别选项渲染为大按钮样式的 label（内部 radio 视觉隐藏），点击 label 才是真实用户操作
@@ -92,9 +101,16 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   // 报告页：全阴性标签 + frail 系统读取题豁免的"部分计分"标注；积分矩阵无匹配 → 暂无干预
   // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
   await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
+  const reportDetails = page.getByRole("button", { name: /查看完整评估结果/ });
+  await expect(reportDetails).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByText("无衰弱", { exact: true })).toBeHidden();
+  await reportDetails.click();
   await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
   await expect(page.getByText("跌倒风险筛查阴性", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /本次评估项目/ }).click();
   await expect(page.getByText("部分计分", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "基本情况" }).click();
+  await expect(page.getByText("高血压", { exact: true })).toBeVisible();
   await expect(page.getByText("本次评估暂无需要执行的干预项目", { exact: false })).toBeVisible();
 
   // ---------- 核心不变量：自助建档不能绕过医生审核关卡 ----------

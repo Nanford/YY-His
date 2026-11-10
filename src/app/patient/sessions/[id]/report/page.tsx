@@ -8,7 +8,7 @@
  */
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { scoringCategories } from "@/lib/rules";
 import { buildBasicInfoRows, buildIdentityItems } from "@/lib/assessment/report-profile";
@@ -91,10 +91,10 @@ export default async function PatientReportDownloadPage({
     <main className="report-doc-page flex-1">
       <div className="report-doc-toolbar">
         <Link href={`/patient/sessions/${id}`} className="ui-button ui-button-secondary">
-          <IconArrowLeft size={19} stroke={2} aria-hidden="true" />
+          <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
           返回报告
         </Link>
-        <p>点击右侧按钮，在弹出的窗口中选择「另存为 PDF」即可保存报告。</p>
+        <p>在打印窗口选择「另存为 PDF」。</p>
         {/* 文件名只带患者唯一编号，不带姓名（PII 不进文件名） */}
         <PrintReportButton fileName={`老年综合评估报告_${session.patient.code}`} />
       </div>

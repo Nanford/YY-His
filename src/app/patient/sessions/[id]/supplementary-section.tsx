@@ -8,13 +8,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  IconCheck,
-  IconChevronUp,
-  IconClipboardPlus,
-  IconPlus,
-  IconStethoscope,
-} from "@tabler/icons-react";
+import { Check, ChevronUp, ClipboardPlus, Plus, Stethoscope } from "lucide-react";
 import { createSupplementarySession } from "@/lib/actions/patient";
 import type { RemainingScale } from "./patient-report";
 import { SectionHead } from "./section-head";
@@ -40,7 +34,7 @@ export function SupplementarySection({
           onClick={() => setOpen(true)}
           className="patient-primary-action w-full sm:w-auto"
         >
-          <IconClipboardPlus size={26} stroke={2} aria-hidden="true" />
+          <ClipboardPlus size={26} strokeWidth={2} aria-hidden="true" />
           <span>补充评估</span>
         </button>
       </section>
@@ -51,10 +45,9 @@ export function SupplementarySection({
   return (
     <section className="patient-panel px-6 py-7 md:px-8">
       <SectionHead
-        icon={<IconClipboardPlus size={16} stroke={1.8} aria-hidden="true" />}
-        eyebrow="补充评估"
-        title="还想评估更多项目？"
-        aside="勾选后点下方大按钮即可开始新一轮问答；本次报告和历史记录都会保留，互不影响。如需重新评估已完成的项目，请医生在工作台为您发起。"
+        icon={<ClipboardPlus size={16} strokeWidth={1.8} aria-hidden="true" />}
+        title="选择补充评估项目"
+        aside="如需复评已完成的项目，请联系医生。"
       />
       <form action={createSupplementarySession.bind(null, sessionId)} className="mt-6 space-y-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -69,9 +62,9 @@ export function SupplementarySection({
                   }`}
                 >
                   {scale.needsClinician ? (
-                    <IconStethoscope size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    <Stethoscope size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
                   ) : (
-                    <IconCheck size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
                   )}
                   <span>
                     {scale.needsClinician
@@ -85,7 +78,7 @@ export function SupplementarySection({
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button type="submit" className="patient-primary-action w-full sm:w-auto">
-            <IconPlus size={26} stroke={2} aria-hidden="true" />
+            <Plus size={26} strokeWidth={2} aria-hidden="true" />
             <span>开始补充评估</span>
           </button>
           <button
@@ -93,7 +86,7 @@ export function SupplementarySection({
             onClick={() => setOpen(false)}
             className="ui-button ui-button-quiet self-center"
           >
-            <IconChevronUp size={19} stroke={2} aria-hidden="true" />
+            <ChevronUp size={19} strokeWidth={2} aria-hidden="true" />
             收起
           </button>
         </div>

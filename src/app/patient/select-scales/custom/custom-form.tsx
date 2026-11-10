@@ -8,16 +8,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  IconAlertCircle,
-  IconArrowRight,
-  IconBrain,
-  IconClipboardList,
-  IconMoon,
-  IconRun,
-  IconSalt,
-  IconX,
-} from "@tabler/icons-react";
+import { CircleAlert, ArrowRight, Brain, ClipboardList, Moon, Dumbbell, CookingPot, X } from "lucide-react";
 import { minutesFromAskable } from "@/lib/assessment/patient-scale-packages";
 
 export interface CustomScaleItem {
@@ -46,11 +37,11 @@ interface Props {
   action: (formData: FormData) => Promise<void>;
 }
 
-const PACKAGE_ICONS: Record<string, typeof IconBrain> = {
-  cognition_mood: IconBrain,
-  fall_risk: IconRun,
-  sarcopenia_nutrition: IconSalt,
-  sleep_pain: IconMoon,
+const PACKAGE_ICONS: Record<string, typeof Brain> = {
+  cognition_mood: Brain,
+  fall_risk: Dumbbell,
+  sarcopenia_nutrition: CookingPot,
+  sleep_pain: Moon,
 };
 
 type TabKey = "preset" | "org" | "custom";
@@ -118,7 +109,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
       <input type="hidden" name="mode" value="custom" />
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
-          <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>请至少选择一项评估内容。</span>
         </div>
       )}
@@ -153,7 +144,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
         <div className="space-y-4">
           {tab === "preset" &&
             packages.map((pkg) => {
-              const Icon = PACKAGE_ICONS[pkg.key] ?? IconClipboardList;
+              const Icon = PACKAGE_ICONS[pkg.key] ?? ClipboardList;
               const allIn = pkg.scales.length > 0 && pkg.scales.every((s) => selected.has(s.id));
               return (
                 <button
@@ -169,7 +160,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                   ].join(" ")}
                 >
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-                    <Icon size={24} stroke={1.9} aria-hidden="true" />
+                    <Icon size={24} strokeWidth={1.9} aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-lg font-extrabold text-[#173766]">{pkg.name}</span>
@@ -259,7 +250,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                       className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#8ba0bd] hover:bg-blue-100 hover:text-blue-700"
                       aria-label={`移除${scale.label}`}
                     >
-                      <IconX size={16} stroke={2.2} aria-hidden="true" />
+                      <X size={16} strokeWidth={2.2} aria-hidden="true" />
                     </button>
                   </li>
                 ))}
@@ -283,7 +274,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
       <div className="space-y-3">
         <button type="submit" className="patient-primary-action w-full" disabled={selected.size === 0}>
           确认并进入采集（{selected.size} 项）
-          <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
+          <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
         </button>
         <p className="text-center text-sm leading-6 text-[#62779a]">提交后将直接进入健康问询。</p>
       </div>

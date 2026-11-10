@@ -16,16 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  IconAlertTriangle,
-  IconArrowRight,
-  IconCheck,
-  IconClipboardList,
-  IconClock,
-  IconHandClick,
-  IconMicrophone,
-  IconVolume,
-} from "@tabler/icons-react";
+import { TriangleAlert, ArrowRight, Check, ClipboardList, Clock, Hand, Mic, Volume2 } from "lucide-react";
 import type {
   PatientDialogueStateDto,
   PatientPromptDto,
@@ -517,7 +508,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
             className="ui-alert ui-alert-warning pointer-events-auto max-w-2xl text-lg shadow-lg md:text-xl"
             role="status"
           >
-            <IconAlertTriangle size={24} stroke={1.8} aria-hidden="true" />
+            <TriangleAlert size={24} strokeWidth={1.8} aria-hidden="true" />
             <span>{notice}</span>
           </div>
         </div>
@@ -547,7 +538,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         : "正在为您播报问题…"
                     : voiceReady
                       ? "请开口回答就行"
-                      : "全程陪伴本次问询"}
+                      : state.phase === "in_question" ? "请选择或输入答案" : ""}
                 </p>
               </div>
               {state.phase === "in_question" && (
@@ -583,14 +574,14 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               {state.phase === "not_started" && (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:px-12">
                   <span className="ui-badge">
-                    <IconCheck size={16} stroke={2} aria-hidden="true" />
+                    <Check size={16} strokeWidth={2} aria-hidden="true" />
                     准备就绪
                   </span>
                   <h1 className="patient-display-title mt-5">
                     您好{patientLabel ? `，${patientLabel}` : ""}
                   </h1>
                   <p className="patient-display-copy max-w-xl">
-                    数字医生会一句一句问您几个健康小问题，全程用说话回答就行。
+                    {state.capabilities.asr ? "您可以说出答案，也可以用按钮或文字作答。" : "请用按钮或文字回答健康问题。"}
                   </p>
                   <div className="mt-9 flex w-full flex-col items-center gap-4">
                     <button
@@ -604,7 +595,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                       onClick={() => void handleStart(state.capabilities.asr ? "voice" : "manual")}
                       className="patient-primary-action w-full min-w-[280px] max-w-md justify-center text-2xl"
                     >
-                      {state.capabilities.asr && <IconMicrophone size={30} stroke={1.8} aria-hidden="true" />}
+                      {state.capabilities.asr && <Mic size={30} strokeWidth={1.8} aria-hidden="true" />}
                       <span>开始评估</span>
                     </button>
                     {state.capabilities.asr && (
@@ -615,7 +606,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         onClick={() => void handleStart("manual")}
                         className="ui-button ui-button-quiet text-base"
                       >
-                        <IconHandClick size={19} stroke={1.8} aria-hidden="true" />
+                        <Hand size={19} strokeWidth={1.8} aria-hidden="true" />
                         <span>不方便说话？改用按钮 / 文字作答</span>
                       </button>
                     )}
@@ -626,7 +617,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               {state.phase === "intro" && (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:px-12">
                   <span className="ui-badge">
-                    <IconVolume size={16} stroke={2} aria-hidden="true" />
+                    <Volume2 size={16} strokeWidth={2} aria-hidden="true" />
                     数字医生正在讲解
                   </span>
                   {/* 讲解全文作字幕展示（TTS 关闭/听不清时的兜底），内容见 prompts.ts OPENING_TEXT */}
@@ -652,7 +643,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     className="patient-primary-action mt-8"
                   >
                     <span>开始</span>
-                    <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                    <ArrowRight size={26} strokeWidth={1.8} aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -682,7 +673,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         onClick={replayNarration}
                         className="ui-button ui-button-quiet px-0 text-base underline decoration-dotted underline-offset-4"
                       >
-                        <IconVolume size={20} stroke={1.8} aria-hidden="true" />
+                        <Volume2 size={20} strokeWidth={1.8} aria-hidden="true" />
                         <span>再听一遍</span>
                       </button>
                       <button
@@ -693,7 +684,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         className="patient-primary-action"
                       >
                         <span>继续</span>
-                        <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                        <ArrowRight size={26} strokeWidth={1.8} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -722,7 +713,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         onClick={replay}
                         className="ui-button ui-button-quiet px-0 text-base underline decoration-dotted underline-offset-4"
                       >
-                        <IconVolume size={20} stroke={1.8} aria-hidden="true" />
+                        <Volume2 size={20} strokeWidth={1.8} aria-hidden="true" />
                         <span>再听一遍</span>
                       </button>
                       <span className="text-sm font-semibold text-[var(--ink-muted)] sm:text-base">
@@ -742,7 +733,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                           aria-label="用语音回答这道题"
                           className="patient-primary-action w-full sm:w-auto"
                         >
-                          <IconMicrophone size={26} stroke={1.8} aria-hidden="true" />
+                          <Mic size={26} strokeWidth={1.8} aria-hidden="true" />
                           <span>用语音回答</span>
                         </button>
                         <p className="mt-2 text-sm leading-6 text-[var(--ink-faint)]">
@@ -786,7 +777,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               {state.phase === "awaiting_doctor" && (
                 <div className="mx-auto flex max-w-xl flex-1 flex-col items-center justify-center px-6 py-12 text-center">
                   <div className="grid size-16 place-items-center rounded-2xl bg-[var(--warning-soft)] text-[var(--warning)]">
-                    <IconClock size={32} stroke={1.7} aria-hidden="true" />
+                    <Clock size={32} strokeWidth={1.7} aria-hidden="true" />
                   </div>
                   <h1 className="mt-6 text-3xl font-bold text-[var(--ink)]">您的问答已经全部完成啦！</h1>
                   <p className="mt-3 text-xl leading-8 text-[var(--ink-muted)]">
@@ -794,7 +785,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                   </p>
                   {/* 修复死路：给患者一个明确的返回首页出口，不再卡在此页 */}
                   <Link href="/patient" className="ui-button ui-button-secondary ui-button-lg mt-8">
-                    <IconArrowRight size={21} stroke={1.9} aria-hidden="true" />
+                    <ArrowRight size={21} strokeWidth={1.9} aria-hidden="true" />
                     <span>返回首页</span>
                   </Link>
                 </div>
@@ -803,7 +794,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               {state.phase === "finished" && (
                 <div className="mx-auto flex max-w-xl flex-1 flex-col items-center justify-center px-6 py-12 text-center">
                   <div className="grid size-16 place-items-center rounded-2xl bg-[var(--success-soft)] text-[var(--success)]">
-                    <IconCheck size={34} stroke={2} aria-hidden="true" />
+                    <Check size={34} strokeWidth={2} aria-hidden="true" />
                   </div>
                   <h1 className="mt-6 text-3xl font-bold text-[var(--ink)]">全部问题已完成，感谢您的配合！</h1>
                   <p className="mt-3 text-xl leading-8 text-[var(--ink-muted)]">您的评估报告已经生成好了，正在为您打开…</p>
@@ -814,7 +805,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     className="patient-primary-action mt-7"
                   >
                     <span>查看我的评估报告</span>
-                    <IconArrowRight size={26} stroke={1.8} aria-hidden="true" />
+                    <ArrowRight size={26} strokeWidth={1.8} aria-hidden="true" />
                   </button>
                   <p className="mt-3 text-sm text-[var(--ink-muted)]">如未自动打开，请点上方按钮。</p>
                 </div>
@@ -1040,7 +1031,7 @@ function CenterMessage({ text }: { text: string }) {
       <div className="patient-main flex min-h-[calc(100vh-76px)] items-center justify-center">
         <section className="patient-panel w-full max-w-2xl px-8 py-12 text-center">
           <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[var(--surface-blue)] text-[var(--brand)]">
-            <IconClipboardList size={32} stroke={1.7} aria-hidden="true" />
+            <ClipboardList size={32} strokeWidth={1.7} aria-hidden="true" />
           </div>
           <p className="mt-6 text-2xl font-bold leading-relaxed text-[var(--ink)]">{text}</p>
         </section>

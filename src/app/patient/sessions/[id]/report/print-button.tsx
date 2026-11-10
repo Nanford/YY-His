@@ -9,7 +9,7 @@
  *         临时方案说明：如需"一键直接落盘 PDF、不经过打印对话框"，替换路径是服务端无头浏览器出 PDF
  *         或前端 html2canvas+jsPDF（均需新增依赖，待用户拍板）。
  */
-import { IconDownload } from "@tabler/icons-react";
+import { Download } from "lucide-react";
 
 export function PrintReportButton({ fileName }: { fileName: string }) {
   const handleDownload = () => {
@@ -26,7 +26,7 @@ export function PrintReportButton({ fileName }: { fileName: string }) {
 
   return (
     <button type="button" className="ui-button ui-button-primary" onClick={handleDownload}>
-      <IconDownload size={20} stroke={2} aria-hidden="true" />
+      <Download size={20} strokeWidth={2} aria-hidden="true" />
       下载报告（另存为 PDF）
     </button>
   );

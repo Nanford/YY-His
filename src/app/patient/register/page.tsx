@@ -10,17 +10,10 @@
  *         医生检查题按 deferClinical 豁免计分。身份证/手机/住址等留给医生端补充，不在此阻塞流程。
  */
 import Link from "next/link";
-import {
-  IconAlertCircle,
-  IconArrowLeft,
-  IconArrowRight,
-  IconClipboardText,
-  IconGenderFemale,
-  IconGenderMale,
-  IconRulerMeasure,
-  IconUser,
-  IconUsers,
-} from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
+import { PatientPageHeading } from "@/components/patient-page-heading";
+import { SectionDisclosure } from "@/components/section-disclosure";
+import { ArrowLeft, ArrowRight, CircleAlert, Mars, User, Venus } from "lucide-react";
 import { registerPatient } from "@/lib/actions/patient";
 import { prisma } from "@/lib/db";
 import {
@@ -89,42 +82,35 @@ export default async function PatientRegisterPage({
   });
 
   return (
-    <main className="patient-main flex-1">
+    <main className="patient-main max-w-[56rem] flex-1">
       <Link href="/patient" className="ui-button ui-button-quiet -ml-2 mb-6">
-        <IconArrowLeft size={19} stroke={2} aria-hidden="true" />
+        <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
         返回评估首页
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
-          <div className="flex items-start gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
-              <IconUser size={26} stroke={1.9} aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第一步 · 建立健康档案</p>
-              <h1 className="patient-display-title mt-1">新建健康档案</h1>
-              <p className="patient-display-copy max-w-2xl">姓名、性别、年龄必填，其余可留空跳过。</p>
-            </div>
-          </div>
-        </div>
+        <PatientPageHeading
+          icon={<User className="size-6" />}
+          title="新建健康档案"
+          description="请填写姓名、性别和年龄。"
+        />
 
-        <div className="px-6 py-7 sm:px-9">
+        <div className="px-5 py-6 sm:px-9 sm:py-8">
           {error === "required" && (
             <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
-              <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>请完整填写姓名、性别、年龄（年龄需为 1～130 之间的数字）。</span>
             </div>
           )}
           {error === "measurements" && (
             <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
-              <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>身高体重等数据格式不对，请填合理的数字，或者留空跳过。</span>
             </div>
           )}
           {error === "profile" && (
             <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
-              <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>
                 部分选填内容格式不对：请核对体重（20–300kg）、小腿围（10–80cm）、握力（0–100kg）、6 米用时（1–120 秒）等数字，
                 以及用药清单写法（每行一条「药名，类别，剂量，频次」，类别限 西药/中成药/保健品）；也可以全部留空跳过。
@@ -134,94 +120,80 @@ export default async function PatientRegisterPage({
 
           {/* 选择已有档案：点选本人档案直接进入第二步量表选择，无需重复填写 */}
           {existingPatients.length > 0 && (
-            <section className="mb-9 rounded-2xl border border-blue-100 bg-[#f8fbff] p-5 sm:p-6">
-              <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#173766]">
-                <IconUsers size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
-                已经建档过？选择已有档案
-              </h2>
-              <p className="mt-2 text-base leading-7 text-[#62779a]">
-                点选本人档案直接进入评估；首次使用请填写下方新档案。
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {existingPatients.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/patient/select-scales?patientId=${p.id}`}
-                    className="rounded-2xl border border-blue-100 bg-white px-5 py-4 transition hover:border-blue-300 hover:shadow-[0_6px_14px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
-                  >
-                    <span className="block text-lg font-extrabold text-[#173766]">{p.name}</span>
-                    <span className="mt-1 block text-base text-[#7f94b3]">
-                      {p.gender} · {p.age} 岁
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </section>
+            <div className="mb-6">
+              <SectionDisclosure title="选择已有档案">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {existingPatients.map((p) => (
+                    <Link
+                      key={p.id}
+                      href={`/patient/select-scales?patientId=${p.id}`}
+                      className="rounded-2xl border border-blue-100 bg-white px-5 py-4 transition hover:border-blue-300 hover:shadow-[0_6px_14px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                    >
+                      <span className="block text-lg font-extrabold text-[#173766]">{p.name}</span>
+                      <span className="mt-1 block text-base text-[#7f94b3]">
+                        {p.gender} · {p.age} 岁
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </SectionDisclosure>
+            </div>
           )}
 
-          <form action={registerPatient} className="space-y-9">
-            {/* 一、基本情况：姓名/性别/年龄必填，其余选填 */}
-            <section className="space-y-5">
-              <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#173766]">
-                <IconUser size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
-                一、基本情况
-              </h2>
-              <div className="space-y-5">
-                <label className="block space-y-2">
-                  <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-                    您的姓名 <span className="text-[#c23b4a]">*</span>
-                  </span>
-                  <input name="name" type="text" required placeholder="请输入姓名" className={inputCls} />
-                </label>
+          <form action={registerPatient} className="space-y-6">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="block space-y-2">
+                <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
+                  您的姓名 <span className="text-[#c23b4a]">*</span>
+                </span>
+                <input name="name" type="text" required placeholder="请输入姓名" className={inputCls} />
+              </label>
 
-                <fieldset className="space-y-2">
-                  <legend className="text-lg font-extrabold text-[#173766]">
-                    性别 <span className="text-[#c23b4a]">*</span>
-                  </legend>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: "男", icon: IconGenderMale },
-                      { value: "女", icon: IconGenderFemale },
-                    ].map(({ value, icon: Icon }) => (
-                      <label key={value} className="patient-choice gap-3">
-                        <input type="radio" name="gender" value={value} required />
-                        <Icon size={26} stroke={1.9} aria-hidden="true" />
-                        <span>{value}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+              <fieldset className="row-start-2 space-y-2 sm:col-span-2">
+                <legend className="text-lg font-extrabold text-[#173766]">
+                  性别 <span className="text-[#c23b4a]">*</span>
+                </legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: "男", icon: Mars },
+                    { value: "女", icon: Venus },
+                  ].map(({ value, icon: Icon }) => (
+                    <label key={value} className="patient-choice gap-3">
+                      <input type="radio" name="gender" value={value} required />
+                      <Icon size={26} strokeWidth={1.9} aria-hidden="true" />
+                      <span>{value}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
-                <label className="block space-y-2">
-                  <span className="text-lg font-extrabold text-[#173766]">
-                    年龄 <span className="text-[#c23b4a]">*</span>
-                  </span>
-                  <NoWheelNumberInput
-                    name="age"
-                    inputMode="numeric"
-                    min={1}
-                    max={130}
-                    required
-                    placeholder="请输入年龄"
-                    className={inputCls}
-                  />
-                </label>
+              <label className="block space-y-2">
+                <span className="text-lg font-extrabold text-[#173766]">
+                  年龄 <span className="text-[#c23b4a]">*</span>
+                </span>
+                <NoWheelNumberInput
+                  name="age"
+                  inputMode="numeric"
+                  min={1}
+                  max={130}
+                  required
+                  placeholder="请输入年龄"
+                  className={inputCls}
+                />
+              </label>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            </div>
+            <div className="grid gap-3">
+              <SectionDisclosure title="生活与照护情况" summary="选填" defaultOpen={error === "profile"}>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <OptionalSelect label="文化程度" name="education" options={EDUCATION_LEVELS} />
                   <OptionalSelect label="婚姻状况" name="maritalStatus" options={MARITAL_STATUSES} />
                   <OptionalSelect label="居住情况" name="livingSituation" options={LIVING_SITUATIONS} />
                   <OptionalSelect label="照护情况" name="careSituation" options={CARE_SITUATIONS} />
                 </div>
-              </div>
-            </section>
+              </SectionDisclosure>
 
-            {/* 二、疾病与用药情况（全部选填） */}
-            <section className="space-y-5 border-t border-blue-100 pt-7">
-              <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#173766]">
-                <IconClipboardText size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
-                二、疾病与用药情况（选填）
-              </h2>
+              <SectionDisclosure title="疾病与用药" summary="选填" defaultOpen={error === "profile"}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <OptionalTextarea
                   label="现有诊断"
@@ -248,29 +220,18 @@ export default async function PatientRegisterPage({
                   hint="每行一条：药名，类别，剂量，频次"
                 />
               </div>
-            </section>
+              </SectionDisclosure>
 
-            {/* 三、人体测量与客观指标（全部选填，BMI 自动计算） */}
-            <section className="space-y-5 border-t border-blue-100 pt-7">
-              {/* 栏头与一、二段统一：图标 + 标题一行，说明文字紧随其下 */}
-              <div>
-                <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#173766]">
-                  <IconRulerMeasure size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
-                  三、人体测量与客观指标（选填）
-                </h2>
-                <p className="mt-2 text-base leading-6 text-[#62779a]">
-                  不清楚可跳过；BMI 由系统自动计算。身体成分分析（DXA 或 BIA）暂不接入，接入后由设备自动读取。
-                </p>
-              </div>
-              <PatientMeasurementFields />
-            </section>
+              <SectionDisclosure title="身高、体重与其他测量" summary="选填" defaultOpen={error === "measurements" || error === "profile"}>
+                <PatientMeasurementFields />
+              </SectionDisclosure>
+            </div>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <button type="submit" className="patient-primary-action min-w-72 flex-1">
+            <div className="flex justify-end border-t border-border pt-5">
+              <Button type="submit" className="min-h-14 w-full gap-3 px-5 text-lg font-bold sm:w-auto">
                 下一步：选择评估内容
-                <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
-              </button>
-              <p className="text-sm leading-6 text-[#62779a]">提交后进入量表选择，再开始健康问询。</p>
+                <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
+              </Button>
             </div>
           </form>
         </div>

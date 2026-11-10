@@ -5,14 +5,7 @@
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  IconArrowLeft,
-  IconClipboardText,
-  IconDeviceDesktopAnalytics,
-  IconExternalLink,
-  IconInfoCircle,
-  IconUser,
-} from "@tabler/icons-react";
+import { ArrowLeft, ClipboardList, MonitorCheck, ExternalLink, Info, User } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
@@ -21,7 +14,6 @@ import type { PlanDecision } from "@/lib/assessment/plan-review";
 import { firstQueryValue } from "@/lib/query";
 import { reopenSession } from "@/lib/actions/doctor";
 import { readAnswerEditHistory } from "@/lib/assessment/audit";
-import { V2DemoPipeline } from "@/components/v2-pipeline";
 import { CollectForm } from "./collect-form";
 import { ResultView } from "./result-view";
 import { FinalPlan, PlanReview } from "./plan-review";
@@ -157,43 +149,35 @@ export default async function SessionPage({
     <div className="app-page space-y-6">
       <div className="page-heading">
         <div className="page-heading-copy">
-          <p className="page-eyebrow">评估会话</p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="page-title inline-flex items-center gap-2">
-              <IconClipboardText size={27} className="text-blue-600" aria-hidden="true" />
+              <ClipboardList size={27} className="text-blue-600" aria-hidden="true" />
               评估会话
             </h1>
             <span className={meta.cls}>{meta.label}</span>
           </div>
           <p className="page-description inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-            <IconUser size={17} className="text-blue-500" aria-hidden="true" />
+            <User size={17} className="text-blue-500" aria-hidden="true" />
             患者：{session.patient.name}（{session.patient.gender}，{session.patient.age} 岁）
             <span className="font-mono text-xs">{session.patient.code}</span>
             <span>量表：{scaleIds.map((scaleId) => scaleById.get(scaleId)?.name ?? scaleId).join("、")}</span>
           </p>
         </div>
         <Link href={`/doctor/patients/${session.patientId}`} className="ui-button ui-button-secondary">
-          <IconArrowLeft size={17} aria-hidden="true" />
+          <ArrowLeft size={17} aria-hidden="true" />
           返回患者
         </Link>
       </div>
 
-      <V2DemoPipeline
-        current={
-          session.status === "in_progress" ? 3 : session.status === "collected" ? 5 : 6
-        }
-        compact
-      />
-
       {saved === "1" && (
         <div className="ui-alert">
-          <IconInfoCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           草稿已保存（已保存 {savedLabels.size} 题）。
         </div>
       )}
       {error === "incomplete" && (
         <div className="ui-alert ui-alert-danger">
-          <IconInfoCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>
             以下题目尚未确认，无法生成评估：{missingNames || "请检查未作答题目"}。请补齐后再提交。
             {blockedReasons && <span className="mt-1 block">{blockedReasons}</span>}
@@ -204,12 +188,12 @@ export default async function SessionPage({
       {session.status === "in_progress" && (
         <div className="ui-alert flex-wrap justify-between gap-3">
           <span className="inline-flex items-start gap-2">
-            <IconDeviceDesktopAnalytics size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <MonitorCheck size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
             患者可在大屏上由数字医生语音问询；语音不可用时会自动降级为按钮或文字作答。
           </span>
           <Link href={`/patient/sessions/${session.id}`} target="_blank" className="ui-button ui-button-primary min-h-9 px-3 py-1.5 text-xs">
             打开患者端采集大屏
-            <IconExternalLink size={15} aria-hidden="true" />
+            <ExternalLink size={15} aria-hidden="true" />
           </Link>
         </div>
       )}
@@ -226,7 +210,7 @@ export default async function SessionPage({
       {session.status === "collected" && latestResult && latestPlan && (
         <>
           <div className="ui-alert ui-alert-warning">
-            <IconInfoCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
             评估报告与以下候选方案，患者已可在大屏上直接看到（含禁忌提示原文）。请尽快核实并确认最终方案。
           </div>
           <ResultView tags={latestResult.tags as unknown as AssessmentTag[]} answerLabels={answerLabels} />

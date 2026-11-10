@@ -7,7 +7,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconClipboardText, IconHistory, IconSparkles } from "@tabler/icons-react";
+import { ClipboardList, History, Sparkles } from "lucide-react";
 import type { ScalePackage } from "@/lib/assessment/scale-packages";
 
 export interface ScaleGroup {
@@ -75,7 +75,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
       <div className="ui-panel-heading">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-            <IconClipboardText size={21} stroke={1.9} aria-hidden="true" />
+            <ClipboardList size={21} strokeWidth={1.9} aria-hidden="true" />
           </span>
           <div>
             <h2 className="ui-panel-title">选择评估内容</h2>
@@ -98,7 +98,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
             />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 font-bold">
-                <IconHistory size={16} stroke={2} aria-hidden="true" />
+                <History size={16} strokeWidth={2} aria-hidden="true" />
                 随访对比评估
               </span>
               <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
@@ -153,7 +153,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 font-bold">
-                    <IconSparkles size={16} stroke={2} aria-hidden="true" />
+                    <Sparkles size={16} strokeWidth={2} aria-hidden="true" />
                     病历智能评估
                   </span>
                   <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
@@ -208,7 +208,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                     disabled={emrLoading || emrText.trim().length < 8}
                     onClick={() => void runEmrSuggest()}
                   >
-                    <IconSparkles size={17} aria-hidden="true" />
+                    <Sparkles size={17} aria-hidden="true" />
                     {emrLoading ? "分析中…" : "智能推荐量表"}
                   </button>
                   {emrReason && <p className="text-xs text-[#62779a]">{emrReason}</p>}
@@ -248,7 +248,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
 
         <div className="flex justify-end">
           <button className="ui-button ui-button-primary ui-button-lg" type="submit">
-            <IconClipboardText size={19} stroke={2.1} aria-hidden="true" />
+            <ClipboardList size={19} strokeWidth={2.1} aria-hidden="true" />
             创建评估会话
           </button>
         </div>

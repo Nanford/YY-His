@@ -86,6 +86,7 @@ test("患者自助答完 FRAIL+跌倒后自动生成报告，医生端候选方�
   // 评估范围与时间（V2.0 §3）：两个量表均标"新增"；frail 系统读取题豁免 → "部分计分"如实标注
   // 2026-11-10 报告版式：生成时间在身份条「测试时间」项
   await expect(page.getByText("测试时间", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /本次评估项目/ }).click();
   await expect(page.getByText("新增", { exact: true })).toHaveCount(2);
   await expect(page.getByText("部分计分", { exact: true })).toBeVisible();
   await expect(page.getByText("有 2 道需医生查看的题暂未计分", { exact: false })).toBeVisible();
@@ -122,6 +123,12 @@ test("患者自助答完 FRAIL+跌倒后自动生成报告，医生端候选方�
   await expect(page.getByText(/适用场景：/).first()).toBeVisible();
   // 未确认的问询开始入口不应再出现（报告态与问询态互斥）
   await expect(page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" })).toHaveCount(0);
+
+  await page.getByRole("link", { name: "下载报告" }).click();
+  await expect(page.getByRole("heading", { name: "综合评估结果", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "正常范围", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "返回报告" }).click();
+  await expect(page.getByRole("heading", { name: "既存问题", exact: true })).toBeVisible();
 
   // ---------- 医生：能看到患者已自助生成的评估与候选方案，并行审核确认 ----------
   await page.goto(`/doctor/sessions/${sessionId}`);

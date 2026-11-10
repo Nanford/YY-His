@@ -6,17 +6,7 @@
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  IconAlertCircle,
-  IconArrowLeft,
-  IconArrowRight,
-  IconCalendarClock,
-  IconDeviceFloppy,
-  IconLock,
-  IconRulerMeasure,
-  IconShieldCheck,
-  IconUserCircle,
-} from "@tabler/icons-react";
+import { CircleAlert, ArrowLeft, ArrowRight, CalendarClock, Save, Lock, Ruler, ShieldCheck, CircleUserRound } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { scaleById } from "@/lib/rules";
 import { createSession, updateMeasurements } from "@/lib/actions/doctor";
@@ -25,7 +15,7 @@ import { scaleV2ById } from "@/lib/rules/v2";
 import type { MedicationEntry, WeightHistory } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
 import SessionCreateForm, { type ScaleGroup } from "./session-create-form";
-import { V2DemoPipeline } from "@/components/v2-pipeline";
+import { SectionDisclosure } from "@/components/section-disclosure";
 
 export const dynamic = "force-dynamic";
 
@@ -120,36 +110,40 @@ export default async function PatientDetailPage({
             <h1 className="page-title">{patient.name}</h1>
             <span className="ui-badge font-mono">{patient.code}</span>
           </div>
-          <p className="page-description">
-            在此维护档案与测量数据，发起健康评估，并查看历次评估记录。
-          </p>
+          <p className="page-description">{patient.gender} · {patient.age} 岁</p>
         </div>
         <Link href="/doctor" className="ui-button ui-button-quiet">
-          <IconArrowLeft size={18} stroke={2} aria-hidden="true" />
+          <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
           返回列表
         </Link>
       </div>
 
-      <V2DemoPipeline current={2} compact />
-
       {error === "no-scale" && (
         <div className="ui-alert ui-alert-danger" role="alert">
-          <IconAlertCircle className="mt-0.5 shrink-0" size={18} stroke={2} aria-hidden="true" />
+          <CircleAlert className="mt-0.5 shrink-0" size={18} strokeWidth={2} aria-hidden="true" />
           <span>请至少勾选一个评估量表。</span>
         </div>
       )}
       {error === "measurements" && (
         <div className="ui-alert ui-alert-danger" role="alert">
-          <IconAlertCircle className="mt-0.5 shrink-0" size={18} stroke={2} aria-hidden="true" />
+          <CircleAlert className="mt-0.5 shrink-0" size={18} strokeWidth={2} aria-hidden="true" />
           <span>测量数据格式不正确，请填写合理的正数，或留空后再保存。</span>
         </div>
       )}
       {saved === "measurements" && (
         <div className="ui-alert border-[#bee7dc] bg-[#e9f8f4] text-[#0f705e]" role="status">
-          <IconShieldCheck className="mt-0.5 shrink-0" size={18} stroke={2} aria-hidden="true" />
+          <ShieldCheck className="mt-0.5 shrink-0" size={18} strokeWidth={2} aria-hidden="true" />
           <span>测量数据已保存；采集中的会话已同步更新相关测量题答案。</span>
         </div>
       )}
+
+      <SessionCreateForm
+        packages={SCALE_PACKAGES}
+        groups={scaleGroups}
+        followup={followup}
+        patientId={patient.id}
+        action={createSession.bind(null, patient.id)}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
         {/* 档案信息 */}
@@ -157,7 +151,7 @@ export default async function PatientDetailPage({
           <div className="ui-panel-heading">
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                <IconUserCircle size={21} stroke={1.9} aria-hidden="true" />
+                <CircleUserRound size={21} strokeWidth={1.9} aria-hidden="true" />
               </span>
               <div>
                 <h2 className="ui-panel-title">档案信息</h2>
@@ -190,7 +184,7 @@ export default async function PatientDetailPage({
               </div>
             </dl>
             <div className="mt-6 flex items-start gap-2 border-t border-[#dbe7f6] pt-4 text-xs leading-5 text-[#62779a]">
-              <IconLock className="mt-0.5 shrink-0 text-blue-600" size={16} stroke={2} aria-hidden="true" />
+              <Lock className="mt-0.5 shrink-0 text-blue-600" size={16} strokeWidth={2} aria-hidden="true" />
               <p>身份信息仅存本地；出网调用一律使用患者编号 {patient.code}。</p>
             </div>
           </div>
@@ -201,7 +195,7 @@ export default async function PatientDetailPage({
           <div className="ui-panel-heading">
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                <IconRulerMeasure size={21} stroke={1.9} aria-hidden="true" />
+                <Ruler size={21} strokeWidth={1.9} aria-hidden="true" />
               </span>
               <div>
                 <h2 className="ui-panel-title">测量数据</h2>
@@ -231,7 +225,7 @@ export default async function PatientDetailPage({
             </div>
             <div className="flex justify-end">
               <button className="ui-button ui-button-secondary" type="submit">
-                <IconDeviceFloppy size={17} stroke={2} aria-hidden="true" />
+                <Save size={17} strokeWidth={2} aria-hidden="true" />
                 保存
               </button>
             </div>
@@ -241,15 +235,8 @@ export default async function PatientDetailPage({
 
       {/* V2 补充档案（docx §1）：仅在已填写时显示 */}
       {(hasBasicExtras || hasDiseaseExtras || hasMeasureExtras) && (
-        <section className="ui-panel overflow-hidden">
-          <div className="ui-panel-heading">
-            <div>
-              <h2 className="ui-panel-title">补充档案</h2>
-              <p className="mt-1 text-xs text-[#62779a]">基本情况、疾病与用药、测量补充；后续量表将直接调用，不再重复询问</p>
-            </div>
-            <span className="ui-badge">结构化存档</span>
-          </div>
-          <div className="ui-panel-body space-y-6">
+        <SectionDisclosure title="补充档案">
+          <div className="space-y-6">
             {hasBasicExtras && (
               <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 {patient.education && (
@@ -348,24 +335,15 @@ export default async function PatientDetailPage({
               </dl>
             )}
           </div>
-        </section>
+        </SectionDisclosure>
       )}
-
-      {/* 新建评估会话（docx §2 量表工具选择：套餐 / 自定义组合 / 随访复评） */}
-      <SessionCreateForm
-        packages={SCALE_PACKAGES}
-        groups={scaleGroups}
-        followup={followup}
-        patientId={patient.id}
-        action={createSession.bind(null, patient.id)}
-      />
 
       {/* 会话历史 */}
       <section className="ui-table-wrap">
         <div className="ui-panel-heading">
           <div className="flex items-center gap-3">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-              <IconCalendarClock size={21} stroke={1.9} aria-hidden="true" />
+              <CalendarClock size={21} strokeWidth={1.9} aria-hidden="true" />
             </span>
             <div>
               <h2 className="ui-panel-title">评估记录</h2>
@@ -377,7 +355,7 @@ export default async function PatientDetailPage({
         {patient.sessions.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-              <IconCalendarClock size={23} stroke={1.9} aria-hidden="true" />
+              <CalendarClock size={23} strokeWidth={1.9} aria-hidden="true" />
             </span>
             <p className="mt-3 text-sm font-bold text-[#405a81]">暂无评估记录</p>
             <p className="mt-1 text-xs text-[#7f94b3]">创建评估会话后，记录将显示在这里。</p>
@@ -408,7 +386,7 @@ export default async function PatientDetailPage({
                     <td className="text-right">
                       <Link href={`/doctor/sessions/${session.id}`} className="ui-button ui-button-quiet">
                         进入
-                        <IconArrowRight size={17} stroke={2} aria-hidden="true" />
+                        <ArrowRight size={17} strokeWidth={2} aria-hidden="true" />
                       </Link>
                     </td>
                   </tr>

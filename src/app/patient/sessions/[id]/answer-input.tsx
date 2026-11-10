@@ -10,16 +10,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import {
-  IconArrowRight,
-  IconCheck,
-  IconKeyboard,
-  IconLoader2,
-  IconMicrophone,
-  IconRefresh,
-  IconSend,
-  IconVolume,
-} from "@tabler/icons-react";
+import { ArrowRight, Check, Keyboard, LoaderCircle, Mic, RefreshCw, Send, Volume2 } from "lucide-react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
 import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
 import { logTiming } from "./timing";
@@ -181,7 +172,7 @@ export function AnswerInput(props: AnswerInputProps) {
             // 纯手动模式的自由回答题文字面板恒展开，切换按钮无意义
             style={freeAnswer && !voiceActive ? { display: "none" } : undefined}
           >
-            <IconKeyboard size={20} stroke={1.8} aria-hidden="true" />
+            <Keyboard size={20} strokeWidth={1.8} aria-hidden="true" />
             <span>文字输入</span>
           </button>
           {voiceActive && (
@@ -238,7 +229,7 @@ function OptionButtons({
           ].join(" ")}
         >
           <span>{option.displayLabel}</span>
-          <IconArrowRight size={compact ? 22 : 26} stroke={1.7} aria-hidden="true" />
+          <ArrowRight size={compact ? 22 : 26} strokeWidth={1.7} aria-hidden="true" />
         </button>
       ))}
     </div>
@@ -296,7 +287,7 @@ function NumberInputPanel({
           className="ui-button ui-button-primary ui-button-lg"
           onClick={() => onSelect(value)}
         >
-          <IconCheck size={22} stroke={2} aria-hidden="true" />
+          <Check size={22} strokeWidth={2} aria-hidden="true" />
           <span>确认 {value} 分</span>
         </button>
       </div>
@@ -354,7 +345,7 @@ function MultiChoicePanel({
           className="ui-button ui-button-primary ui-button-lg"
           onClick={() => onSubmit(selected)}
         >
-          <IconCheck size={22} stroke={2} aria-hidden="true" />
+          <Check size={22} strokeWidth={2} aria-hidden="true" />
           <span>确认所选（{selected.length}）</span>
         </button>
       </div>
@@ -468,7 +459,7 @@ function DrawingPanel({
             ctx.fillRect(0, 0, canvas.width, canvas.height);
           }}
         >
-          <IconRefresh size={21} stroke={1.9} aria-hidden="true" />
+          <RefreshCw size={21} strokeWidth={1.9} aria-hidden="true" />
           <span>清空重画</span>
         </button>
         <button
@@ -480,7 +471,7 @@ function DrawingPanel({
             if (dataUrl) onSubmit(dataUrl);
           }}
         >
-          <IconSend size={21} stroke={1.9} aria-hidden="true" />
+          <Send size={21} strokeWidth={1.9} aria-hidden="true" />
           <span>提交画作</span>
         </button>
       </div>
@@ -503,7 +494,7 @@ function TranscriptConfirm({
   return (
     <div className="patient-panel border-[var(--brand)] bg-[var(--surface-blue)] p-6 text-center">
       <div className="mb-3 flex items-center justify-center gap-2 text-lg font-semibold text-[var(--brand-strong)]">
-        <IconVolume size={22} stroke={1.8} aria-hidden="true" />
+        <Volume2 size={22} strokeWidth={1.8} aria-hidden="true" />
         <p>您说的是：</p>
       </div>
       <p className="text-2xl font-bold leading-relaxed text-[var(--ink)]">“{transcript}”</p>
@@ -514,7 +505,7 @@ function TranscriptConfirm({
           onClick={onConfirm}
           className="ui-button ui-button-primary ui-button-lg"
         >
-          <IconCheck size={22} stroke={2} aria-hidden="true" />
+          <Check size={22} strokeWidth={2} aria-hidden="true" />
           <span>对，就这么答</span>
         </button>
         <button
@@ -523,7 +514,7 @@ function TranscriptConfirm({
           onClick={onRetry}
           className="ui-button ui-button-secondary ui-button-lg"
         >
-          <IconRefresh size={21} stroke={1.9} aria-hidden="true" />
+          <RefreshCw size={21} strokeWidth={1.9} aria-hidden="true" />
           <span>重新说</span>
         </button>
       </div>
@@ -558,7 +549,7 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
         disabled={disabled || value.trim().length === 0}
         className="ui-button ui-button-primary ui-button-lg shrink-0"
       >
-        <IconSend size={21} stroke={1.9} aria-hidden="true" />
+        <Send size={21} strokeWidth={1.9} aria-hidden="true" />
         <span>提交</span>
       </button>
     </form>
@@ -686,14 +677,14 @@ function VoiceButton({
       >
         {transcribing ? (
           <>
-            <IconLoader2 className="animate-spin" size={26} stroke={1.8} aria-hidden="true" />
+            <LoaderCircle className="animate-spin" size={26} strokeWidth={1.8} aria-hidden="true" />
             <span>正在识别您的回答…</span>
           </>
         ) : recording ? (
           <>
-            <IconMicrophone
+            <Mic
               size={26}
-              stroke={1.8}
+              strokeWidth={1.8}
               aria-hidden="true"
               className={speaking ? "voice-mic-speaking" : "voice-mic-listening"}
             />
@@ -701,7 +692,7 @@ function VoiceButton({
           </>
         ) : (
           <>
-            <IconMicrophone size={26} stroke={1.8} aria-hidden="true" />
+            <Mic size={26} strokeWidth={1.8} aria-hidden="true" />
             <span>开始语音回答</span>
           </>
         )}

@@ -10,7 +10,7 @@
 "use client";
 
 import Image from "next/image";
-import { IconVolume } from "@tabler/icons-react";
+import { Volume2 } from "lucide-react";
 
 /** 形象尺寸档位：md=作答陪伴态；xl=改版后患者大屏的主视觉大数字医生 */
 export type AvatarSize = "md" | "xl";
@@ -101,7 +101,7 @@ function FallbackAvatar({ speaking, mouthLevel, size }: { speaking: boolean; mou
         <span
           className={`absolute ${s.volume} grid place-items-center bg-[var(--brand)] text-white shadow-[0_8px_16px_rgb(23_105_232_/_20%)]`}
         >
-          <IconVolume className="animate-pulse" size={s.volumeIcon} stroke={1.9} aria-hidden="true" />
+          <Volume2 className="animate-pulse" size={s.volumeIcon} strokeWidth={1.9} aria-hidden="true" />
         </span>
       )}
       <span className="sr-only">{speaking ? "3D 女医护数字医生正在播报" : "3D 女医护数字医生等待作答"}</span>

@@ -6,15 +6,7 @@
  *         来源：需求更新说明 V2.0 §4.2 医生审核（保留/删除/同类替换，记录操作人/时间/原因/前后编码）、
  *         §5 干预展示、§5.3 安全提示与"初步方案→医生已确认"。
  */
-import {
-  IconAlertTriangle,
-  IconArrowBackUp,
-  IconArrowsExchange,
-  IconClipboardCheck,
-  IconInfoCircle,
-  IconShieldCheck,
-  IconBan,
-} from "@tabler/icons-react";
+import { TriangleAlert, Undo2, ArrowLeftRight, ClipboardCheck, Info, ShieldCheck, Ban } from "lucide-react";
 import { confirmPlan, reopenSession } from "@/lib/actions/doctor";
 import type { PlanDecision as ReviewPlanDecision } from "@/lib/assessment/plan-review";
 import type { ForbiddenItemV2, PlanCandidateItemV2 } from "@/lib/recommend-v2";
@@ -93,13 +85,13 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
           <span className="ui-badge">匹配分 {item.total}</span>
           {item.forced && (
             <span className="ui-badge ui-badge-danger">
-              <IconAlertTriangle size={13} aria-hidden="true" />
+              <TriangleAlert size={13} aria-hidden="true" />
               强制优先推荐（100）
             </span>
           )}
           {decision?.action === "replace" && (
             <span className="ui-badge">
-              <IconArrowsExchange size={13} aria-hidden="true" />
+              <ArrowLeftRight size={13} aria-hidden="true" />
               替换自 {decision.fromCode}
             </span>
           )}
@@ -165,7 +157,7 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
       ) : (
         decision?.note && (
           <p className="ui-alert mt-4 text-xs">
-            <IconInfoCircle size={16} className="shrink-0" aria-hidden="true" />
+            <Info size={16} className="shrink-0" aria-hidden="true" />
             审核备注：{decision.note}
           </p>
         )
@@ -221,7 +213,7 @@ function EmptyPlan({ final }: { final: boolean }) {
   return (
     <div className="rounded-2xl border border-dashed border-[#bcd4f5] bg-[#f8fbff] px-6 py-9 text-center">
       <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-        <IconShieldCheck size={23} aria-hidden="true" />
+        <ShieldCheck size={23} aria-hidden="true" />
       </span>
       <p className="mt-3 font-extrabold text-[#2b4a75]">{final ? "本次评估无最终干预项目" : "暂无候选干预方案"}</p>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6980a3]">
@@ -240,7 +232,7 @@ function ForbiddenSection({ forbidden }: { forbidden: readonly ForbiddenItemV2[]
     // 外边距与 ui-panel-body 的 22px 内边距对齐，左缘与上方卡体内容齐平
     <section className="mx-[22px] mb-[22px] rounded-2xl border border-red-200 bg-red-50 px-5 py-4" aria-label="禁止自动推荐明细">
       <h3 className="inline-flex items-center gap-2 text-sm font-extrabold text-red-800">
-        <IconBan size={17} aria-hidden="true" />
+        <Ban size={17} aria-hidden="true" />
         已禁止自动推荐（{forbidden.length} 项）
       </h3>
       <ul className="mt-3 space-y-2">
@@ -291,7 +283,7 @@ export function PlanReview({
         {hasCandidates ? <GroupedList items={candidates} reviewing forbidden={forbidden} /> : <EmptyPlan final={false} />}
         <div className="flex justify-end border-t border-[#dbe7f6] pt-5">
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
-            <IconClipboardCheck size={19} aria-hidden="true" />
+            <ClipboardCheck size={19} aria-hidden="true" />
             {hasCandidates ? "确认最终干预方案" : "确认暂无候选方案"}
           </button>
         </div>
@@ -301,7 +293,7 @@ export function PlanReview({
 
       <form action={reopenSession.bind(null, sessionId)} className="border-t border-[#dbe7f6] bg-[#f8fbff] px-6 py-3">
         <button type="submit" className="ui-button ui-button-quiet min-h-0 px-0 py-1 text-sm">
-          <IconArrowBackUp size={17} aria-hidden="true" />
+          <Undo2 size={17} aria-hidden="true" />
           返回修改答案（本次评估结果将重新生成）
         </button>
       </form>
@@ -353,7 +345,7 @@ export function FinalPlan({
                 <div key={`${decision.action}-${decision.code}`} className="rounded-xl border border-[#dbe7f6] bg-white px-3 py-3">
                   <div className="flex items-center gap-2">
                     <span className={decision.action === "replace" ? "ui-badge" : "ui-badge ui-badge-danger"}>
-                      {decision.action === "replace" ? <IconArrowsExchange size={13} aria-hidden="true" /> : <IconAlertTriangle size={13} aria-hidden="true" />}
+                      {decision.action === "replace" ? <ArrowLeftRight size={13} aria-hidden="true" /> : <TriangleAlert size={13} aria-hidden="true" />}
                       {decision.action === "replace" ? "已替换" : "已删除"}
                     </span>
                     <span className="text-sm font-bold text-[#29496f]">

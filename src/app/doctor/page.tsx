@@ -1,157 +1,116 @@
 /**
- * INPUT:  Prisma（患者列表及会话计数）
- * OUTPUT: 患者管理列表页 + Demo V2 主流程提示
- * POS:    医生端首页。展示全部患者；流程对齐 Demo_v2 §1 建档 → §2 选量表 → 采集/审核。
+ * INPUT: 患者档案、评估会话和待审核数量
+ * OUTPUT: 医生工作台的档案总览与评估入口
+ * POS: 医生端首页，列表为发起评估的主要入口。
  */
 import Link from "next/link";
-import {
-  IconArrowRight,
-  IconClipboardText,
-  IconPlus,
-  IconUsersGroup,
-} from "@tabler/icons-react";
+import { ArrowUpRight, ClipboardCheck, ClipboardList, FolderOpen, Plus, UsersRound } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { V2DemoPipeline } from "@/components/v2-pipeline";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 
 export default async function DoctorHomePage() {
-  const patients = await prisma.patient.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { sessions: true } } },
-  });
-  const assessmentCount = patients.reduce((total, patient) => total + patient._count.sessions, 0);
-  const pendingReview = await prisma.assessmentSession.count({
-    where: { status: "collected" },
-  });
+  const [patients, pendingReview] = await Promise.all([
+    prisma.patient.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, code: true, gender: true, age: true, _count: { select: { sessions: true } } },
+    }),
+    prisma.assessmentSession.count({ where: { status: "collected" } }),
+  ]);
+  const metrics = [
+    { label: "已建档患者", value: patients.length, icon: UsersRound },
+    {
+      label: "累计评估会话",
+      value: patients.reduce((total, patient) => total + patient._count.sessions, 0),
+      icon: ClipboardList,
+    },
+    { label: "待审核干预方案", value: pendingReview, icon: ClipboardCheck },
+  ];
 
   return (
-    <div className="app-page space-y-6 u-stagger">
-      <div className="page-heading">
-        <div className="page-heading-copy">
-          <p className="page-eyebrow">医生工作台</p>
-          <h1 className="page-title">患者管理</h1>
-          <p className="page-description">
-            管理患者档案，发起健康评估，并审核确认干预方案。
-          </p>
-        </div>
-        <Link href="/doctor/patients/new" className="ui-button ui-button-primary ui-button-lg">
-          <IconPlus size={19} stroke={2.2} aria-hidden="true" />
-          新建患者档案
-        </Link>
-      </div>
-
-      <V2DemoPipeline current={1} compact />
-
-      <div className="v2-section-banner">
-        <div>
-          <strong>建议操作顺序</strong>
-          <p>
-            先完成患者建档（基本情况、疾病用药、测量指标），再选择本次评估量表并完成采集；
-            评估生成后请审核干预方案并确认。
-          </p>
-        </div>
-        <Link href="/doctor/patients/new" className="ui-button ui-button-secondary shrink-0">
-          新建档案
-          <IconArrowRight size={16} aria-hidden="true" />
-        </Link>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="ui-panel-subtle flex items-center gap-4 px-5 py-4">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_5px_14px_rgba(33,87,160,0.08)]">
-            <IconUsersGroup size={23} stroke={1.9} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-bold text-[#405a81]">已建档患者</p>
-            <p className="mt-0.5 text-2xl font-extrabold tracking-[-0.03em] text-[#102a56]">
-              {patients.length}
-            </p>
-          </div>
-        </div>
-        <div className="ui-panel-subtle flex items-center gap-4 px-5 py-4">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_5px_14px_rgba(33,87,160,0.08)]">
-            <IconClipboardText size={23} stroke={1.9} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-bold text-[#405a81]">累计评估会话</p>
-            <p className="mt-0.5 text-2xl font-extrabold tracking-[-0.03em] text-[#102a56]">
-              {assessmentCount}
-            </p>
-          </div>
-        </div>
-        <div className="ui-panel-subtle flex items-center gap-4 px-5 py-4">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-amber-700 shadow-[0_5px_14px_rgba(33,87,160,0.08)]">
-            <IconClipboardText size={23} stroke={1.9} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-bold text-[#405a81]">待审核干预方案</p>
-            <p className="mt-0.5 text-2xl font-extrabold tracking-[-0.03em] text-[#102a56]">
-              {pendingReview}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {patients.length === 0 ? (
-        <section className="ui-panel px-6 py-14 text-center sm:px-10">
-          <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-blue-50 text-blue-600">
-            <IconUsersGroup size={31} stroke={1.75} aria-hidden="true" />
-          </span>
-          <h2 className="mt-5 text-lg font-extrabold text-[#173766]">暂无患者档案</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#62779a]">
-            请先新建患者档案，再在患者详情页发起健康评估。
-          </p>
-          <Link href="/doctor/patients/new" className="ui-button ui-button-primary mt-6">
-            <IconPlus size={18} stroke={2.2} aria-hidden="true" />
-            新建患者
+    <div className="app-page space-y-7">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="page-title">患者管理</h1>
+        <Button asChild className="min-h-11 gap-2 px-4 font-semibold">
+          <Link href="/doctor/patients/new">
+            <Plus aria-hidden="true" />
+            新建患者档案
           </Link>
-        </section>
-      ) : (
-        <section className="ui-table-wrap">
-          <div className="ui-panel-heading">
-            <div>
-              <h2 className="ui-panel-title">患者档案</h2>
-              <p className="mt-1 text-xs text-[#62779a]">点击详情 → 发起评估（量表工具选择）</p>
+        </Button>
+      </header>
+
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {metrics.map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="gap-0 p-2.5 ring-border sm:p-5">
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-primary sm:size-11 sm:rounded-xl">
+                <Icon className="size-5" aria-hidden="true" />
+              </span>
+              <dl>
+                <dt className="text-xs font-medium text-muted-foreground sm:text-sm">{label}</dt>
+                <dd className="mt-1 text-2xl leading-none font-bold tabular-nums sm:text-3xl">{value}</dd>
+              </dl>
             </div>
-            <span className="ui-badge">共 {patients.length} 位</span>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="gap-0 p-0 ring-border" aria-labelledby="patient-list-title">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
+          <h2 id="patient-list-title" className="text-base font-bold">患者档案</h2>
+          <Badge variant="secondary" className="px-2.5">共 {patients.length} 位</Badge>
+        </div>
+        {patients.length === 0 ? (
+          <div className="grid justify-items-center gap-3 px-5 py-16 text-center">
+            <span className="grid size-14 place-items-center rounded-2xl bg-muted text-primary">
+              <FolderOpen className="size-6" aria-hidden="true" />
+            </span>
+            <p className="font-semibold">暂无患者档案</p>
+            <p className="text-sm text-muted-foreground">建档后可在患者详情中发起评估。</p>
           </div>
-          <table className="ui-table">
-            <thead>
-              <tr>
-                <th scope="col">姓名</th>
-                <th scope="col">编号</th>
-                <th scope="col">性别/年龄</th>
-                <th scope="col">评估次数</th>
-                <th scope="col" className="text-right">
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+        ) : (
+          <Table>
+            <TableHeader className="bg-muted/60">
+              <TableRow>
+                <TableHead className="pl-4 sm:pl-6">姓名</TableHead>
+                <TableHead className="hidden md:table-cell">档案编号</TableHead>
+                <TableHead className="hidden md:table-cell">性别 / 年龄</TableHead>
+                <TableHead className="hidden md:table-cell">评估次数</TableHead>
+                <TableHead className="pr-4 text-right sm:pr-6">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {patients.map((patient) => (
-                <tr key={patient.id}>
-                  <td className="font-extrabold text-[#173766]">{patient.name}</td>
-                  <td className="font-mono text-xs text-[#6b82a4]">{patient.code}</td>
-                  <td>
-                    {patient.gender} · {patient.age} 岁
-                  </td>
-                  <td>{patient._count.sessions}</td>
-                  <td className="text-right">
-                    <Link
-                      href={`/doctor/patients/${patient.id}`}
-                      className="ui-button ui-button-secondary ui-button-sm"
-                    >
-                      详情 / 发起评估
-                      <IconArrowRight size={15} aria-hidden="true" />
-                    </Link>
-                  </td>
-                </tr>
+                <TableRow key={patient.id} className="h-16">
+                  <TableCell className="pl-4 font-semibold whitespace-normal break-words sm:pl-6">
+                    {patient.name}
+                    <span className="mt-1 block text-xs font-normal text-muted-foreground md:hidden">
+                      {patient.gender} · {patient.age} 岁 · 评估 {patient._count.sessions} 次
+                    </span>
+                    <span className="mt-0.5 block font-mono text-xs font-normal text-muted-foreground md:hidden">
+                      {patient.code}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden font-mono text-xs text-muted-foreground md:table-cell">{patient.code}</TableCell>
+                  <TableCell className="hidden md:table-cell">{patient.gender} · {patient.age} 岁</TableCell>
+                  <TableCell className="hidden tabular-nums md:table-cell">{patient._count.sessions}</TableCell>
+                  <TableCell className="pr-3 text-right sm:pr-5">
+                    <Button variant="ghost" asChild className="min-h-9 gap-2 text-primary">
+                      <Link href={`/doctor/patients/${patient.id}`}>
+                        查看详情 <ArrowUpRight aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
     </div>
   );
 }

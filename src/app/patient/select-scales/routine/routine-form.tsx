@@ -7,12 +7,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  IconAlertCircle,
-  IconArrowRight,
-  IconChecklist,
-  IconCircleCheck,
-} from "@tabler/icons-react";
+import { CircleAlert, ArrowRight, ListTodo, CircleCheck } from "lucide-react";
 
 export interface RoutineScaleItem {
   id: string;
@@ -75,7 +70,7 @@ export default function RoutineForm({ packages, error, action }: Props) {
       <input type="hidden" name="mode" value="routine" />
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
-          <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>请至少保留一项评估内容。</span>
         </div>
       )}
@@ -153,15 +148,15 @@ export default function RoutineForm({ packages, error, action }: Props) {
       </div>
 
       <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2 text-sm leading-6 text-[#62779a]">
-        <IconCircleCheck size={20} stroke={2} className="mt-0.5 shrink-0 text-blue-600" aria-hidden="true" />
+        <CircleCheck size={20} strokeWidth={2} className="mt-0.5 shrink-0 text-blue-600" aria-hidden="true" />
         系统按顺序逐项问询，相同信息自动复用，不会重复提问。
       </p>
 
       <div className="space-y-2">
         <button type="submit" className="patient-primary-action w-full" disabled={checkedCount === 0}>
-          <IconChecklist size={24} stroke={2.1} aria-hidden="true" />
+          <ListTodo size={24} strokeWidth={2.1} aria-hidden="true" />
           确认并开始评估（{checkedCount} 项）
-          <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
+          <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
         </button>
         <p className="text-center text-sm leading-6 text-[#62779a]">提交后将直接进入健康问询。</p>
       </div>

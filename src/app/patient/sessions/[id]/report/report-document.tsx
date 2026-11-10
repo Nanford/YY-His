@@ -84,12 +84,7 @@ export function ReportDocument({
                 <p className="report-doc-muted">本次评估未标出需重点关注的问题，各项结论见下表。</p>
               ) : (
                 <ul className="report-doc-problems">
-                  {problems.map((problem, index) => (
-                    // 参考图蓝/黄交替的浅色胶囊，仅作视觉区分，不表达严重程度
-                    <li key={problem} className={index % 2 === 0 ? "is-blue" : "is-yellow"}>
-                      {problem}
-                    </li>
-                  ))}
+                  {problems.map((problem) => <li key={problem}>{problem}</li>)}
                 </ul>
               )}
             </section>
@@ -99,7 +94,7 @@ export function ReportDocument({
               <ResultsTable rows={rows} />
             </section>
 
-            <section className="report-doc-section">
+            <section className="report-doc-section report-doc-plan-section">
               <h2>干预建议{planConfirmed ? "（医生已确认）" : ""}</h2>
               <PlanList categoryOrder={categoryOrder} planEntries={planEntries} />
             </section>
