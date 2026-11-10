@@ -199,14 +199,19 @@ describe("中医体质辨识（27 计分题转化分版）", () => {
     for (const t of r.tags) expect(t.name).toBeTruthy();
   });
 
-  it("任一计分题（正式问题）缺失 → 阻断不出标签", () => {
+  it("任一计分题（正式问题）缺失：strict 阻断不出标签；deferClinical 豁免部分计分（2026-08-13 口径）", () => {
     const answers = tcmAnswers();
     delete answers["tcm_constitution_A.5-1"];
-    const r = scoreScaleV2("tcm_constitution", answers, { deferClinical: true });
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["tcm_constitution_A.5-1"]);
-    expect(r.tags).toEqual([]);
-    expect(r.constitutions).toBeUndefined();
+    const strict = scoreScaleV2("tcm_constitution", answers);
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["tcm_constitution_A.5-1"]);
+    expect(strict.tags).toEqual([]);
+    expect(strict.constitutions).toBeUndefined();
+    const defer = scoreScaleV2("tcm_constitution", answers, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["tcm_constitution_A.5-1"]);
+    expect(defer.partial).toBe(true);
   });
 
   it("答案 label 不在合法选项内 → 抛错（确定性红线）", () => {

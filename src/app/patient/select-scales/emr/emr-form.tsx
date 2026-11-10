@@ -203,7 +203,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
       />
       <span className="min-w-0">
         <span className="block text-lg font-extrabold leading-tight text-[#173766]">{scale.label}</span>
-        <span className="mt-0.5 block text-sm leading-6 text-[#62779a]">{scale.subtitle}</span>
+        <span className="mt-0.5 block text-sm leading-5 text-[#62779a]">{scale.subtitle}</span>
       </span>
     </label>
   );
@@ -218,7 +218,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         {/* 左栏：病历与诊断输入 */}
         <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
@@ -231,7 +231,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
               value={emrText}
               onChange={(e) => setEmrText(e.target.value.slice(0, MAX_LEN))}
               rows={7}
-              className="patient-input mt-2 w-full"
+              className="patient-input mt-1.5 w-full"
               placeholder="例如：患者，82岁，近3个月体重下降约4kg，夜间睡眠差……"
             />
             <span className="mt-1 block text-right text-sm text-[#7f94b3]">
@@ -299,7 +299,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
           </h2>
 
           {!analyzed && (
-            <p className="rounded-2xl bg-[#f8fbff] px-5 py-8 text-center text-base leading-7 text-[#7f94b3]">
+            <p className="rounded-2xl bg-[#f8fbff] px-5 py-6 text-center text-base leading-7 text-[#7f94b3]">
               粘贴或上传病历后点「智能解析」，这里会显示推荐的评估项目。
             </p>
           )}
@@ -322,6 +322,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
                 </div>
               )}
 
+              {/* 推荐重点（默认全选，可手动增减） */}
               <div>
                 <p className="text-sm font-extrabold tracking-wide text-[#62779a]">
                   推荐重点（建议优先完成，已为您预选）
@@ -329,6 +330,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
                 <div className="mt-2 grid grid-cols-1 gap-2">{recommended.map(renderScaleCheck)}</div>
               </div>
 
+              {/* 可补充池（按需勾选） */}
               {supplements.length > 0 && (
                 <div>
                   <p className="text-sm font-extrabold tracking-wide text-[#62779a]">可补充（按需选择）</p>
@@ -337,7 +339,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
               )}
 
               {reason && (
-                <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm leading-7 text-[#405a81]">
+                <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2.5 text-sm leading-6 text-[#405a81]">
                   <IconBulb size={19} stroke={2} className="mt-1 shrink-0 text-blue-600" aria-hidden="true" />
                   <span>
                     <span className="font-extrabold">系统判断：</span>
@@ -354,7 +356,7 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
         推荐项目可手动增减；病历仅在本机解析。
       </p>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button type="submit" className="patient-primary-action w-full" disabled={!analyzed || checked.size === 0}>
           确认推荐项目（{checked.size} 项）
           <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />

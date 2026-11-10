@@ -50,7 +50,7 @@ export function scoreInitialGateSumRange(
     });
   }
 
-  const initialPartition = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);
+  const initialPartition = partitionMissingV2(missingIds, opts.deferClinical ?? false);
   if (initialPartition.blocking.length > 0) {
     // 初筛未齐：终筛条目仅占位 excluded，整体阻断
     for (const item of scale.items) {
@@ -136,7 +136,7 @@ export function scoreInitialGateSumRange(
     });
   }
 
-  const finalPartition = partitionMissingV2(scale, finalMissing, opts.deferClinical ?? false);
+  const finalPartition = partitionMissingV2(finalMissing, opts.deferClinical ?? false);
   const deferred = [...initialPartition.deferred, ...finalPartition.deferred];
   const ok = finalPartition.blocking.length === 0;
   const tags: TagResultV2[] = [];

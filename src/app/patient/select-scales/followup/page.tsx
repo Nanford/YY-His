@@ -68,7 +68,7 @@ export default async function PatientFollowupScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { id: true },
+    select: { name: true, gender: true, age: true },
   });
   if (!patient) notFound();
 
@@ -94,22 +94,20 @@ export default async function PatientFollowupScalesPage({
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
+        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
               <IconHistory size={26} stroke={1.9} aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 随访对比评估</p>
-              <h1 className="patient-display-title mt-2">随访对比评估</h1>
-              <p className="patient-display-copy max-w-2xl">
-                调取上次评估结果，只复评需要更新的项目。
-              </p>
+              <h1 className="patient-display-title mt-1">随访对比评估</h1>
+              <p className="patient-display-copy max-w-2xl">调取上次评估结果，只复评需要更新的项目。</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-7 sm:px-9 sm:py-9">
+        <div className="px-6 py-7 sm:px-9">
           {reportedSessions.length === 0 ? (
             <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] px-6 py-12 text-center">
               <p className="text-lg font-extrabold text-[#173766]">还没有已完成的评估记录</p>
@@ -187,9 +185,9 @@ function FollowupContent({
 
   return (
     <div className="space-y-7">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.1fr)_minmax(0,1.1fr)]">
-        {/* 左栏：既往评估记录 */}
-        <section className="space-y-3">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.1fr)_minmax(0,1.1fr)]">
+        {/* 左栏：既往评估记录（与中栏同一卡片样式，三栏顶对齐节奏一致） */}
+        <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5">
           <h2 className="text-lg font-extrabold text-[#173766]">既往评估记录</h2>
           {sessions.map((session, index) => (
             <div

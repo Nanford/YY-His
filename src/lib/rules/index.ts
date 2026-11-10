@@ -17,6 +17,7 @@ import {
   type InterventionV2,
   type ScoringCategoryV2,
 } from "./v2";
+import { isFreeResponseItem } from "@/lib/dialogue/cognitive-flow";
 
 // ---------- 旧形状类型（对话/代填/页面层的消费契约） ----------
 
@@ -101,6 +102,12 @@ export interface ScaleQuestion {
   patientResponseMode: PatientResponseMode;
   /** 计分由谁负责；MMSE 等需外部标准答案的题目明确标为 clinician。 */
   judgmentMode: JudgmentMode;
+  /**
+   * "free" = 自由回答题（2026-08-13 认知题改版，见 src/lib/dialogue/cognitive-flow.ts）：
+   * 不向患者展示选项按钮（标准答案不泄露），语音/文字自由作答，
+   * 由 LLM（规则兜底）把回答映射回既有标准选项，评分引擎零改动。
+   */
+  responseMode?: "free";
 }
 
 /** 多选答案 label 连接符（存储于 Answer.optionLabel，判定时拆分） */
@@ -159,6 +166,41 @@ function shortTitle(text: string): string {
   return first.length > 24 ? `${first.slice(0, 24)}…` : first;
 }
 
+/**
+ * 去掉题干中的流程注解（01 表跳题标注："可以（结束）、不可以（2）"等，仅 vision/hearing 阶梯题有）：
+ * 注解是给采集流程看的，不应展示/播报给患者（2026-08-13 用户要求）；
+ * 跳题行为由 state-machine.computeLadderSkips 按答案分值派生，与题干文本无关。
+ * 评分引擎直接读 scales-v2.json 原文，不受本清理影响。
+ */
+function stripBranchAnnotations(text: string): string {
+  return text
+    .replace(/\s*可以（结束）、不可以(?:（结束）|（\d+）)[；;]?/g, "")
+    // 01 表题号前缀（"2、"等，仅 vision/hearing 条目有）对患者无意义，一并剥除
+    .replace(/^\d+、/, "")
+    .trim();
+}
+
+/**
+ * 患者端选项展示文案（2026-09-04 修改意见 1：选项里不要出现评分和备注，只给答案选择）。
+ * 01 表选项 label 常带"（4分，结束听力评估）""（进入下一题）""（筛查阳性）"等注解——
+ * 这些是给评分引擎/AI 归一化理解用的，不应展示也不应播报给患者。
+ * 全量校验：42 量表 734 个选项剥除全部括号注后无空串、同题内无撞名（tests/display-option-label）。
+ * 仅用于患者端展示与追问话术播报；提交/匹配/评分仍用原始 label（displayLabel 不改变数据流）。
+ */
+export function displayOptionLabel(label: string): string {
+  return label.replace(/[（(][^（）()]*[)）]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * 题干展示文案覆盖（2026-08-13 用户要求：一次只问一个问题）。
+ * vision_2 原文含 1-1（戴镜）/1-2（不戴镜）两个分支问句（因 vision_1 戴镜确认不在患者端提问），
+ * 患者端合并为单一问句；戴镜口径已由 vision 量表前置旁白 narr_30 交代
+ * （"平时戴眼镜的话，请按戴眼镜时的情况回答"）。医学语义不变，评分不受影响。
+ */
+const QUESTION_TEXT_OVERRIDES: ReadonlyMap<string, string> = new Map([
+  ["vision_2", "您可以看清楚报纸或者书上的字吗？"],
+]);
+
 /** 从条目形态推断作答题型（M9.6；医学选项仍以 scales-v2 options 为准） */
 function detectAnswerType(item: ScaleItemV2): AnswerType {
   if (item.entryType === "绘图操作") return "drawing";
@@ -209,7 +251,7 @@ function needsClinicianJudgment(scaleId: string, item: ScaleItemV2): boolean {
  * 未知条目类型进入 configuration_missing，避免用默认答案掩盖题库配置缺口。
  */
 function semanticsOf(scaleId: string, item: ScaleItemV2, isScored: boolean): CollectionSemantics {
-  const clinicianJudgment = needsClinicianJudgment(scaleId, item);
+  const clinicianJudgment = !isFreeResponseItem(item.id) && needsClinicianJudgment(scaleId, item);
   const missingConfiguration = isScored && item.options === null;
   const judgmentMode: JudgmentMode = missingConfiguration
     ? "configuration_missing"
@@ -243,7 +285,7 @@ function semanticsOf(scaleId: string, item: ScaleItemV2, isScored: boolean): Col
       };
     case "记忆指令":
       return {
-        collectionRole: isScored ? "patient_and_clinician" : "patient",
+        collectionRole: clinicianJudgment ? "patient_and_clinician" : "patient",
         interactionMode: "instruction",
         inTimeline: true,
         patientResponseMode: isScored ? "free_text" : "none",
@@ -348,13 +390,14 @@ function toScaleQuestion(item: ScaleItemV2, scaleId: string, isScored: boolean):
   // 兼容旧的医生端/补充评估派生口径：绘图操作虽需医护判定，但不等同于“需医生协助才能开始采集”。
   // 患者端不再读取该历史字段，改用下方显式采集语义决定是否入时间线及如何交互。
   const observerAssisted = item.entryType !== "正式问题" && item.entryType !== "绘图操作";
+  const text = stripBranchAnnotations(QUESTION_TEXT_OVERRIDES.get(item.id) ?? item.text);
   return {
     id: item.id,
     no: item.no,
-    title: shortTitle(item.text),
-    standardText: item.text,
-    colloquialText: item.text,
-    retryText: item.text,
+    title: shortTitle(text),
+    standardText: text,
+    colloquialText: text,
+    retryText: text,
     answerType,
     options,
     numberMin: scored.length > 0 ? Math.min(...scored) : undefined,
@@ -363,7 +406,13 @@ function toScaleQuestion(item: ScaleItemV2, scaleId: string, isScored: boolean):
     observerAssisted,
     entryType: item.entryType,
     ...semantics,
+    // 戴镜和助听器提示已移入旁白。MMSE 图片题需要实物或配图，由医护当面采集。
+    inTimeline: semantics.inTimeline &&
+      item.id !== "vision_1" &&
+      item.id !== "hearing_1" &&
+      !(scaleId === "mmse" && semantics.interactionMode === "picture"),
     isScored,
+    responseMode: isFreeResponseItem(item.id) ? "free" : undefined,
   };
 }
 
@@ -439,4 +488,40 @@ export function optionsOf(scale: Scale, question: ScaleQuestion): QuestionOption
     return scale.likertOptions ?? [];
   }
   return question.options ?? [];
+}
+
+/**
+ * 量表名的口语化短名（2026-08-13 用户要求：开场点名说"听力评估"而不是"听力简易评估表"）：
+ * 去掉"简易/简版"，书面前缀后缀归一（评估表/评估量表→评估、检查量表→检查、
+ * 评定量表/评定简表→评定、问卷简表→问卷、筛查表→筛查、量表→去尾），括号内英文缩写保留。
+ * 仅用于对患者播报/展示，医学数据与报告页仍用原始名称。
+ *
+ * 2026-09-04 修改意见 2/5：患者端不出现"智力"措辞——
+ * 「简易智力评估量表」对患者称"认知功能筛查"；「简易智力状态检查量表（MMSE）」称"详细的认知功能评价"。
+ */
+const SCALE_SHORT_NAME_OVERRIDES: ReadonlyMap<string, string> = new Map([
+  ["简易智力评估量表", "认知功能筛查"],
+  ["简易智力状态检查量表（MMSE）", "详细的认知功能评价"],
+]);
+
+export function shortScaleName(name: string): string {
+  const override = SCALE_SHORT_NAME_OVERRIDES.get(name);
+  if (override) return override;
+  const match = name.match(/^(.*?)(（[^）]*）)?$/);
+  const base = (match?.[1] ?? name).replace(/简易|简版/g, "");
+  const suffix = match?.[2] ?? "";
+  const rules: [string, string][] = [
+    ["评估表", "评估"],
+    ["评估量表", "评估"],
+    ["检查量表", "检查"],
+    ["评定量表", "评定"],
+    ["评定简表", "评定"],
+    ["问卷简表", "问卷"],
+    ["筛查表", "筛查"],
+    ["量表", ""],
+  ];
+  for (const [from, to] of rules) {
+    if (base.endsWith(from)) return base.slice(0, base.length - from.length) + to + suffix;
+  }
+  return base + suffix;
 }

@@ -21,13 +21,14 @@ const SIZE_STYLE: Record<
   { frame: string; volume: string; volumeIcon: number }
 > = {
   md: {
-    frame: "size-40 sm:size-44",
+    // max-w-full + aspect-square：栏宽不足时整体等比缩小，避免溢出撑出横向滚动条（2026-09-04 修改意见 7）
+    frame: "size-40 sm:size-44 max-w-full aspect-square",
     volume: "-left-2 -top-2 size-10 rounded-xl",
     volumeIcon: 20,
   },
   // 大屏问询主视觉：略放大，与左侧栏约 1:2.1 比例协调，避免形象过小像缩略图
   xl: {
-    frame: "size-60 sm:size-72 xl:size-80",
+    frame: "size-60 sm:size-72 xl:size-80 max-w-full aspect-square",
     volume: "-left-3 -top-3 size-12 sm:size-14 rounded-2xl",
     volumeIcon: 26,
   },

@@ -69,7 +69,8 @@ export async function recognizeSpeech(input: { audio: Buffer; patientCode: strin
   const statusCode = response.headers.get("X-Api-Status-Code");
   if (!response.ok || (statusCode !== null && statusCode !== "20000000")) {
     const statusMessage = response.headers.get("X-Api-Message") ?? `HTTP ${response.status}`;
-    // 45000030 = 资源未授权：账号尚未开通"录音文件识别-极速版"（2026-07-14 联调确认）
+    // 45000030 = 资源未授权：账号尚未开通"录音文件识别-极速版"（2026-07-14 联调确认）。
+    // 2026-09-14 用户拍板：未开通提示原文保留给患者端展示（便于演示现场发现服务未开通）
     if (statusCode === "45000030" || statusMessage.includes("not granted")) {
       throw new AsrError(
         "语音识别服务未开通：请在火山引擎控制台开通 语音识别大模型-录音文件识别极速版（volc.bigasr.auc_turbo）",

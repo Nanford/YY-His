@@ -84,10 +84,13 @@ function toAssessmentTags(result: ScaleScoreResultV2, tcmQuestionIds: ReadonlyMa
 
 /**
  * 假定调用方已持有 finalizing 锁且本次答案已落库：评分 → 推荐 → 落快照。
- * 评分不完整（存在普通问答题"待人工确认"未补录，或非条目缺失类阻断如 MMSE 缺文化程度）时回退
- * in_progress，交还调用方处理（医生端展示缺失题目列表与阻断原因；患者端提示需要医生协助）。
- * deferClinical（Demo 口径）：系统读取/逻辑计算/操作测试等"医生题"缺失不再阻断评分，
- * 忽略其计分先出报告，被豁免的条目随快照存入 AssessmentResult.deferred，报告页如实标注"部分计分"。
+ * strict（医生端）：任何条目缺失都阻断并回退 in_progress，交医生补录。
+ * deferClinical（患者自助 Demo 口径）：缺失条目一律豁免计分、按已答题目计分先出报告，
+ * 被豁免条目随快照存 AssessmentResult.deferred，报告页如实标注「部分计分」——
+ * 2026-08-13 用户拍板「不需要医生确认，直接生成评估报告」，普通问答题答不清
+ * （待人工确认）也不再阻断（2026-07-20 的旧口径废止）；零条已答的量表仍不产标签
+ * （scoring-v2 全豁免守卫）。非条目缺失类阻断（MMSE 缺文化程度）在 deferClinical
+ * 下按四档一致规则降级判定，见 threshold-by-education.ts。
  */
 export async function scoreAndSnapshot(
   tx: Prisma.TransactionClient,

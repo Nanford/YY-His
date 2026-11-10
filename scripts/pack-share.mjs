@@ -59,7 +59,7 @@ fs.copyFileSync(path.join(ROOT, "runtime", "node.exe"), path.join(PKG_DIR, "node
 fs.copyFileSync(path.join(ROOT, ".env.example"), path.join(PKG_DIR, ".env.local"));
 fs.appendFileSync(path.join(PKG_DIR, ".env.local"), "\n# 便携包数据库位置（相对启动目录，勿改）\nDATABASE_URL=file:./prisma/dev.db\n", "utf8");
 
-// 6) 一键启动：后台起服务、4 秒后自动开浏览器；关闭黑窗口即停止
+// 6) 一键启动：后台起服务、4 秒后自动开浏览器；关闭黑窗口即停止；3000 被占用时自动改用 3200
 fs.writeFileSync(
   path.join(PKG_DIR, "启动.bat"),
   [
@@ -67,9 +67,12 @@ fs.writeFileSync(
     "chcp 65001 >nul",
     "cd /d %~dp0",
     "set DATABASE_URL=file:./prisma/dev.db",
-    "echo 正在启动老年健康智能评估系统，浏览器稍后会自动打开 http://localhost:3000",
+    "rem 3000 被占用时自动改用 3200",
+    "set PORT=3000",
+    "netstat -ano | findstr \":3000 \" | findstr LISTENING >nul && set PORT=3200",
+    "echo 正在启动老年健康智能评估系统，浏览器稍后会自动打开 http://localhost:%PORT%",
     "echo 请保持本窗口打开，关闭即停止服务。",
-    'start "" cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:3000"',
+    'start "" cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:%PORT%"',
     "node.exe server.js",
     "",
   ].join("\r\n"),
@@ -82,7 +85,8 @@ fs.writeFileSync(
   [
     "老年健康智能评估与干预系统 Demo · 绿色便携包",
     "",
-    "【启动】双击 启动.bat，浏览器自动打开 http://localhost:3000（患者端 /patient，医生端 /doctor）。",
+    "【启动】双击 启动.bat，浏览器自动打开系统首页（默认 http://localhost:3000，",
+    "       3000 被占用时自动改用 http://localhost:3200，以窗口显示为准）。",
     "【停止】关闭启动时的黑色命令行窗口即可。",
     "【语音】未配置密钥时自动降级为字幕 + 按钮/文字作答，全流程可演示；",
     "       需要语音对话时，用记事本打开 .env.local 填入 DEEPSEEK_API_KEY 与火山 VOLC_APP_ID / VOLC_ACCESS_TOKEN 后重启。",

@@ -33,17 +33,17 @@ export default async function PatientRoutineScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { id: true },
+    select: { name: true, gender: true, age: true },
   });
   if (!patient) notFound();
 
   // 服务端预分组：套餐量表按 01 表一级分类分组（保持文档顺序），附适老化标签与医护协助提示
-  const packageOptions: RoutinePackageOption[] = ROUTINE_PACKAGES.map((pkg, index) => ({
+  const packageOptions: RoutinePackageOption[] = ROUTINE_PACKAGES.map((pkg) => ({
     key: pkg.key,
     name: pkg.name,
     description: pkg.description,
     scene: pkg.scene ?? "综合评估",
-    recommended: index === 0,
+    recommended: pkg.key === "outpatient", // 2026-09-14 用户拍板：门诊简版为默认推荐/默认选中
     scaleIds: pkg.scaleIds,
     minutes: estimateMinutes(pkg.scaleIds),
     groups: groupScalesByCategory(pkg.scaleIds).map((group) => ({
@@ -71,22 +71,20 @@ export default async function PatientRoutineScalesPage({
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
+        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
               <IconChecklist size={26} stroke={1.9} aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 常规综合评估</p>
-              <h1 className="patient-display-title mt-2">常规综合评估</h1>
-              <p className="patient-display-copy max-w-2xl">
-                请选择评估套餐，确认后开始评估。
-              </p>
+              <h1 className="patient-display-title mt-1">常规综合评估</h1>
+              <p className="patient-display-copy max-w-2xl">请选择评估套餐，确认后开始评估。</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-7 sm:px-9 sm:py-9">
+        <div className="px-6 py-7 sm:px-9">
           <RoutineForm
             packages={packageOptions}
             error={error}

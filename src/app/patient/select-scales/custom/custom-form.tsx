@@ -148,9 +148,9 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         {/* 左栏：可选内容 */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {tab === "preset" &&
             packages.map((pkg) => {
               const Icon = PACKAGE_ICONS[pkg.key] ?? IconClipboardList;
@@ -162,14 +162,14 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                   onClick={() => togglePackage(pkg)}
                   aria-pressed={allIn}
                   className={[
-                    "flex w-full items-center gap-4 rounded-2xl border p-5 text-left transition",
+                    "flex w-full items-center gap-3 rounded-2xl border p-5 text-left transition",
                     allIn
                       ? "border-blue-500 bg-blue-50/60"
                       : "border-blue-100 bg-white hover:border-blue-300",
                   ].join(" ")}
                 >
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-                    <Icon size={25} stroke={1.9} aria-hidden="true" />
+                    <Icon size={24} stroke={1.9} aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-lg font-extrabold text-[#173766]">{pkg.name}</span>
@@ -196,7 +196,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                   {group.category}
                   <span className="text-sm font-bold text-[#7f94b3]">{group.scales.length} 项</span>
                 </p>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {group.scales.map((scale) => (
                     <label key={scale.id} className="patient-check">
                       <input
@@ -208,7 +208,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                         <span className="block text-lg font-extrabold leading-tight text-[#173766]">
                           {scale.label}
                         </span>
-                        <span className="mt-1 block text-sm leading-6 text-[#62779a]">{scale.subtitle}</span>
+                        <span className="mt-0.5 block text-sm leading-5 text-[#62779a]">{scale.subtitle}</span>
                       </span>
                     </label>
                   ))}
@@ -217,8 +217,8 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
             ))}
         </div>
 
-        {/* 右栏：已选评估项目 */}
-        <section className="space-y-4 self-start rounded-2xl border border-blue-100 bg-white p-5 sm:p-6 lg:sticky lg:top-6">
+        {/* 右栏：已选评估项目（sticky 保持） */}
+        <section className="space-y-4 self-start rounded-2xl border border-blue-100 bg-white p-4 sm:p-5 lg:sticky lg:top-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-[#173766]">已选评估项目</h2>
             {selected.size > 0 && (
@@ -244,7 +244,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                 {group.name}
                 <span className="ml-2 text-[#8ba0bd]">{group.items.length} 项</span>
               </p>
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-1.5 space-y-1">
                 {group.items.map((scale) => (
                   <li
                     key={scale.id}

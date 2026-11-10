@@ -170,3 +170,155 @@ export async function normalizeByDeepSeek(
     return null;
   }
 }
+
+// ---------- 认知题自由回答判定（2026-08-13 认知题改版，见 src/lib/dialogue/cognitive-flow.ts） ----------
+
+export interface JudgeVerdict {
+  verdict: "correct" | "incorrect" | "unclear";
+  confidence: number;
+  reason: string;
+}
+
+/*
+ * 自由回答判定系统提示：模型只做语言理解（患者说的内容与参考答案是否一致），
+ * 输出 correct/incorrect 后由调用方映射回量表既有标准选项，模型不参与评分（硬约束 2）。
+ * "不知道/不记得"是有效回答 → incorrect（MMSE 口径：不知道计 0 分）；
+ * 只有答非所问/没听清/无法判断才 unclear（走追问流程，硬约束 3）。
+ */
+const JUDGE_SYSTEM_PROMPT = [
+  "你是老年认知评估的回答判定助手。",
+  "任务：根据题目与参考答案，判断患者的口头回答内容是否正确。",
+  "",
+  "判定原则：",
+  "1. 患者用口语回答，允许同义表达、省略量词、中文/阿拉伯数字混写（如「九十三」=93）。",
+  "2. 患者明确表示「不知道」「不记得」「算不出来」等，属于有效回答，判 incorrect。",
+  "3. 只有以下情况判 unclear：答非所问、表示没听清或要求重复、回答模糊到无法判断对错。",
+  "4. 绝不猜测，宁判 unclear 不硬判。",
+  "",
+  "输出规则：只输出 JSON 对象：",
+  '{"verdict": "correct"|"incorrect"|"unclear", "confidence": 0到1的数字, "reason": "简短中文说明"}。',
+].join("\n");
+
+const JUDGE_WORDS_SYSTEM_PROMPT = [
+  "你是老年认知评估的复述识别助手。",
+  "任务：患者被要求复述若干目标词，判断患者的口头回答中说出了目标词列表里的哪些词。",
+  "",
+  "判定原则：",
+  "1. 允许同音字、近音、轻声/儿化等口语变体（如「国棋」视为「国旗」），ASR 转写可能有同音误差。",
+  "2. 患者明确表示「不知道」「不记得」「想不起来」，视为一个词都没说出（matchedWords 为空数组）。",
+  "3. 患者答非所问、说别的话题、表示没听清或要求重复 → status 判 unclear。",
+  "4. matchedWords 只能是目标词列表的子集，且必须输出列表中的原文。",
+  "",
+  "输出规则：只输出 JSON 对象：",
+  '{"status": "matched"|"unclear", "matchedWords": string[], "reason": "简短中文说明"}。',
+].join("\n");
+
+export type WordRecallVerdict =
+  | { status: "matched"; matchedWords: string[]; reason: string }
+  | { status: "unclear"; reason: string };
+
+async function judgeFetch(
+  systemPrompt: string,
+  userPayload: Record<string, unknown>,
+  patientCode: string,
+  patientName: string | undefined
+): Promise<string | null> {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) return null;
+  // 值级脱敏（硬约束 1）：与归一化通道同一口径，患者自报姓名替换为「患者」再出网
+  const name = patientName?.trim() ?? "";
+  const masked =
+    name.length >= 2
+      ? (JSON.parse(JSON.stringify(userPayload, (key, value) =>
+          typeof value === "string" ? value.split(name).join("患者") : value
+        )) as Record<string, unknown>)
+      : userPayload;
+  const piiValues = name.length >= 2 ? [name] : [];
+  try {
+    const response = await piiSafeJsonFetch(DEEPSEEK_ENDPOINT, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      jsonBody: {
+        model: "deepseek-chat",
+        temperature: 0,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: JSON.stringify(masked) },
+        ],
+        user: patientCode,
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      guard: { piiValues },
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { choices?: { message?: { content?: string } }[] };
+    return body.choices?.[0]?.message?.content ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 自由回答判对错（定向/计算/原文复述题）。
+ * 返回 null = 通道不可用（调用方回落规则兜底）；verdict 为有效结论（含 unclear）。
+ */
+export async function judgeAnswerByDeepSeek(input: {
+  question: string;
+  /** 评判标准（含参考答案与宽松口径，由调用方按题型拼装） */
+  criteria: string;
+  utterance: string;
+  patientCode: string;
+  patientName?: string;
+}): Promise<JudgeVerdict | null> {
+  const content = await judgeFetch(
+    JUDGE_SYSTEM_PROMPT,
+    { question: input.question, reference: input.criteria, patientReply: input.utterance },
+    input.patientCode,
+    input.patientName
+  );
+  if (!content) return null;
+  try {
+    const raw = JSON.parse(content) as Partial<JudgeVerdict>;
+    if (raw.verdict !== "correct" && raw.verdict !== "incorrect" && raw.verdict !== "unclear") return null;
+    if (typeof raw.confidence !== "number" || raw.confidence < 0 || raw.confidence > 1) return null;
+    if (raw.confidence < MIN_CONFIDENCE) {
+      return { verdict: "unclear", confidence: raw.confidence, reason: raw.reason ?? "模型置信度不足" };
+    }
+    return { verdict: raw.verdict, confidence: raw.confidence, reason: typeof raw.reason === "string" ? raw.reason : "" };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 词复述识别（MMSE 三词立即复述/延迟回忆、minicog 画钟后复述）。
+ * 返回 null = 通道不可用（调用方回落规则兜底）。
+ */
+export async function judgeWordsByDeepSeek(input: {
+  words: readonly string[];
+  utterance: string;
+  patientCode: string;
+  patientName?: string;
+}): Promise<WordRecallVerdict | null> {
+  const content = await judgeFetch(
+    JUDGE_WORDS_SYSTEM_PROMPT,
+    { targetWords: input.words, patientReply: input.utterance },
+    input.patientCode,
+    input.patientName
+  );
+  if (!content) return null;
+  try {
+    const raw = JSON.parse(content) as { status?: string; matchedWords?: unknown; reason?: unknown };
+    const reason = typeof raw.reason === "string" ? raw.reason : "";
+    if (raw.status === "unclear") return { status: "unclear", reason: reason || "模型判断无法识别复述内容" };
+    if (raw.status !== "matched" || !Array.isArray(raw.matchedWords)) return null;
+    // 模型输出不可信：只接受目标词列表子集（精确匹配原文），越界词丢弃
+    const matched = raw.matchedWords.filter(
+      (word): word is string => typeof word === "string" && input.words.includes(word)
+    );
+    return { status: "matched", matchedWords: [...new Set(matched)], reason };
+  } catch {
+    return null;
+  }
+}

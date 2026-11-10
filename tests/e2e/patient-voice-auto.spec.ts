@@ -9,9 +9,9 @@
  *         fixtures/patient-answer-fake-mic.wav 是开发者本人的测试录音（"是的是的"）+ 程序
  *         合成的静音尾巴，通过 Chrome --use-file-for-fake-audio-capture 注入作为假麦克风
  *         输入，不含任何患者数据。
- *         V2 装机后口径：自助建档默认 fall_3q+frail；确认开始后要依次播完总开场 narr_3 与
- *         老年综合征过渡 narr_136（旁白自动推进）才到第一题，真实 TTS 逐段生成与播放，
- *         因此首次"开始听"的等待窗口需要覆盖 3 段 TTS（intro 不计，确认后还有 2 段旁白 + 题面）。
+ *         V2 装机后口径：自助建档默认 fall_3q+frail；确认开始后要播完老年综合征过渡 narr_136
+ *         （旁白自动推进；总开场 narr_3 已于 2026-09-13 删除）才到第一题，真实 TTS 逐段生成与播放，
+ *         因此首次"开始听"的等待窗口需要覆盖 2 段 TTS（intro 不计，确认后还有 1 段旁白 + 题面）。
  *         本用例依赖本机真实 TTS/ASR 密钥（.env.local）；无密钥环境下语音链路整体降级，
  *         "请开始说话"不会出现，用例将按超时失败而非静默跳过——这是刻意保留的语音回归哨兵。
  */
@@ -51,7 +51,7 @@ test("语音模式下播报完自动开始听，免确认自动提交并进入�
   // 开始评估 + 麦克风授权，之后全程不再点任何按钮 ----------
   await page.getByRole("button", { name: "开始评估，数字医生会先讲解，之后用语音作答" }).click();
 
-  // intro 讲解 → 假麦克风循环播放"是的是的"触发确认 → 总开场 narr_3 → 过渡 narr_136 → 第一题；
+  // intro 讲解 → 假麦克风循环播放"是的是的"触发确认 → 过渡 narr_136 → 第一题（总开场 narr_3 已删除）；
   // 真实 TTS 是顺序生成+播放，多段话都要等，给足时间
   const listening = page.getByText("请开始说话", { exact: false }).or(page.getByText("正在听您说话", { exact: false }));
   await expect(listening).toBeVisible({ timeout: 120_000 });

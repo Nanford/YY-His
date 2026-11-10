@@ -81,8 +81,8 @@ export function scoreTcmConstitution(
     });
   }
 
-  // 中医 27 个计分题均为正式问题，缺失一律阻断（无 deferClinical 豁免）；保留分组逻辑与引擎口径一致
-  const { blocking, deferred } = partitionMissingV2(scale, missingIds, opts.deferClinical ?? false);
+  // 2026-08-13 起 deferClinical 一律豁免缺失（含正式问题）；strict 仍全部阻断
+  const { blocking, deferred } = partitionMissingV2(missingIds, opts.deferClinical ?? false);
   const ok = blocking.length === 0;
   if (!ok) {
     return { scaleId: scale.id, ok, missing: blocking, deferred, totalScore: null, tags: [], details, partial: false };
@@ -140,11 +140,11 @@ export function scoreTcmConstitution(
     scaleId: scale.id,
     ok: true,
     missing: [],
-    deferred: [],
+    deferred,
     totalScore: null,
     tags: constitutions.map((c) => tagResult(c.tagCode)),
     details,
-    partial: false,
+    partial: deferred.length > 0,
     constitutions,
   };
 }

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { assertPiiSafe, PiiViolationError } from "@/lib/providers/pii-filter";
-import { normalizeByDeepSeek } from "@/lib/providers/deepseek";
+import { judgeWordsByDeepSeek, normalizeByDeepSeek } from "@/lib/providers/deepseek";
 
 describe("PII 出网过滤：字段级拦截", () => {
   it("顶层出现禁用字段名 → 拦截", () => {
@@ -133,6 +133,34 @@ describe("DeepSeek 归一化出网：患者姓名值级脱敏", () => {
       vi.unstubAllGlobals();
       if (prevKey === undefined) delete process.env.DEEPSEEK_API_KEY;
       else process.env.DEEPSEEK_API_KEY = prevKey;
+    }
+  });
+
+  it("认知复述脱敏，并对模型返回的目标词去重", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
+    const captured = { body: "" };
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      captured.body = String(init?.body ?? "");
+      return Response.json({
+        choices: [{ message: { content: JSON.stringify({
+          status: "matched",
+          matchedWords: ["苹果", "苹果", "钥匙", "非目标词"],
+        }) } }],
+      });
+    });
+    try {
+      const outcome = await judgeWordsByDeepSeek({
+        words: ["苹果", "钥匙", "汽车"],
+        utterance: "我叫张桂芳，我记得苹果和钥匙",
+        patientCode: question.patientCode,
+        patientName: "张桂芳",
+      });
+      expect(outcome).toMatchObject({ status: "matched", matchedWords: ["苹果", "钥匙"] });
+      expect(captured.body).not.toContain("张桂芳");
+      expect(captured.body).toContain("患者");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
     }
   });
 

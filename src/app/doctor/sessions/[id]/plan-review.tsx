@@ -141,7 +141,7 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
       </div>
 
       {reviewing ? (
-        <fieldset className="mt-5 space-y-4 border-t border-[#eef3fb] pt-4">
+        <fieldset className="mt-4 space-y-4 border-t border-[#eef3fb] pt-4">
           <legend className="sr-only">{item.name}审核操作</legend>
           <div className="flex flex-wrap gap-4 text-sm font-bold text-[#29496f]">
             <label className="ui-choice">
@@ -161,7 +161,7 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
           {options.length > 0 && (
             <label className="ui-field">
               <span className="ui-label">替换为（选择「同类替换」时生效）</span>
-              <select name={`replaceWith.${item.code}`} defaultValue="" className="ui-input" aria-label={`${item.name}同类替换项`}>
+              <select name={`replaceWith.${item.code}`} defaultValue="" className="ui-select" aria-label={`${item.name}同类替换项`}>
                 <option value="">— 保持原项 —</option>
                 {options.map((o) => {
                   const banned = forbiddenByCode.get(o.code);
@@ -261,7 +261,8 @@ function EmptyPlan({ final }: { final: boolean }) {
 function ForbiddenSection({ forbidden }: { forbidden: readonly ForbiddenItemV2[] }) {
   if (forbidden.length === 0) return null;
   return (
-    <section className="mx-6 mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4" aria-label="禁止自动推荐明细">
+    // 外边距与 ui-panel-body 的 22px 内边距对齐，左缘与上方卡体内容齐平
+    <section className="mx-[22px] mb-[22px] rounded-2xl border border-red-200 bg-red-50 px-5 py-4" aria-label="禁止自动推荐明细">
       <h3 className="inline-flex items-center gap-2 text-sm font-extrabold text-red-800">
         <IconBan size={17} aria-hidden="true" />
         已禁止自动推荐（{forbidden.length} 项）
@@ -296,22 +297,21 @@ export function PlanReview({
 
   return (
     <section className="ui-panel overflow-hidden">
-      <div className="border-b border-[#dbe7f6] bg-[#f8fbff] px-6 py-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="page-eyebrow">INTERVENTION REVIEW</p>
-            <h2 className="mt-1 text-lg font-extrabold text-[#173766]">候选干预方案审核</h2>
-          </div>
-          <span className="ui-badge">{candidates.length} 项候选</span>
+      {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），说明文字收进左块 */}
+      <div className="ui-panel-heading flex-wrap bg-[#f8fbff]">
+        <div>
+          <p className="page-eyebrow">INTERVENTION REVIEW</p>
+          <h2 className="ui-panel-title mt-1">候选干预方案审核</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#667fa5]">
+            {hasCandidates
+              ? "逐项核对积分来源与教程内容；可保留、删除或在同类别中替换。运动/膳食营养/中医食养/就诊建议/其他五类，每类最多 2 项。"
+              : "当前没有候选项目，仍需由医生完成确认并形成审核记录。"}
+          </p>
         </div>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-[#667fa5]">
-          {hasCandidates
-            ? "逐项核对积分来源与教程内容；可保留、删除或在同类别中替换。运动/膳食营养/中医食养/就诊建议/其他五类，每类最多 2 项。"
-            : "当前没有候选项目，仍需由医生完成确认并形成审核记录。"}
-        </p>
+        <span className="ui-badge shrink-0">{candidates.length} 项候选</span>
       </div>
 
-      <form action={confirmPlan.bind(null, sessionId)} className="space-y-7 p-6">
+      <form action={confirmPlan.bind(null, sessionId)} className="ui-panel-body space-y-7">
         {hasCandidates ? <GroupedList items={candidates} reviewing forbidden={forbidden} /> : <EmptyPlan final={false} />}
         <div className="flex justify-end border-t border-[#dbe7f6] pt-5">
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
@@ -349,25 +349,24 @@ export function FinalPlan({
 
   return (
     <section className="ui-panel overflow-hidden">
-      <div className="border-b border-[#dbe7f6] bg-[#eff6ff] px-6 py-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="page-eyebrow">CONFIRMED PLAN</p>
-            <h2 className="mt-1 text-lg font-extrabold text-[#173766]">最终干预方案</h2>
-          </div>
-          <div className="text-right text-xs leading-5 text-[#53729e]">
-            <p className="font-extrabold text-blue-700">医生已确认</p>
-            <p>{confirmedAt ? confirmedAt.toLocaleString("zh-CN") : "确认时间未记录"}</p>
+      {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），统计徽标收进左块 */}
+      <div className="ui-panel-heading flex-wrap bg-[#eff6ff]">
+        <div>
+          <p className="page-eyebrow">CONFIRMED PLAN</p>
+          <h2 className="ui-panel-title mt-1">最终干预方案</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="ui-badge ui-badge-success">最终保留 {finalPlan.length} 项</span>
+            <span className="ui-badge">替换 {replaced.length} 项</span>
+            <span className="ui-badge ui-badge-danger">删除 {removed.length} 项</span>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="ui-badge ui-badge-success">最终保留 {finalPlan.length} 项</span>
-          <span className="ui-badge">替换 {replaced.length} 项</span>
-          <span className="ui-badge ui-badge-danger">删除 {removed.length} 项</span>
+        <div className="shrink-0 text-right text-xs leading-5 text-[#53729e]">
+          <p className="font-extrabold text-blue-700">医生已确认</p>
+          <p>{confirmedAt ? confirmedAt.toLocaleString("zh-CN") : "确认时间未记录"}</p>
         </div>
       </div>
 
-      <div className="space-y-7 p-6">
+      <div className="ui-panel-body space-y-7">
         {finalPlan.length > 0 ? <GroupedList items={finalPlan} reviewing={false} decisions={decisions} /> : <EmptyPlan final />}
 
         {changed.length > 0 && (

@@ -221,20 +221,22 @@ describe("iciq：M9.6 Q1+Q2+Q3 总分 + Q4 情形（多选）", () => {
     expect(tagCodes(r)).toEqual([leakTag, "ICIQ_INCONTINENCE_PRESENT"]);
   });
 
-  it("缺 Q3 或 Q4（正式问题）→ 阻断", () => {
-    const r = scoreScaleV2(
-      "iciq",
-      labelAnswers("iciq", {
-        iciq_1: "每周2～3次（2分）",
-        iciq_2: "少量（2分）",
-        iciq_3: "0分（无任何影响）",
-        iciq_4: null,
-      }),
-      { deferClinical: true }
-    );
-    expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["iciq_4"]);
-    expect(r.tags).toEqual([]);
+  it("缺 Q3 或 Q4（正式问题）：strict 阻断；deferClinical 豁免部分计分（2026-08-13 口径）", () => {
+    const answers = labelAnswers("iciq", {
+      iciq_1: "每周2～3次（2分）",
+      iciq_2: "少量（2分）",
+      iciq_3: "0分（无任何影响）",
+      iciq_4: null,
+    });
+    const strict = scoreScaleV2("iciq", answers);
+    expect(strict.ok).toBe(false);
+    expect(strict.missing).toEqual(["iciq_4"]);
+    expect(strict.tags).toEqual([]);
+    const defer = scoreScaleV2("iciq", answers, { deferClinical: true });
+    expect(defer.ok).toBe(true);
+    expect(defer.missing).toEqual([]);
+    expect(defer.deferred).toEqual(["iciq_4"]);
+    expect(defer.partial).toBe(true);
   });
 });
 

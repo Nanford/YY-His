@@ -58,14 +58,20 @@ test("报告页可识别评估范围，患者可发起补充评估且历史报�
   const firstSessionId = new URL(page.url()).pathname.split("/").at(-1);
   if (!firstSessionId) throw new Error("无法从会话页面 URL 读取会话编号");
 
-  // ---------- 患者：答完（量表按 01 表顺序归一化，先 fall_3q 3 题后 frail 3 题，旁白自动推进），生成报告 ----------
+  // ---------- 患者：答完（量表按 01 表顺序归一化，先 fall_3q 3 题后 frail 3 题，旁白在字幕模式手动推进），生成报告 ----------
+  // 固定走字幕降级路径，问答回归不受云端语音服务状态影响。
+  await page.route("**/api/tts?*", (route) => route.fulfill({ status: 503 }));
   await page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" }).click();
   await page.getByRole("button", { name: "开始回答健康问题" }).click();
+  const continueNarration = page.getByRole("button", { name: "继续，听数字医生往下讲" });
+  await continueNarration.click();
   for (let i = 0; i < 3; i++) {
-    await page.getByRole("button", { name: "否（筛查阴性）", exact: true }).click();
+    // 2026-09-04 修改意见 1：按钮只展示答案文本（"否（筛查阴性）"→"否"）
+    await page.getByRole("button", { name: "否", exact: true }).click();
   }
+  await continueNarration.click();
   for (let i = 0; i < 3; i++) {
-    await page.getByRole("button", { name: "否（0分）", exact: true }).click();
+    await page.getByRole("button", { name: "否", exact: true }).click();
   }
   // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
   await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 20_000 });
@@ -75,10 +81,10 @@ test("报告页可识别评估范围，患者可发起补充评估且历史报�
   await expect(page.getByText("评估时间：", { exact: false })).toBeVisible();
   await expect(page.getByText("新增", { exact: true })).toHaveCount(2);
 
-  // ---------- 发起补充评估：报告页只保留入口，进入独立页面后只列未完成量表，勾选 MNA-SF 提交 ----------
-  await page.getByRole("link", { name: "补充评估", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/patient/sessions/${firstSessionId}/supplement$`));
-  await expect(page.getByRole("heading", { name: "选择补充评估项目" })).toBeVisible();
+  // ---------- 发起补充评估：v2.1 两层展示——先点第一层「补充评估」按钮展开第二层勾选清单 ----------
+  // 只列未完成量表（25 − 2 = 23 项，M10.3b 由 13 扩至 25），勾选 MNA-SF 提交
+  await page.getByRole("button", { name: "补充评估", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "还想评估更多项目？" })).toBeVisible();
   await expect(page.locator('input[type="checkbox"][name="scaleIds"]')).toHaveCount(40);
   await expect(page.getByRole("checkbox", { name: /MNA-SF/ })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /中医体质/ })).toBeVisible();

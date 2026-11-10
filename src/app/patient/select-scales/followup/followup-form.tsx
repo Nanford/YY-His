@@ -72,7 +72,7 @@ export default function FollowupForm({
       />
       <span className="min-w-0">
         <span className="block text-lg font-extrabold leading-tight text-[#173766]">{scale.label}</span>
-        <span className="mt-0.5 block text-sm leading-6 text-[#62779a]">{scale.subtitle}</span>
+        <span className="mt-0.5 block text-sm leading-5 text-[#62779a]">{scale.subtitle}</span>
       </span>
     </label>
   );
@@ -87,23 +87,23 @@ export default function FollowupForm({
         </div>
       )}
 
-      <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
+      <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5">
         <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
           <IconHistory size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
           本次建议复评项目
         </h2>
         <div>
           <p className="text-sm font-extrabold tracking-wide text-[#62779a]">重点复评（建议复评）</p>
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">{focusScales.map(renderCheck)}</div>
+          <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">{focusScales.map(renderCheck)}</div>
         </div>
         {extraScales.length > 0 && (
           <div>
             <p className="text-sm font-extrabold tracking-wide text-[#62779a]">按需补充（可按需选择）</p>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">{extraScales.map(renderCheck)}</div>
+            <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">{extraScales.map(renderCheck)}</div>
           </div>
         )}
-        <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-3 text-sm leading-7 text-[#405a81]">
-          <IconBulb size={19} stroke={2} className="mt-1 shrink-0 text-blue-600" aria-hidden="true" />
+        <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2 text-sm leading-6 text-[#405a81]">
+          <IconBulb size={19} stroke={2} className="mt-0.5 shrink-0 text-blue-600" aria-hidden="true" />
           <span>
             <span className="font-extrabold">系统建议：</span>
             以上次存在异常或需要观察变化的项目为主，减少重复采集。
@@ -125,7 +125,7 @@ export default function FollowupForm({
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button type="submit" className="patient-primary-action w-full" disabled={checked.size === 0}>
           确认并进入复评（{checked.size} 项）
           <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />

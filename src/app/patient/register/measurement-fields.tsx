@@ -8,6 +8,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import NoWheelNumberInput from "@/components/no-wheel-number-input";
 
 const inputCls = "patient-input w-full";
 
@@ -30,7 +31,7 @@ function Field({
         {label}
         {unit && <span className="ml-1 font-normal text-[#8ba0bd]">（{unit}）</span>}
       </span>
-      <input name={name} type="number" step="any" placeholder={placeholder ?? "选填"} className={inputCls} />
+      <NoWheelNumberInput name={name} step="any" placeholder={placeholder ?? "选填"} className={inputCls} />
       {hint && <span className="block text-sm leading-6 text-[#7f94b3]">{hint}</span>}
     </label>
   );
@@ -53,9 +54,8 @@ export default function PatientMeasurementFields() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block space-y-2">
           <span className="text-base font-bold text-[#405a81]">身高（cm）</span>
-          <input
+          <NoWheelNumberInput
             name="heightCm"
-            type="number"
             step="any"
             placeholder="选填，例如 165"
             className={inputCls}
@@ -65,9 +65,8 @@ export default function PatientMeasurementFields() {
         </label>
         <label className="block space-y-2">
           <span className="text-base font-bold text-[#405a81]">体重（现在）（kg）</span>
-          <input
+          <NoWheelNumberInput
             name="weightKg"
-            type="number"
             step="any"
             placeholder="选填，例如 60"
             className={inputCls}
@@ -85,7 +84,7 @@ export default function PatientMeasurementFields() {
 
       <div>
         <p className="text-base font-bold text-[#405a81]">历史体重（kg，记不清可留空）</p>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="1 月前" name="weightM1" unit="kg" />
           <Field label="2 月前" name="weightM2" unit="kg" />
           <Field label="3 月前" name="weightM3" unit="kg" />
@@ -97,18 +96,8 @@ export default function PatientMeasurementFields() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="小腿围（左）" name="calfLeftCm" unit="cm" />
         <Field label="小腿围（右）" name="calfRightCm" unit="cm" />
-        <Field
-          label="握力"
-          name="gripStrengthKg"
-          unit="kg"
-          hint="用握力计测后填入读数"
-        />
+        <Field label="握力" name="gripStrengthKg" unit="kg" hint="用握力计测后填入读数" />
         <Field label="6 米步行用时" name="gaitSpeed6mSec" unit="秒" hint="在医护看护下测走后填入" />
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-[#c8d8ec] bg-white px-4 py-3">
-        <p className="text-base font-bold text-[#62779a]">身体成分分析（DXA 或 BIA）</p>
-        <p className="mt-1 text-sm leading-6 text-[#7f94b3]">暂不接入；接入后由设备自动读取肌肉量与体脂数据</p>
       </div>
     </div>
   );

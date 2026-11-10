@@ -30,6 +30,7 @@ import {
   MARITAL_STATUSES,
 } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
+import NoWheelNumberInput from "@/components/no-wheel-number-input";
 import PatientMeasurementFields from "./measurement-fields";
 
 export const dynamic = "force-dynamic";
@@ -95,19 +96,20 @@ export default async function PatientRegisterPage({
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
+        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
               <IconUser size={26} stroke={1.9} aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第一步 · 建立健康档案</p>
-              <h1 className="patient-display-title mt-2">新建健康档案</h1>
+              <h1 className="patient-display-title mt-1">新建健康档案</h1>
+              <p className="patient-display-copy max-w-2xl">姓名、性别、年龄必填，其余可留空跳过。</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-7 sm:px-9 sm:py-9">
+        <div className="px-6 py-7 sm:px-9">
           {error === "required" && (
             <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
               <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
@@ -137,18 +139,18 @@ export default async function PatientRegisterPage({
                 <IconUsers size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
                 已经建档过？选择已有档案
               </h2>
-              <p className="mt-1 text-base leading-7 text-[#62779a]">
+              <p className="mt-2 text-base leading-7 text-[#62779a]">
                 点选本人档案直接进入评估；首次使用请填写下方新档案。
               </p>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {existingPatients.map((p) => (
                   <Link
                     key={p.id}
                     href={`/patient/select-scales?patientId=${p.id}`}
-                    className="rounded-2xl border border-blue-100 bg-white px-4 py-3.5 text-center transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_10px_20px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                    className="rounded-2xl border border-blue-100 bg-white px-5 py-4 transition hover:border-blue-300 hover:shadow-[0_6px_14px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                   >
                     <span className="block text-lg font-extrabold text-[#173766]">{p.name}</span>
-                    <span className="mt-0.5 block text-sm text-[#7f94b3]">
+                    <span className="mt-1 block text-base text-[#7f94b3]">
                       {p.gender} · {p.age} 岁
                     </span>
                   </Link>
@@ -159,24 +161,24 @@ export default async function PatientRegisterPage({
 
           <form action={registerPatient} className="space-y-9">
             {/* 一、基本情况：姓名/性别/年龄必填，其余选填 */}
-            <section className="space-y-6">
+            <section className="space-y-5">
               <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#173766]">
                 <IconUser size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
                 一、基本情况
               </h2>
-              <div className="space-y-6">
-                <label className="block space-y-3">
+              <div className="space-y-5">
+                <label className="block space-y-2">
                   <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
                     您的姓名 <span className="text-[#c23b4a]">*</span>
                   </span>
                   <input name="name" type="text" required placeholder="请输入姓名" className={inputCls} />
                 </label>
 
-                <fieldset className="space-y-3">
+                <fieldset className="space-y-2">
                   <legend className="text-lg font-extrabold text-[#173766]">
                     性别 <span className="text-[#c23b4a]">*</span>
                   </legend>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {[
                       { value: "男", icon: IconGenderMale },
                       { value: "女", icon: IconGenderFemale },
@@ -190,13 +192,12 @@ export default async function PatientRegisterPage({
                   </div>
                 </fieldset>
 
-                <label className="block space-y-3">
+                <label className="block space-y-2">
                   <span className="text-lg font-extrabold text-[#173766]">
                     年龄 <span className="text-[#c23b4a]">*</span>
                   </span>
-                  <input
+                  <NoWheelNumberInput
                     name="age"
-                    type="number"
                     inputMode="numeric"
                     min={1}
                     max={130}
@@ -251,26 +252,25 @@ export default async function PatientRegisterPage({
 
             {/* 三、人体测量与客观指标（全部选填，BMI 自动计算） */}
             <section className="space-y-5 border-t border-blue-100 pt-7">
-              <div className="flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                  <IconRulerMeasure size={22} stroke={1.9} aria-hidden="true" />
-                </span>
-                <div>
-                  <h2 className="text-xl font-extrabold text-[#173766]">三、人体测量与客观指标（选填）</h2>
-                  <p className="mt-1 text-base leading-7 text-[#62779a]">
-                    不清楚可跳过；BMI 由系统自动计算。
-                  </p>
-                </div>
+              {/* 栏头与一、二段统一：图标 + 标题一行，说明文字紧随其下 */}
+              <div>
+                <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#173766]">
+                  <IconRulerMeasure size={23} stroke={2} className="text-blue-600" aria-hidden="true" />
+                  三、人体测量与客观指标（选填）
+                </h2>
+                <p className="mt-2 text-base leading-6 text-[#62779a]">
+                  不清楚可跳过；BMI 由系统自动计算。身体成分分析（DXA 或 BIA）暂不接入，接入后由设备自动读取。
+                </p>
               </div>
               <PatientMeasurementFields />
             </section>
 
-            <div className="space-y-3">
-              <button type="submit" className="patient-primary-action w-full">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <button type="submit" className="patient-primary-action min-w-72 flex-1">
                 下一步：选择评估内容
                 <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
               </button>
-              <p className="text-center text-sm leading-6 text-[#62779a]">提交后进入量表选择，再开始健康问询。</p>
+              <p className="text-sm leading-6 text-[#62779a]">提交后进入量表选择，再开始健康问询。</p>
             </div>
           </form>
         </div>

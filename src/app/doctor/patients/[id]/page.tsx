@@ -389,7 +389,7 @@ export default async function PatientDetailPage({
                 <th>发起时间</th>
                 <th>量表</th>
                 <th>状态</th>
-                <th aria-label="操作" />
+                <th aria-label="操作" className="text-right" />
               </tr>
             </thead>
             <tbody>

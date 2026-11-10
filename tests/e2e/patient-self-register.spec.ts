@@ -39,8 +39,10 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   test.setTimeout(180_000);
 
   // ---------- 患者：自助建档，全程不经过医生端任何页面 ----------
-  await page.goto("/patient");
-  await page.getByRole("link", { name: "新建健康档案" }).click();
+  await page.goto("/");
+  await page.getByRole("link", { name: "用户评估入口" }).click();
+  await expect(page).toHaveURL(/\/patient\/flow$/);
+  await page.getByRole("link", { name: "开始", exact: true }).click();
   await expect(page).toHaveURL(/\/patient\/register$/);
 
   await page.locator('input[name="name"]').fill("E2E 自助建档患者");
@@ -75,15 +77,20 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   expect(JSON.parse(created?.scaleIds ?? "[]")).toEqual(["fall_3q", "frail"]);
 
   // ---------- 患者：直接开始并答完（默认 fall_3q+frail，无测量/观察题缺口） ----------
-  // 走"手动选择作答"：这条用例验证的是自助建档闭环本身，语音自动模式另有专门的 e2e 覆盖
+  // 固定走字幕降级路径，独立验证自助建档闭环。
+  await page.route("**/api/tts?*", (route) => route.fulfill({ status: 503 }));
   await page.getByRole("button", { name: "不方便说话，改用按钮或文字作答" }).click();
-  // 数字医生先讲解（intro），点「开始」进入采集编排（旁白自动推进）：先 fall_3q 后 frail
+  // 字幕旁白点「继续」后进入对应量表：先 fall_3q 后 frail。
   await page.getByRole("button", { name: "开始回答健康问题" }).click();
+  const continueNarration = page.getByRole("button", { name: "继续，听数字医生往下讲" });
+  await continueNarration.click();
   for (let i = 0; i < 3; i++) {
-    await page.getByRole("button", { name: "否（筛查阴性）", exact: true }).click();
+    // 2026-09-04 修改意见 1：按钮只展示答案文本（"否（筛查阴性）"→"否"）
+    await page.getByRole("button", { name: "否", exact: true }).click();
   }
+  await continueNarration.click();
   for (let i = 0; i < 3; i++) {
-    await page.getByRole("button", { name: "否（0分）", exact: true }).click();
+    await page.getByRole("button", { name: "否", exact: true }).click();
   }
   await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 20_000 });
   await expect.poll(async () => (await readPatientCreatedBy(sessionId))?.status).toBe("collected");

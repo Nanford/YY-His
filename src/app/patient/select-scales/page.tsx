@@ -56,7 +56,7 @@ export default async function PatientSelectScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { id: true },
+    select: { name: true, gender: true, age: true },
   });
   if (!patient) notFound();
 
@@ -69,35 +69,33 @@ export default async function PatientSelectScalesPage({
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
+        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
               <IconChecklist size={26} stroke={1.9} aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 选择评估内容</p>
-              <h1 className="patient-display-title mt-2">量表工具选择</h1>
-              <p className="patient-display-copy max-w-2xl">
-                请选择本次评估的进入方式。
-              </p>
+              <h1 className="patient-display-title mt-1">量表工具选择</h1>
+              <p className="patient-display-copy max-w-2xl">请选择本次评估的进入方式。</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-7 sm:px-9 sm:py-9">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="px-6 py-7 sm:px-9">
+          <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2">
             {MODES.map(({ key, icon: Icon, title, description }) => (
               <Link
                 key={key}
                 href={`/patient/select-scales/${key}?patientId=${patientId}`}
-                className="group flex flex-col rounded-2xl border border-blue-100 bg-white p-6 transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_12px_24px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="group flex h-full flex-col rounded-2xl border border-blue-100 bg-white p-6 transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_12px_24px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 <span className="grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 text-blue-600 transition duration-200 group-hover:bg-blue-600 group-hover:text-white">
                   <Icon size={28} stroke={1.9} aria-hidden="true" />
                 </span>
                 <span className="mt-4 text-lg font-extrabold text-[#173766]">{title}</span>
                 <span className="mt-1 text-sm leading-6 text-[#62779a]">{description}</span>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-blue-700">
+                <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-bold text-blue-700">
                   进入该方式
                   <IconArrowRight size={16} className="transition group-hover:translate-x-0.5" aria-hidden="true" />
                 </span>

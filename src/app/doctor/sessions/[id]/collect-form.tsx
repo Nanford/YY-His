@@ -133,7 +133,7 @@ export function CollectForm({ sessionId, scaleIds, savedLabels, savedRawTexts }:
     <form className="space-y-6">
       {selectedScales.map((scale) => (
         <section key={scale.id} className="ui-panel overflow-hidden">
-          <div className="ui-panel-heading bg-[#f8fbff]">
+          <div className="ui-panel-heading">
             <div>
               <p className="page-eyebrow">ASSESSMENT SCALE</p>
               <h2 className="ui-panel-title">{scale.name}</h2>

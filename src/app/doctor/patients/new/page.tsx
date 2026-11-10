@@ -22,6 +22,7 @@ import {
 } from "@/lib/assessment/patient-intake";
 import { firstQueryValue } from "@/lib/query";
 import { V2DemoPipeline } from "@/components/v2-pipeline";
+import NoWheelNumberInput from "@/components/no-wheel-number-input";
 import MeasurementSection from "./measurement-section";
 
 const inputCls = "ui-input";
@@ -48,7 +49,11 @@ function Field({
         {required && <span className="ui-required">*</span>}
         {unit && <span className="ml-1 font-normal text-[#8ba0bd]">（{unit}）</span>}
       </span>
-      <input name={name} type={type} required={required} placeholder={placeholder} className={inputCls} step="any" />
+      {type === "number" ? (
+        <NoWheelNumberInput name={name} required={required} placeholder={placeholder} className={inputCls} step="any" />
+      ) : (
+        <input name={name} type={type} required={required} placeholder={placeholder} className={inputCls} step="any" />
+      )}
     </label>
   );
 }
@@ -84,7 +89,7 @@ function TextareaField({
   return (
     <label className="ui-field">
       <span className="ui-label">{label}</span>
-      <textarea name={name} placeholder={placeholder} rows={3} className={inputCls} />
+      <textarea name={name} placeholder={placeholder} rows={3} className="ui-textarea" />
       {hint && <span className="ui-helper mt-1">{hint}</span>}
     </label>
   );

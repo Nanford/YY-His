@@ -33,7 +33,7 @@ export default async function PatientCustomScalesPage({
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { id: true },
+    select: { name: true, gender: true, age: true },
   });
   if (!patient) notFound();
 
@@ -71,22 +71,20 @@ export default async function PatientCustomScalesPage({
       </Link>
 
       <section className="patient-panel overflow-hidden">
-        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9 sm:py-9">
+        <div className="border-b border-blue-100 bg-[#f8fbff] px-6 py-7 sm:px-9">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-blue-600 shadow-[0_6px_16px_rgba(33,87,160,0.08)]">
               <IconListCheck size={26} stroke={1.9} aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-extrabold tracking-[0.1em] text-blue-700">第二步 · 自选组合评估</p>
-              <h1 className="patient-display-title mt-2">自选组合评估</h1>
-              <p className="patient-display-copy max-w-2xl">
-                可选择预设套餐，或自由勾选评估项目。
-              </p>
+              <h1 className="patient-display-title mt-1">自选组合评估</h1>
+              <p className="patient-display-copy max-w-2xl">可选择预设套餐，或自由勾选评估项目。</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-7 sm:px-9 sm:py-9">
+        <div className="px-6 py-7 sm:px-9">
           <CustomForm
             packages={packages}
             customGroups={customGroups}

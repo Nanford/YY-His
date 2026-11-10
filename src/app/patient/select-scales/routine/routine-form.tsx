@@ -45,7 +45,10 @@ interface Props {
 }
 
 export default function RoutineForm({ packages, error, action }: Props) {
-  const [selectedKey, setSelectedKey] = useState(packages[0]?.key ?? "");
+  // 默认选中推荐套餐（recommended，2026-09-14 起为门诊简版），无推荐标记时回退第一个
+  const [selectedKey, setSelectedKey] = useState(
+    packages.find((pkg) => pkg.recommended)?.key ?? packages[0]?.key ?? ""
+  );
   const selected = packages.find((pkg) => pkg.key === selectedKey) ?? packages[0];
   // 勾选状态：切换套餐时重置为该套餐全选（checked 集合以量表 id 计）
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set(selected?.scaleIds ?? []));
@@ -79,7 +82,7 @@ export default function RoutineForm({ packages, error, action }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         {/* 左栏：预设评估套餐 */}
-        <fieldset className="space-y-3">
+        <fieldset className="space-y-4">
           <legend className="text-lg font-extrabold text-[#173766]">预设评估套餐</legend>
           {packages.map((pkg) => (
             <label key={pkg.key} className="patient-choice">
@@ -95,8 +98,8 @@ export default function RoutineForm({ packages, error, action }: Props) {
                   <span className="text-lg font-extrabold text-[#173766]">{pkg.name}</span>
                   {pkg.recommended && <span className="ui-badge ui-badge-success">推荐</span>}
                 </span>
-                <span className="mt-1 block text-sm leading-6 text-[#62779a]">{pkg.description}</span>
-                <span className="mt-1 block text-sm text-[#7f94b3]">
+                <span className="mt-0.5 block text-sm leading-6 text-[#62779a]">{pkg.description}</span>
+                <span className="mt-0.5 block text-sm text-[#7f94b3]">
                   量表 {pkg.scaleIds.length} 项 · 预计 {pkg.minutes} 分钟 · 适用：{pkg.scene}
                 </span>
               </span>
@@ -105,10 +108,10 @@ export default function RoutineForm({ packages, error, action }: Props) {
         </fieldset>
 
         {/* 右栏：本次量表与工具配置（按一级分类分组，可增减） */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-extrabold text-[#173766]">本次量表与工具配置</h2>
-            <span className="inline-flex items-center gap-2 rounded-2xl border border-blue-100 bg-[#f0f7ff] px-4 py-2 text-base font-extrabold text-blue-700">
+            <span className="inline-flex items-center gap-2 rounded-2xl border border-blue-100 bg-[#f0f7ff] px-3 py-1.5 text-base font-extrabold text-blue-700">
               已选
               <span className="text-2xl leading-none">{checkedCount}</span>
               项
@@ -120,7 +123,7 @@ export default function RoutineForm({ packages, error, action }: Props) {
                 {group.category}
                 <span className="text-sm font-bold text-[#7f94b3]">{group.scales.length} 项</span>
               </p>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {group.scales.map((scale) => (
                   <label key={scale.id} className="patient-check">
                     <input
@@ -134,9 +137,7 @@ export default function RoutineForm({ packages, error, action }: Props) {
                       <span className="block text-lg font-extrabold leading-tight text-[#173766]">
                         {scale.label}
                       </span>
-                      <span className="mt-1 block text-sm leading-6 text-[#62779a]">
-                        {scale.subtitle}
-                      </span>
+                      <span className="mt-0.5 block text-sm leading-5 text-[#62779a]">{scale.subtitle}</span>
                       {scale.needsAssist && (
                         <span className="mt-1 block text-xs font-bold text-[#b45309]">
                           部分项目需医护协助，报告按已答内容计分
@@ -151,12 +152,12 @@ export default function RoutineForm({ packages, error, action }: Props) {
         </div>
       </div>
 
-      <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-5 py-4 text-sm leading-7 text-[#62779a]">
-        <IconCircleCheck size={20} stroke={2} className="mt-1 shrink-0 text-blue-600" aria-hidden="true" />
+      <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2 text-sm leading-6 text-[#62779a]">
+        <IconCircleCheck size={20} stroke={2} className="mt-0.5 shrink-0 text-blue-600" aria-hidden="true" />
         系统按顺序逐项问询，相同信息自动复用，不会重复提问。
       </p>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button type="submit" className="patient-primary-action w-full" disabled={checkedCount === 0}>
           <IconChecklist size={24} stroke={2.1} aria-hidden="true" />
           确认并开始评估（{checkedCount} 项）

@@ -7,7 +7,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { IconRulerMeasure } from "@tabler/icons-react";
+import NoWheelNumberInput from "@/components/no-wheel-number-input";
 
 const inputCls = "ui-input";
 
@@ -35,15 +35,26 @@ function Field({
         {required && <span className="ui-required">*</span>}
         {unit && <span className="ml-1 font-normal text-[#8ba0bd]">（{unit}）</span>}
       </span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        className={inputCls}
-        step="any"
-        readOnly={readOnly}
-      />
+      {type === "number" ? (
+        <NoWheelNumberInput
+          name={name}
+          required={required}
+          placeholder={placeholder}
+          className={inputCls}
+          step="any"
+          readOnly={readOnly}
+        />
+      ) : (
+        <input
+          name={name}
+          type={type}
+          required={required}
+          placeholder={placeholder}
+          className={inputCls}
+          step="any"
+          readOnly={readOnly}
+        />
+      )}
     </label>
   );
 }
@@ -62,28 +73,23 @@ export default function MeasurementSection() {
   const bmiText = useMemo(() => formatBmi(heightCm, weightKg), [heightCm, weightKg]);
 
   return (
-    <section className="border-t border-[#dbe7f6] bg-[#f8fbff]">
-      <div className="ui-panel-heading bg-transparent">
-        <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-blue-600 shadow-[0_4px_12px_rgba(33,87,160,0.07)]">
-            <IconRulerMeasure size={21} stroke={1.9} aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="ui-panel-title">三、人体测量与客观指标</h2>
-            <p className="mt-1 text-xs text-[#62779a]">
-              身高、体重（现在及 1/2/3/6/12 月前）可填，BMI 由系统自动计算；小腿围、握力、步速可现场测量后填入；DXA/BIA、握力计传感器、自动动作测试暂不接入
-            </p>
-          </div>
+    <section className="border-t border-[#dbe7f6]">
+      {/* 栏头与前两段（基本情况/疾病用药）保持同一结构：标题 + 说明 + 右侧徽标 */}
+      <div className="ui-panel-heading">
+        <div>
+          <h2 className="ui-panel-title">三、人体测量与客观指标</h2>
+          <p className="mt-1 text-xs text-[#62779a]">
+            身高、体重（现在及 1/2/3/6/12 月前）可填，BMI 由系统自动计算；小腿围、握力、步速可现场测量后填入
+          </p>
         </div>
         <span className="ui-badge">测量指标</span>
       </div>
       <div className="ui-panel-body space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2">
           <label className="ui-field">
             <span className="ui-label">身高（cm）</span>
-            <input
+            <NoWheelNumberInput
               name="heightCm"
-              type="number"
               className={inputCls}
               step="any"
               value={heightCm}
@@ -93,9 +99,8 @@ export default function MeasurementSection() {
           </label>
           <label className="ui-field">
             <span className="ui-label">体重（现在）（kg）</span>
-            <input
+            <NoWheelNumberInput
               name="weightKg"
-              type="number"
               className={inputCls}
               step="any"
               value={weightKg}
@@ -113,7 +118,7 @@ export default function MeasurementSection() {
         </div>
         <div>
           <p className="ui-label mb-2">历史体重（kg）</p>
-          <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field label="1 月前" name="weightM1" type="number" unit="kg" />
             <Field label="2 月前" name="weightM2" type="number" unit="kg" />
             <Field label="3 月前" name="weightM3" type="number" unit="kg" />
@@ -121,20 +126,25 @@ export default function MeasurementSection() {
             <Field label="12 月前" name="weightM12" type="number" unit="kg" />
           </div>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="小腿围-左" name="calfLeftCm" type="number" unit="cm" />
           <Field label="小腿围-右" name="calfRightCm" type="number" unit="cm" />
           <Field label="握力（握力计传感器暂不接入，测试后手工填入）" name="gripStrengthKg" type="number" unit="kg" />
           <Field label="6 米步行用时" name="gaitSpeed6mSec" type="number" unit="秒" />
         </div>
+        {/* DXA/BIA 与自动动作测试暂不接入，占位说明（口径不变） */}
         <div className="grid gap-5 sm:grid-cols-2">
-          <div className="rounded-xl border border-dashed border-[#c8d8ec] bg-[#f8fbff] px-4 py-3">
-            <p className="text-sm font-bold text-[#62779a]">身体成分分析（DXA 或 BIA）</p>
-            <p className="mt-1 text-xs text-[#7f94b3]">暂不接入；接入后由设备自动读取肌肉量与体脂数据</p>
+          <div className="ui-panel-subtle p-4">
+            <p className="text-sm font-bold text-[#29496f]">身体成分分析（DXA 或 BIA）</p>
+            <p className="mt-1 text-xs leading-5 text-[#7f94b3]">
+              暂不接入；接入后由设备自动读取肌肉量等指标。
+            </p>
           </div>
-          <div className="rounded-xl border border-dashed border-[#c8d8ec] bg-[#f8fbff] px-4 py-3">
-            <p className="text-sm font-bold text-[#62779a]">自动动作测试（SPPB / 洼田饮水 / 耳语试验等）</p>
-            <p className="mt-1 text-xs text-[#7f94b3]">暂不接入；评估时由医护现场操作后代填</p>
+          <div className="ui-panel-subtle p-4">
+            <p className="text-sm font-bold text-[#29496f]">自动动作测试（SPPB / 洼田饮水 / 耳语试验等）</p>
+            <p className="mt-1 text-xs leading-5 text-[#7f94b3]">
+              暂不接入；评估时由医护现场操作后代填。
+            </p>
           </div>
         </div>
       </div>

@@ -19,7 +19,6 @@ import {
   IconRefresh,
   IconSend,
   IconVolume,
-  IconWaveSine,
 } from "@tabler/icons-react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
 import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
@@ -52,7 +51,6 @@ interface AnswerInputProps {
   onSubmitMulti: (labels: string[]) => void;
   /** M9.6 画钟交卷 */
   onSubmitDrawing: (dataUrl: string) => void;
-  /** 操作指令完成确认：只记录“已完成”，不向患者暴露正确/错误评分选项。 */
   onSubmitAcknowledge: () => void;
   onNotice: (message: string) => void;
 }
@@ -64,15 +62,17 @@ export function AnswerInput(props: AnswerInputProps) {
   const [directVoice, setDirectVoice] = useState(props.mode === "voice");
   const voiceActive = props.mode === "voice" && props.asrEnabled && props.micStream !== null;
   const answerType = props.prompt.answerType;
-  // 数字/多选/图片/画钟/操作确认题以专用控件为主；number 与自由文本题保留语音/文字兜底。
+  /** 自由回答题（2026-08-13 认知题改版）：不展示选项按钮（标准答案不泄露），语音/文字自由作答 */
+  const freeAnswer = answerType === "freeText";
+  // 数字/多选/图片/画钟题以专用控件为主；仅 number 题保留语音/文字兜底（分值唯一不会歧义）。
   // 多选题不出语音/文字入口：归一化只返回单个选项会丢多选语义（图片/画钟题本就走专用控件）
-  const showVoiceTextFallback =
+  const specialType =
     answerType === "number" ||
-    answerType === "freeText" ||
-    (answerType !== "multiChoice" &&
-      answerType !== "imageChoice" &&
-      answerType !== "drawing" &&
-      answerType !== "acknowledge");
+    answerType === "multiChoice" ||
+    answerType === "imageChoice" ||
+    answerType === "drawing" ||
+    answerType === "acknowledge";
+  const showVoiceTextFallback = !specialType || answerType === "number";
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -119,14 +119,11 @@ export function AnswerInput(props: AnswerInputProps) {
     <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
   ) : answerType === "acknowledge" ? (
     <AcknowledgementPanel disabled={props.disabled} onSubmit={props.onSubmitAcknowledge} />
-  ) : answerType === "freeText" ? (
-    <TextPanel
-      disabled={props.disabled}
-      onSubmit={(text) => {
-        props.onSubmitText(text);
-        setTextOpen(false);
-      }}
-    />
+  ) : freeAnswer ? (
+    // 自由回答题：选项区只放作答提示，标准答案不出现在患者屏幕上
+    <p className="rounded-2xl border border-blue-100 bg-blue-50/60 px-6 py-4 text-center text-lg font-semibold text-[var(--ink-muted)]">
+      {voiceActive ? "请直接说出您的答案，说完稍停片刻会自动提交。" : "请在下方输入您的答案后提交。"}
+    </p>
   ) : (
     <OptionButtons
       prompt={props.prompt}
@@ -150,12 +147,15 @@ export function AnswerInput(props: AnswerInputProps) {
       )}
 
       {!pendingVoice && voicePrimary && (
-        <p className="voice-fallback-label">不方便说话时，也可点选下方选项</p>
+        <p className="voice-fallback-label">
+          {freeAnswer ? "不方便说话时，也可用下方文字输入回答" : "不方便说话时，也可点选下方选项"}
+        </p>
       )}
 
       {specialOrOptions}
 
-      {textOpen && !pendingVoice && showVoiceTextFallback && answerType !== "freeText" && (
+      {/* 自由回答题在纯手动模式下直接展开文字输入（无语音入口时这是唯一作答途径） */}
+      {!pendingVoice && showVoiceTextFallback && (textOpen || (freeAnswer && !voiceActive)) && (
         <TextPanel
           disabled={props.disabled}
           onSubmit={(text) => {
@@ -177,17 +177,17 @@ export function AnswerInput(props: AnswerInputProps) {
               onNotice={props.onNotice}
             />
           )}
-          {answerType !== "freeText" && (
-            <button
+          <button
             type="button"
             onClick={() => setTextOpen((open) => !open)}
             disabled={props.disabled}
             className="ui-button ui-button-secondary min-h-[48px] px-4 text-base"
+            // 纯手动模式的自由回答题文字面板恒展开，切换按钮无意义
+            style={freeAnswer && !voiceActive ? { display: "none" } : undefined}
           >
             <IconKeyboard size={20} stroke={1.8} aria-hidden="true" />
             <span>文字输入</span>
-            </button>
-          )}
+          </button>
           {voiceActive && (
             <label className="ui-choice min-h-[48px] rounded-[14px] px-3.5 text-sm sm:text-base">
               <input
@@ -205,7 +205,33 @@ export function AnswerInput(props: AnswerInputProps) {
   );
 }
 
-/** 大按钮快捷作答：选项即按钮，提交完整 label（同分选项靠 label 区分）；语音为主时 compact 略收高度 */
+function AcknowledgementPanel({
+  disabled,
+  onSubmit,
+}: {
+  disabled: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="patient-panel space-y-4 p-6 text-center">
+      <p className="text-lg leading-7 text-[var(--ink-muted)]">
+        完成刚才的操作后，点击下面按钮继续；是否完成正确由医护确认。
+      </p>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onSubmit}
+        className="ui-button ui-button-primary ui-button-lg"
+      >
+        <IconCheck size={22} stroke={2} aria-hidden="true" />
+        <span>我已完成，请继续</span>
+      </button>
+    </div>
+  );
+}
+
+/** 大按钮快捷作答：按钮展示 displayLabel（剥除评分/备注，2026-09-04 修改意见 1），
+ *  提交仍用完整 label（同分选项靠 label 区分，服务端按 label 精确匹配）；语音为主时 compact 略收高度 */
 function OptionButtons({
   prompt,
   disabled,
@@ -240,7 +266,7 @@ function OptionButtons({
               : "min-h-[80px]",
           ].join(" ")}
         >
-          <span>{option.label}</span>
+          <span>{option.displayLabel}</span>
           <IconArrowRight size={compact ? 22 : 26} stroke={1.7} aria-hidden="true" />
         </button>
       ))}
@@ -344,7 +370,8 @@ function MultiChoicePanel({
               <span className="mr-2 inline-block w-6 text-center font-black text-[var(--brand)]">
                 {on ? "✓" : "○"}
               </span>
-              <span>{option.label}</span>
+              {/* 展示剥除评分/备注（2026-09-04 修改意见 1）；选中与提交仍用完整 label */}
+              <span>{option.displayLabel}</span>
             </button>
           );
         })}
@@ -425,15 +452,17 @@ function DrawingPanel({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="drawing-panel space-y-3">
       <p className="text-center text-base font-semibold text-[var(--ink-muted)]">
         请在白板上画一个钟，指针指向规定时间；画完后提交，医生会帮您确认对不对
       </p>
+      {/* 画布内部分辨率 480×480 不变；展示尺寸由 .drawing-canvas flex 自适应剩余空间，
+          保证整个画钟区域（画布+按钮）一屏放得下、不需要拖滚动条（2026-09-04 修改意见 4/7） */}
       <canvas
         ref={canvasRef}
         width={480}
         height={480}
-        className="mx-auto block max-w-full touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
+        className="drawing-canvas touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
         onPointerDown={(e) => {
           drawing.current = true;
           const ctx = canvasRef.current?.getContext("2d");
@@ -484,32 +513,6 @@ function DrawingPanel({
           <span>提交画作</span>
         </button>
       </div>
-    </div>
-  );
-}
-
-/** 操作指令只让患者确认“已经完成”，正确性由医护依据机构标准判定。 */
-function AcknowledgementPanel({
-  disabled,
-  onSubmit,
-}: {
-  disabled: boolean;
-  onSubmit: () => void;
-}) {
-  return (
-    <div className="patient-panel space-y-4 p-6 text-center">
-      <p className="text-lg leading-7 text-[var(--ink-muted)]">
-        完成刚才的操作后，点击下面按钮继续；是否完成正确由医护确认。
-      </p>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onSubmit}
-        className="ui-button ui-button-primary ui-button-lg"
-      >
-        <IconCheck size={22} stroke={2} aria-hidden="true" />
-        <span>我已完成，请继续</span>
-      </button>
     </div>
   );
 }
@@ -591,63 +594,17 @@ function TextPanel({ disabled, onSubmit }: { disabled: boolean; onSubmit: (text:
   );
 }
 
-/** 声波条数：奇数带中心；监听主视觉下略增条数更饱满 */
-const WAVE_BAR_COUNT = 25;
-/** 声条高度范围（px），与 .voice-listen-hero .voice-wave 的 72px 容器匹配 */
-const WAVE_MIN_PX = 8;
-const WAVE_MAX_PX = 60;
-
-/** 静息基线：中间略高的对称小丘，配合 CSS 呼吸动画即成"待命声波" */
-function idleWaveLevels(): number[] {
-  return Array.from({ length: WAVE_BAR_COUNT }, (_, index) => {
-    const t = index / (WAVE_BAR_COUNT - 1); // 0..1
-    return 0.14 + 0.05 * Math.sin(t * Math.PI); // 0.14~0.19
-  });
-}
-
-/**
- * 真实 RMS → 0..1 归一化。语音 RMS 常见 0.02~0.15；减去底噪门限再线性拉伸，
- * 末尾轻微压缩曲线让小音量也可见、大音量不顶格。常量为经验值，与 wav-recorder
- * 的 VAD 阈值同属"现场可微调"性质。
- */
-function normalizeLevel(rms: number): number {
-  const NOISE_FLOOR = 0.006;
-  const SPAN = 0.11;
-  const linear = (rms - NOISE_FLOOR) / SPAN;
-  const clamped = Math.min(1, Math.max(0, linear));
-  return Math.pow(clamped, 0.85);
-}
-
-/**
- * 语音波浪：真实麦克风音量（经 wav-recorder 的 onLevel 引出的 RMS）驱动的一排声条。
- * speaking=false（等待说话）：整体缓呼吸 + 逐条静息起伏（CSS）；
- * speaking=true（检测到说话）：高度纯随真实音量跳动、转暖色（CSS 按 data-active 切换）。
- * 纯装饰性可视化，对读屏无意义，aria-hidden。
- */
-function VoiceWave({ levels, speaking }: { levels: number[]; speaking: boolean }) {
-  return (
-    <div className="voice-wave" data-active={speaking} aria-hidden="true">
-      {levels.map((level, index) => (
-        <span
-          key={index}
-          className="voice-wave-bar"
-          style={{
-            height: `${WAVE_MIN_PX + level * (WAVE_MAX_PX - WAVE_MIN_PX)}px`,
-            // 静息时逐条相位差形成波动；说话时该动画被 CSS 撤除，仅剩真实高度
-            animationDelay: `${(index % 7) * 0.16}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
+/** 声波可视化已随 2026-08-13 语音按钮恒定尺寸重构移除（三态只换图标颜色与文字） */
 /**
  * 录音按钮：语音模式下播报一结束就自动开始（autoStart 由父组件在 TTS 播完后置 true），
  * 声音活动检测（VAD）判断患者说完了自动上传 /api/asr 转写，全程不用患者动手。
  * VAD 是能量阈值近似方案，老年患者停顿可能导致误判，因此录音中始终保留弱化样式的
  * 手动兜底按钮（见 wav-recorder.ts 头注释）。麦克风流由父组件持有传入，本组件只在
  * 这条已授权的流上开关录音，不重新申请权限（不会再弹授权弹窗）。
+ *
+ * 2026-08-13 用户要求：播报结束后按钮不再整体替换成大号监听面板（界面跳动），
+ * 三态共用同一按钮外壳（尺寸恒定），只切换麦克风图标颜色与文字；
+ * 兜底"我说完了"按钮放固定高度槽位，仅录音时可见（visibility 切换，不占位变化）。
  */
 function VoiceButton({
   micStream,
@@ -668,8 +625,6 @@ function VoiceButton({
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
-  /** 语音波浪的实时高度缓冲：新音量从右侧入队、逐帧左移，形成滚动声波 */
-  const [waveLevels, setWaveLevels] = useState<number[]>(idleWaveLevels);
   /** autoStart 每次挂载只应触发一次自动开始，防止后续重渲染重复触发 */
   const autoStartedRef = useRef(false);
 
@@ -705,6 +660,7 @@ function VoiceButton({
         };
         logTiming("asr_response", { status: response.status });
         if (!response.ok || !body.text) {
+          // 服务端报错原文直接提示（2026-09-14 用户拍板：ASR 未开通等技术提示保留给患者端可见）
           onNotice(body.error ?? "没听清，请再说一次，或改用按钮作答");
           return;
         }
@@ -720,17 +676,9 @@ function VoiceButton({
 
   const startRecording = useCallback(async () => {
     try {
-      setWaveLevels(idleWaveLevels()); // 每次开录先回到静息波形
       const recorder = new WavRecorder();
       await recorder.start(micStream, {
         onSpeechStart: () => setSpeaking(true),
-        // 真实音量入队：整条缓冲左移一格、右端补入归一化后的新音量，驱动滚动声波
-        onLevel: (rms) =>
-          setWaveLevels((prev) => {
-            const next = prev.slice(1);
-            next.push(normalizeLevel(rms));
-            return next;
-          }),
         onAutoStop: (reason) => {
           void stopRecording(reason);
         },
@@ -751,58 +699,55 @@ function VoiceButton({
     }
   }, [autoStart, recording, transcribing, startRecording]);
 
-  if (transcribing) {
-    return (
-      <div className="voice-listen-hero" role="status">
-        <IconLoader2 className="animate-spin text-[var(--brand)]" size={28} stroke={1.8} aria-hidden="true" />
-        <span className="text-xl font-bold text-[var(--brand-strong)]">正在识别您的回答…</span>
-      </div>
-    );
-  }
-
-  if (recording) {
-    return (
-      <div className="flex w-full flex-col items-center gap-2.5">
-        <div className="voice-listen-hero" data-speaking={speaking}>
-          <VoiceWave levels={waveLevels} speaking={speaking} />
-          <span
-            className={[
-              "inline-flex items-center gap-2 text-xl font-bold sm:text-2xl",
-              speaking ? "text-[var(--danger)]" : "text-[var(--brand-strong)]",
-            ].join(" ")}
-          >
-            {speaking ? (
-              <IconWaveSine size={26} stroke={1.8} aria-hidden="true" />
-            ) : (
-              <IconMicrophone size={24} stroke={1.8} aria-hidden="true" />
-            )}
+  // 录音/识别中不用 disabled（:disabled 会压暗到 0.5 看不清图标变色），改为点击守卫 + aria-disabled
+  const busy = recording || transcribing;
+  return (
+    <div className="flex w-full flex-col items-center">
+      <button
+        type="button"
+        disabled={!busy && disabled}
+        aria-disabled={busy || disabled}
+        onClick={() => {
+          if (!busy) void startRecording();
+        }}
+        className="patient-primary-action w-full max-w-xl justify-center self-center text-xl"
+        data-voice-state={transcribing ? "transcribing" : recording ? (speaking ? "speaking" : "listening") : "idle"}
+      >
+        {transcribing ? (
+          <>
+            <IconLoader2 className="animate-spin" size={26} stroke={1.8} aria-hidden="true" />
+            <span>正在识别您的回答…</span>
+          </>
+        ) : recording ? (
+          <>
+            <IconMicrophone
+              size={26}
+              stroke={1.8}
+              aria-hidden="true"
+              className={speaking ? "voice-mic-speaking" : "voice-mic-listening"}
+            />
             <span>{speaking ? "正在听您说话…" : "请开始说话…"}</span>
-          </span>
-          <p className="text-sm leading-6 text-[var(--ink-muted)]">
-            说完稍停片刻会自动提交；停顿较长可点下方按钮
-          </p>
-        </div>
+          </>
+        ) : (
+          <>
+            <IconMicrophone size={26} stroke={1.8} aria-hidden="true" />
+            <span>开始语音回答</span>
+          </>
+        )}
+      </button>
+      {/* 固定高度槽位：录音时才显示手动提交兜底，visibility 切换不引起布局跳动 */}
+      <div className="voice-submit-slot">
         <button
           type="button"
           disabled={disabled}
           onClick={() => void stopRecording("manual")}
           className="ui-button ui-button-quiet min-h-0 px-3 py-1 text-sm underline decoration-dotted underline-offset-4"
+          style={{ visibility: recording ? "visible" : "hidden" }}
+          tabIndex={recording ? 0 : -1}
         >
           我说完了，直接提交
         </button>
       </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={startRecording}
-      className="patient-primary-action w-full max-w-xl justify-center self-center text-xl"
-    >
-      <IconMicrophone size={26} stroke={1.8} aria-hidden="true" />
-      <span>开始语音回答</span>
-    </button>
+    </div>
   );
 }
