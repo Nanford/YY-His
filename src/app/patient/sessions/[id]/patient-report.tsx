@@ -9,6 +9,10 @@
  *         （医生端 draft→confirmed 审核流程保留）。
  *         V2.0 §3：报告必须可识别评估范围（新增/复评量表）与生成时间，保留历史报告入口，
  *         并可对尚未完成的量表直接发起补充评估（复评属医生授权，不在患者自助入口出现）。
+ *         2026-11-10 版式改版（用户拍板，参考「报告输出的样式.png」）：X-Age 品牌页头 +
+ *         身份条（编号/脱敏姓名/性别/年龄/身高/体重/测试时间）+ 基本情况 + 既存问题；
+ *         「综合评分」「吸烟饮酒史」本版不做（无计分规则/档案无字段）。字号保持适老化大字，
+ *         不照搬参考图的 A4 密度。
  */
 import Link from "next/link";
 import {
@@ -19,7 +23,9 @@ import {
   IconHeartHandshake,
   IconHistory,
   IconShieldCheck,
+  IconUserHeart,
 } from "@tabler/icons-react";
+import type { ReportField } from "@/lib/assessment/report-profile";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2 } from "@/lib/recommend-v2";
 import type { ScaleComparison, ScaleScope, TagChange } from "@/lib/assessment/supplementary";
@@ -70,9 +76,10 @@ export interface DeferredScale {
 
 interface PatientReportProps {
   sessionId: string;
-  patientLabel: string;
-  /** 报告生成时间（采集完成时间，缺失时退化为会话发起时间） */
-  assessedAt: Date;
+  /** 身份条：编号/脱敏姓名/性别/年龄/身高/体重/测试时间（服务端由 report-profile 派生，含报告生成时间） */
+  identityItems: readonly ReportField[];
+  /** 基本情况：病史记录/用药评估/家庭照护者 */
+  basicInfoRows: readonly ReportField[];
   reportScales: ReportScale[];
   tags: readonly AssessmentTag[];
   /** 部分计分的量表（快照 AssessmentResult.deferred；老快照无此字段时页面传 []） */
@@ -89,8 +96,8 @@ interface PatientReportProps {
 
 export function PatientReport({
   sessionId,
-  patientLabel,
-  assessedAt,
+  identityItems,
+  basicInfoRows,
   reportScales,
   tags,
   deferredScales,
@@ -109,19 +116,30 @@ export function PatientReport({
       <PatientReportTopbar />
 
       <div className="patient-main space-y-6">
-        <header className="patient-panel px-6 py-8 text-center md:px-10 md:py-10">
-          <span className="ui-badge mx-auto">
-            <IconClipboardCheck size={17} stroke={1.9} aria-hidden="true" />
-            评估已生成
-          </span>
-          <h1 className="patient-display-title mt-4">您的评估报告</h1>
-          <p className="patient-display-copy">{patientLabel}</p>
-          {/* V2.0 §3：报告必须可识别评估范围与生成时间 */}
-          <p className="mt-2 flex flex-wrap items-center justify-center gap-2 text-lg text-[var(--ink-muted)]">
-            <IconCalendarClock size={21} stroke={1.8} aria-hidden="true" />
-            评估时间：{assessedAt.toLocaleString("zh-CN")}
-          </p>
-          <ul className="mt-4 flex flex-wrap items-center justify-center gap-2" aria-label="本次评估内容">
+        <header className="patient-panel px-6 py-7 md:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl font-bold text-[var(--ink)]">老年综合评估报告</h1>
+            <span className="ui-badge">
+              <IconClipboardCheck size={17} stroke={1.9} aria-hidden="true" />
+              评估已生成
+            </span>
+          </div>
+          {/* 身份条（参考图页头）：姓名已脱敏；V2.0 §3 要求的报告生成时间即「测试时间」项 */}
+          <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-[var(--line)] py-5 sm:grid-cols-4 xl:grid-cols-7">
+            {identityItems.map((item) => (
+              <div key={item.label} className="min-w-0">
+                <dt className="flex items-center gap-1.5 text-sm font-bold text-[var(--ink-muted)]">
+                  {item.label === "测试时间" && (
+                    <IconCalendarClock size={17} stroke={1.8} aria-hidden="true" />
+                  )}
+                  {item.label}
+                </dt>
+                <dd className="mt-1 break-words text-lg font-bold text-[var(--ink)]">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+          {/* V2.0 §3：报告必须可识别评估范围（新增/复评） */}
+          <ul className="mt-5 flex flex-wrap items-center gap-2" aria-label="本次评估内容">
             {reportScales.map((scale) => (
               <li
                 key={scale.id}
@@ -160,6 +178,8 @@ export function PatientReport({
           </div>
         )}
 
+        <BasicInfoSection rows={basicInfoRows} />
+        <ExistingProblemsSection tags={tags} />
         <TagsSection tags={tags} deferredScales={deferredScales} />
         {comparisons.length > 0 && <ComparisonSection comparisons={comparisons} />}
         <PlanSection planStatus={planStatus} plan={plan} confirmedAt={confirmedAt} />
@@ -178,6 +198,73 @@ export function PatientReport({
         </p>
       </div>
     </main>
+  );
+}
+
+/** 基本情况（参考图左上区块）：档案里的病史/用药/照护信息，标签列浅底、内容列正文 */
+function BasicInfoSection({ rows }: { rows: readonly ReportField[] }) {
+  return (
+    <section className="patient-panel px-6 py-7 md:px-8">
+      <SectionHead
+        icon={<IconUserHeart size={16} stroke={1.8} aria-hidden="true" />}
+        eyebrow="档案信息"
+        title="基本情况"
+      />
+      <dl className="mt-6 overflow-hidden rounded-2xl border border-[var(--line)]">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="grid grid-cols-1 border-b border-[var(--line)] last:border-b-0 sm:grid-cols-[10rem_1fr]"
+          >
+            <dt className="bg-[var(--surface-blue)] px-5 py-4 text-base font-bold text-[var(--ink)]">
+              {row.label}
+            </dt>
+            <dd className="break-words px-5 py-4 text-lg leading-8 text-[var(--ink)]">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/**
+ * 既存问题（参考图彩色标签区）：本次评估全部异常标签平铺成一行行胶囊，先让人一眼看到问题清单。
+ * 无异常标签时整块不渲染——是否"没有问题"由下方评估结果区按全豁免量表口径如实说明，
+ * 这里不做"无异常"断言（避免零证据误导）。
+ */
+function ExistingProblemsSection({ tags }: { tags: readonly AssessmentTag[] }) {
+  const problems = tags.filter(isAbnormalTag);
+  if (problems.length === 0) return null;
+  return (
+    <section className="patient-panel px-6 py-7 md:px-8">
+      <SectionHead
+        icon={<IconAlertTriangle size={16} stroke={1.8} aria-hidden="true" />}
+        eyebrow="重点关注"
+        title="既存问题"
+      />
+      <ul className="mt-6 flex flex-wrap gap-3">
+        {problems.map((tag, index) => (
+          <li
+            key={`${tag.scaleId}-${tag.code}`}
+            className={[
+              "inline-flex min-h-12 items-center gap-2 rounded-full px-5 py-2 text-lg font-bold text-[var(--ink)]",
+              // 参考图蓝/黄交替的浅色胶囊，仅作视觉区分，不表达严重程度
+              index % 2 === 0 ? "bg-[var(--brand-soft)]" : "bg-[var(--warning-soft)]",
+            ].join(" ")}
+          >
+            <span
+              className={[
+                "size-2.5 shrink-0 rounded-full",
+                index % 2 === 0 ? "bg-[var(--brand)]" : "bg-[var(--warning)]",
+              ].join(" ")}
+              aria-hidden="true"
+            />
+            {tag.tag}
+            {LEVEL_LABEL[tag.level] ?? ""}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -294,7 +381,7 @@ function PatientReportTopbar() {
           <IconHeartHandshake size={24} stroke={1.8} aria-hidden="true" />
         </span>
         <span>
-          <span className="block">精准照护工作台</span>
+          <span className="block">X-Age</span>
           <span className="mt-0.5 block text-xs font-semibold text-[var(--ink-faint)]">老年健康评估与干预系统</span>
         </span>
       </div>

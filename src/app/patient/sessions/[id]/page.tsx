@@ -6,6 +6,7 @@
  *         session.status 决定渲染哪个子视图，避免患者端另起一套状态判断逻辑。
  *         V2.0 §3：报告页展示评估范围（新增/复评）与生成时间，保留历史报告入口，
  *         并可对尚未完成的量表发起补充评估；历史报告互访按"同患者"放宽数据隔离。
+ *         2026-11-10 报告版式：身份条（姓名脱敏）与基本情况由 report-profile 从档案派生后传入报告。
  */
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -13,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { scaleById, scales } from "@/lib/rules";
 import { PATIENT_SESSION_COOKIE } from "@/lib/assessment/patient-intake";
 import { completedScaleIds, scaleComparisons, scaleNeedsClinician, scaleScopes } from "@/lib/assessment/supplementary";
+import { buildBasicInfoRows, buildIdentityItems } from "@/lib/assessment/report-profile";
 import { firstQueryValue } from "@/lib/query";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
 import type { PlanCandidateItemV2, PlanCandidatesV2 } from "@/lib/recommend-v2";
@@ -25,6 +27,9 @@ export const dynamic = "force-dynamic";
 
 const scaleName = (scaleId: string) => scaleById.get(scaleId)?.name ?? scaleId;
 
+/** 多重用药评估量表 id（data/scales-v2.json），其标签进报告「用药评估」行 */
+const MEDICATION_SCALE_ID = "polypharmacy";
+
 export default async function PatientSessionPage({
   params,
   searchParams,
@@ -34,7 +39,23 @@ export default async function PatientSessionPage({
   const session = await prisma.assessmentSession.findUnique({
     where: { id },
     include: {
-      patient: { select: { name: true, gender: true, age: true } },
+      // 报告身份条/基本情况所需档案字段一并取出（均只在本机服务端渲染，不出网）
+      patient: {
+        select: {
+          name: true,
+          gender: true,
+          age: true,
+          code: true,
+          heightCm: true,
+          weightKg: true,
+          diagnoses: true,
+          pastHistory: true,
+          recentAcute: true,
+          medications: true,
+          careSituation: true,
+          livingSituation: true,
+        },
+      },
       results: {
         where: { status: "current" },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -148,13 +169,24 @@ export default async function PatientSessionPage({
         .filter((scale) => !done.has(scale.id))
         .map((scale) => ({ id: scale.id, name: scale.name, needsClinician: scaleNeedsClinician(scale.id) }));
 
+      // 报告版式（2026-11-10）：身份条 + 基本情况。测试时间 = 采集完成时间（缺失退化为会话发起时间）；
+      // 用药评估行优先展示多重用药评估量表的结论标签
+      const identityItems = buildIdentityItems(
+        session.patient,
+        (session.completedAt ?? session.startedAt).toLocaleString("zh-CN")
+      );
+      const basicInfoRows = buildBasicInfoRows(
+        session.patient,
+        currentTags.filter((tag) => tag.scaleId === MEDICATION_SCALE_ID).map((tag) => tag.tag)
+      );
+
       return (
         <>
           <PipelineProgressUpdater step={6} />
           <PatientReport
             sessionId={session.id}
-            patientLabel={patientLabel}
-            assessedAt={session.completedAt ?? session.startedAt}
+            identityItems={identityItems}
+            basicInfoRows={basicInfoRows}
             reportScales={reportScales}
             tags={currentTags}
             deferredScales={(latestResult.deferred ?? []) as unknown as DeferredScale[]}
