@@ -425,7 +425,7 @@ function DrawingPanel({
   return (
     <div className="drawing-panel space-y-3">
       <p className="text-center text-base font-semibold text-[var(--ink-muted)]">
-        请在白板上画一个钟，指针指向规定时间；画完后提交，医生会帮您确认对不对
+        请在白板上画一个钟，标上数字和指针；画完后点提交
       </p>
       {/* 画布内部分辨率 480×480 不变；展示尺寸由 .drawing-canvas flex 自适应剩余空间，
           保证整个画钟区域（画布+按钮）一屏放得下、不需要拖滚动条（2026-09-04 修改意见 4/7） */}

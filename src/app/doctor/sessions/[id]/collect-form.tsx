@@ -66,7 +66,12 @@ function QuestionBlock({
         <div className="mt-3 ml-10 max-w-xs overflow-hidden rounded-xl border border-[#dbe7f6] bg-white p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={savedRawText} alt="患者画钟" className="w-full" />
-          <p className="mt-1 text-center text-xs text-[#7890b1]">患者提交的画作 · 请在下方点选计分</p>
+          {/* 2026-11-10：画图题先由视觉模型看图判定，已有结论时医生核对即可，可在下方改判 */}
+          <p className="mt-1 text-center text-xs text-[#7890b1]">
+            {savedLabel
+              ? "患者提交的画作 · 已有判定（下方已选中），请核对，可改判"
+              : "患者提交的画作 · 请在下方点选计分"}
+          </p>
         </div>
       )}
 

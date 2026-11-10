@@ -3,6 +3,7 @@
  * OUTPUT: getPatientDialogueState / startPatientDialogue / submitPatientAnswer
  * POS:    患者端问询的服务端编排层：加载快照 → 状态机决策 → 落库（DialogueTurn/Answer）→ 返回 DTO。
  *         不实现任何医学规则；评分仍由医生端 finalize 时调用评分引擎完成。
+ *         2026-11-10：画图题交卷接视觉模型看图判定（drawing-judge.ts），判定在事务外完成。
  */
 import { prisma } from "@/lib/db";
 import { displayOptionLabel, questionById, scaleById } from "@/lib/rules";
@@ -13,6 +14,7 @@ import { syncReuseAnswers } from "@/lib/assessment/system-answers";
 import { voiceCapabilities, type VoiceCapabilities } from "@/lib/providers/capabilities";
 import { normalizeAnswer, type NormalizationOutcome } from "./normalize";
 import { judgeWordRecall, type WordRecallOutcome } from "./judge";
+import { judgeDrawing, validateDrawing } from "./drawing-judge";
 import {
   FREE_ANSWER_ITEMS,
   displayTextOverride,
@@ -114,7 +116,7 @@ export interface SubmitAnswerInput {
   questionId: string;
   /**
    * 输入模式：
-   * voice/text/button 既有；multi=多选；drawing=画钟交卷（先落 pending 等医生计分）
+   * voice/text/button 既有；multi=多选；drawing=画图交卷（视觉模型看图判定计分；拿不准/不可用时落 pending 等医生计分）
    */
   mode: "voice" | "text" | "button" | "multi" | "drawing";
   /** voice/text 模式的原始回答文本（语音为 ASR 转写） */
@@ -125,7 +127,7 @@ export interface SubmitAnswerInput {
   score?: number;
   /** multi 模式选中的选项 label 列表 */
   labels?: string[];
-  /** drawing 模式：画布 PNG data URL（仅存 rawText，不参与计分） */
+  /** drawing 模式：画布 PNG data URL（存 rawText 供追溯；判定见 drawing-judge.ts） */
   drawingDataUrl?: string;
   /** 语音回答的录音文件相对路径（storage/audio-cache 下），供追溯回放 */
   audioPath?: string;
@@ -601,19 +603,18 @@ function multiOutcome(item: AskableQuestion, labels: string[] | undefined): Norm
   };
 }
 
-/** 画钟交卷：不计分，落 pending 等医生确认（M9.6） */
-function drawingOutcome(drawingDataUrl: string | undefined): NormalizationOutcome {
-  if (!drawingDataUrl || !drawingDataUrl.startsWith("data:image/")) {
-    throw new DialogueConflictError("画作数据无效");
-  }
-  if (drawingDataUrl.length > 800_000) {
-    throw new DialogueConflictError("画作数据过大，请简化后重试");
-  }
-  return {
-    status: "unclear",
-    method: "rules",
-    reason: "患者已提交画作，待医生确认计分",
-  };
+/**
+ * 画图题交卷（M9.6 画钟；2026-11-10 起接视觉模型看图判定）：
+ * 模型给出对/错 → 映射到标准选项直接计分（医生事后可改判）；
+ * 拿不准/未配置/调用失败 → unclear，落 pending 等医生确认计分（原口径兜底）。
+ */
+async function drawingOutcome(
+  item: AskableQuestion,
+  drawingDataUrl: string | undefined
+): Promise<NormalizationOutcome> {
+  const invalidReason = validateDrawing(drawingDataUrl);
+  if (invalidReason || !drawingDataUrl) throw new DialogueConflictError(invalidReason ?? "画作数据无效");
+  return judgeDrawing(item.question.id, item.options, drawingDataUrl);
 }
 
 /**
@@ -686,7 +687,7 @@ export async function submitPatientAnswer(
         : input.mode === "multi"
           ? multiOutcome(item, input.labels)
           : input.mode === "drawing"
-            ? drawingOutcome(input.drawingDataUrl)
+            ? await drawingOutcome(item, input.drawingDataUrl)
             : await normalizeAnswer({
                 question: item.question,
                 options: item.options,
@@ -737,7 +738,9 @@ export async function submitPatientAnswer(
         : input.mode === "multi"
           ? `[多选作答] ${outcome.status === "matched" ? outcome.optionLabel : ""}`
           : input.mode === "drawing"
-            ? "[画钟交卷] 待医生确认计分"
+            ? outcome.status === "matched"
+              ? `[画图交卷] 视觉模型判定：${outcome.optionLabel}`
+              : "[画图交卷] 待医生确认计分"
             : utterance;
     await tx.dialogueTurn.create({
       data: {
@@ -752,10 +755,12 @@ export async function submitPatientAnswer(
     bumpCount(context.snapshot.patientReplyCount, input.questionId);
 
     // 2. 按状态机决定答案落库动作
-    // 画钟交卷：直接 pending（不走追问），等医生确认计分（M9.6）
+    // 画图交卷不走追问：视觉模型已判定 → 直接确认计分；否则 pending 等医生确认计分（M9.6）
     const resolution =
       input.mode === "drawing"
-        ? ({ action: "markPending" } as const)
+        ? outcome.status === "matched"
+          ? ({ action: "confirm", optionLabel: outcome.optionLabel } as const)
+          : ({ action: "markPending" } as const)
         : resolveReply(step.attempt, outcome);
     if (resolution.action !== "clarify") {
       const nextAnswerStatus =
