@@ -13,11 +13,14 @@
  *         身份条、基本情况与概览、既存问题、四列结果使用清晰的适老字号；
  *         同一信息顺序的 A4「下载报告」在 ./report 子路由。
  *         评估概览使用本次量表与需关注结论的实际数量。
+ *         2026-11-11 报告末尾加品牌页脚（logo + 岐颐智护 · 中文全称）；页眉不再重复品牌，因为紧邻的患者端顶栏已显示。
  */
 import Link from "next/link";
 import { TriangleAlert, CalendarClock, Check, ClipboardCheck, Download, HeartHandshake, History } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { SectionDisclosure } from "@/components/section-disclosure";
+import { BRAND } from "@/lib/brand";
 import type { ReportField } from "@/lib/assessment/report-profile";
 import { buildReportRows, listExistingProblems, type ReportRow } from "@/lib/assessment/report-rows";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
@@ -203,6 +206,10 @@ export function PatientReport({
       <p className="mx-auto max-w-2xl pb-4 text-center text-base leading-7 text-[var(--ink-muted)]">
         如果您对报告内容有任何疑问，请随时与医生沟通。
       </p>
+      <footer className="care-report-brand">
+        <BrandLogo size={28} />
+        <span>{BRAND.name} · {BRAND.fullNameZh}</span>
+      </footer>
     </main>
   );
 }

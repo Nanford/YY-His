@@ -3,7 +3,10 @@
  * OUTPUT: ReportDocument —— A4 版式的下载版评估报告（屏幕上是纸张预览，打印/另存 PDF 时即成品）
  * POS:    身份条 → 基本情况与评估概览 → 既存问题 → 综合评估结果四列表 → 干预建议。
  *         外层表格的 thead 使标题与身份条在 Chromium 打印分页时重复出现。
+ *         2026-11-11 页眉右侧改为品牌（logo + 岐颐智护 TCM-CARE），tfoot 页脚为品牌名 + 中文全称（打印时每页重复）。
  */
+import { BrandLogo } from "@/components/brand-logo";
+import { BRAND } from "@/lib/brand";
 import type { ReportField } from "@/lib/assessment/report-profile";
 import type { ReportRow } from "@/lib/assessment/report-rows";
 import { ReportResultsTable } from "../report-results-table";
@@ -48,7 +51,12 @@ export function ReportDocument({
           <td className="report-doc-cell">
             <div className="report-doc-head">
               <h1>老年综合评估报告</h1>
-              <span>老年健康评估与干预系统</span>
+              {/* 用 div/b/small 而非 span：globals.css 的 .report-doc-head span 是灰色小字规则 */}
+              <div className="report-doc-brand">
+                <BrandLogo size={26} />
+                <b>{BRAND.name}</b>
+                <small>{BRAND.code}</small>
+              </div>
             </div>
             <dl className="report-doc-identity">
               {identityItems.map((item) => (
@@ -108,6 +116,13 @@ export function ReportDocument({
           </td>
         </tr>
       </tbody>
+      <tfoot>
+        <tr>
+          <td className="report-doc-cell">
+            <p className="report-doc-brandline">{BRAND.name} · {BRAND.fullNameZh}</p>
+          </td>
+        </tr>
+      </tfoot>
     </table>
   );
 }

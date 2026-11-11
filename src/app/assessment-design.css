@@ -844,7 +844,7 @@
   }
 }
 
-/* 左侧主视觉：淡蓝渐变 + 细线心电图，替代原深藏青色块 */
+/* 左侧主视觉：淡蓝渐变品牌区（2026-11-11 起展示 logo 与品牌名、中英文全称），替代原深藏青色块 */
 .care-home-hero {
   position: relative;
   isolation: isolate;
@@ -858,40 +858,112 @@
   color: var(--care-ink);
 }
 
-.care-home-hero .care-icon-chip {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 1rem;
-  background: var(--care-paper);
-  box-shadow: var(--care-shadow-soft);
+.care-home-logo {
+  width: clamp(5rem, 6.5vw, 6.5rem);
+  height: auto;
 }
 
-.care-home-hero .care-icon-chip svg {
-  width: 1.75rem;
-  height: 1.75rem;
-}
-
+/* 品牌名：大字号 + 略放宽字距，与封面「岐颐智护」的庄重感一致 */
 .care-home-hero h1 {
-  font-size: clamp(2rem, 3.4vw, 3rem);
+  font-size: clamp(2.75rem, 4.4vw, 3.75rem);
   font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
 }
 
-.care-home-hero p {
-  margin-block-start: 0.75rem;
-  color: var(--care-ink-soft);
-  font-size: 1.0625rem;
-}
-
-.care-home-art {
-  position: absolute;
-  z-index: -1;
-  right: -4rem;
-  bottom: -2.5rem;
-  width: min(100%, 34rem);
+.care-home-code {
+  margin-block-start: 0.5rem;
   color: var(--primary);
-  pointer-events: none;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+}
+
+.care-home-fullname {
+  margin-block-start: 1.25rem;
+  color: var(--care-ink);
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  font-weight: 650;
+}
+
+.care-home-fullname-en {
+  max-width: 32em;
+  margin-block-start: 0.5rem;
+  color: var(--care-ink-soft);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* ===== 品牌（顶栏 / 报告）：logo + 品牌名 + 竖线分隔的英文代号 ===== */
+.care-brand {
+  gap: 0.625rem;
+}
+
+.care-brand-name {
+  color: var(--care-ink);
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.care-brand-code {
+  padding-inline-start: 0.625rem;
+  border-inline-start: 1px solid var(--care-rule-strong);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+/* 预览报告末尾的品牌页脚 */
+.care-report-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding-block: 1.25rem 0.5rem;
+  border-top: 1px solid var(--care-rule);
+  color: var(--care-ink-soft);
+  font-size: 0.875rem;
+}
+
+/* A4 下载版：页眉右侧品牌、每页页脚品牌行（.report-doc* 基础版式在 globals.css） */
+.report-doc-brand {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 5pt;
+}
+
+.report-doc-brand b {
+  color: #0e3269;
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.report-doc-brand small {
+  padding-inline-start: 5pt;
+  border-inline-start: 1px solid #d9dde6;
+  color: #1668e3;
+  font-size: 7pt;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.report-doc-brandline {
+  margin: 0;
+  padding: 5pt 0 9mm;
+  border-top: 1px solid #e3e7ee;
+  color: #8a91a0;
+  font-size: 7.5pt;
+  text-align: center;
+}
+
+@media print {
+  .report-doc-brandline {
+    padding-bottom: 0;
+  }
 }
 
 .care-home-nav {
@@ -1225,6 +1297,12 @@
 .doctor-shell.care-shell .doctor-brand-title,
 .doctor-shell.care-shell .doctor-nav-link {
   color: var(--foreground);
+}
+
+/* 侧栏品牌名与患者端顶栏同一字距 */
+.doctor-shell.care-shell .doctor-brand-title {
+  font-size: 17px;
+  letter-spacing: 0.05em;
 }
 
 .doctor-shell.care-shell .doctor-brand-subtitle {

@@ -3,10 +3,13 @@
  * OUTPUT: 患者评估入口与医生工作台
  * POS: 首页仅提供两个入口，患者流程在 /patient/flow 展示。
  *      2026-11-11 视觉改为蓝白淡渐变（care-home*，见 assessment-design.css），去掉深藏青主视觉。
+ *      2026-11-11 主视觉改为品牌展示：logo + 岐颐智护 + TCM-CARE + 中文全称 + 英文全称（全站唯一出现英文全称处）。
  */
 import Link from "next/link";
-import { ArrowRight, HeartHandshake, HeartPulse, Stethoscope } from "lucide-react";
+import { ArrowRight, HeartHandshake, Stethoscope } from "lucide-react";
 import * as motion from "motion/react-client";
+import { BrandLogo } from "@/components/brand-logo";
+import { BRAND } from "@/lib/brand";
 import "./assessment-design.css";
 
 const entrances = [
@@ -20,19 +23,13 @@ export default function HomePage() {
     <main className="care-shell care-home">
       <div className="care-home-panel">
         <div className="care-home-hero">
-          <svg viewBox="0 0 480 350" className="care-home-art" fill="none" aria-hidden="true">
-            <circle cx="335" cy="232" r="110" stroke="currentColor" opacity=".12" />
-            <circle cx="335" cy="232" r="143" stroke="currentColor" opacity=".08" />
-            <circle cx="335" cy="232" r="176" stroke="currentColor" opacity=".06" />
-            <path d="M0 232h156l22-30 20 30h39l37-69 34 130 32-61h140" stroke="currentColor" strokeWidth="1.6" opacity=".35" />
-            <circle cx="335" cy="232" r="5" fill="currentColor" opacity=".5" />
-          </svg>
-          <span className="care-icon-chip" aria-hidden="true">
-            <HeartPulse />
-          </span>
-          <h1>
-            老年健康智能<br className="hidden md:block" />评估与干预
-          </h1>
+          <BrandLogo size={104} className="care-home-logo" />
+          <div>
+            <h1>{BRAND.name}</h1>
+            <p className="care-home-code">{BRAND.code}</p>
+            <p className="care-home-fullname">{BRAND.fullNameZh}</p>
+            <p className="care-home-fullname-en" lang="en">{BRAND.fullNameEn}</p>
+          </div>
         </div>
 
         <motion.nav

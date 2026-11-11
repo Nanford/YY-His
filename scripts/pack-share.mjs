@@ -70,7 +70,7 @@ fs.writeFileSync(
     "rem 3000 被占用时自动改用 3200",
     "set PORT=3000",
     "netstat -ano | findstr \":3000 \" | findstr LISTENING >nul && set PORT=3200",
-    "echo 正在启动老年健康智能评估系统，浏览器稍后会自动打开 http://localhost:%PORT%",
+    "echo 正在启动岐颐智护（TCM-CARE），浏览器稍后会自动打开 http://localhost:%PORT%",
     "echo 请保持本窗口打开，关闭即停止服务。",
     'start "" cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:%PORT%"',
     "node.exe server.js",
@@ -83,7 +83,7 @@ fs.writeFileSync(
 fs.writeFileSync(
   path.join(PKG_DIR, "使用说明.txt"),
   [
-    "老年健康智能评估与干预系统 Demo · 绿色便携包",
+    "岐颐智护（TCM-CARE）Demo · 绿色便携包",
     "",
     "【启动】双击 启动.bat，浏览器自动打开系统首页（默认 http://localhost:3000，",
     "       3000 被占用时自动改用 http://localhost:3200，以窗口显示为准）。",
