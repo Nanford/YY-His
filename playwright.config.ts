@@ -42,6 +42,10 @@ export default defineConfig({
     env: {
       ...process.env,
       DATABASE_URL: e2eDatabaseUrl,
+      // 画图题看图判定在 E2E 中关闭（空值优先于 .env.local，Next 不覆盖已存在的环境变量）：
+      // 回归用例断言的是"画钟交卷落待医生确认、报告标部分计分"的兜底路径，且 E2E 不应出网调视觉模型
+      DASHSCOPE_API_KEY: "",
+      VISION_API_KEY: "",
     },
   },
 });

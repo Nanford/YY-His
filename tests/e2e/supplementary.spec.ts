@@ -75,16 +75,16 @@ test("报告页可识别评估范围，患者可发起补充评估且历史报�
   }
   // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
   await expect(page.getByRole("button", { name: "查看我的评估报告", exact: true })).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
 
   // ---------- 报告可识别评估范围与生成时间：两个量表均标"新增"，有评估时间 ----------
-  await expect(page.getByText("评估时间：", { exact: false })).toBeVisible();
+  await expect(page.getByText("测试时间", { exact: true })).toBeVisible();
   await expect(page.getByText("新增", { exact: true })).toHaveCount(2);
 
   // ---------- 发起补充评估：v2.1 两层展示——先点第一层「补充评估」按钮展开第二层勾选清单 ----------
   // 只列未完成量表（25 − 2 = 23 项，M10.3b 由 13 扩至 25），勾选 MNA-SF 提交
   await page.getByRole("button", { name: "补充评估", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "还想评估更多项目？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "选择补充评估项目" })).toBeVisible();
   await expect(page.locator('input[type="checkbox"][name="scaleIds"]')).toHaveCount(40);
   await expect(page.getByRole("checkbox", { name: /MNA-SF/ })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /中医体质/ })).toBeVisible();
@@ -111,6 +111,7 @@ test("报告页可识别评估范围，患者可发起补充评估且历史报�
 
   // 历史报告仍可访问：cookie 已切到新会话，但同患者旧报告直接打开不被挡回首页
   await page.goto(`/patient/sessions/${firstSessionId}`);
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "综合评估结果" })).toBeVisible();
   await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
 });

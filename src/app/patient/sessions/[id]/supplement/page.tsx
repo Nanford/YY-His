@@ -6,14 +6,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import {
-  IconAlertTriangle,
-  IconArrowLeft,
-  IconCheck,
-  IconClipboardPlus,
-  IconPlus,
-  IconStethoscope,
-} from "@tabler/icons-react";
+import { ArrowLeft, Check, ClipboardPlus, Plus, Stethoscope, TriangleAlert } from "lucide-react";
 import { createSupplementarySession } from "@/lib/actions/patient";
 import {
   checkSupplementaryGuard,
@@ -77,39 +70,39 @@ export default async function SupplementPage({ params, searchParams }: Supplemen
   return (
     <main className="patient-main flex-1">
       <Link href={`/patient/sessions/${id}`} className="ui-button ui-button-quiet -ml-2 mb-6">
-        <IconArrowLeft size={19} stroke={2} aria-hidden="true" />
+        <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
         返回评估报告
       </Link>
 
       <section className="patient-panel px-6 py-7 md:px-8">
         <span className="ui-badge">
-          <IconClipboardPlus size={16} stroke={1.8} aria-hidden="true" />
+          <ClipboardPlus size={16} strokeWidth={1.8} aria-hidden="true" />
           补充评估
         </span>
         <h1 className="mt-3 text-2xl font-extrabold text-[var(--ink)] sm:text-3xl">选择补充评估项目</h1>
 
         {error === "scales" && (
           <div className="ui-alert ui-alert-danger mt-5 text-lg" role="alert">
-            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <TriangleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>请至少勾选一项评估内容。</span>
           </div>
         )}
         {error === "repeat" && (
           <div className="ui-alert ui-alert-danger mt-5 text-lg" role="alert">
-            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <TriangleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>所选项目已经完成；复评请由医生在工作台发起。</span>
           </div>
         )}
         {error === "not_reported" && (
           <div className="ui-alert ui-alert-danger mt-5 text-lg" role="alert">
-            <IconAlertTriangle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <TriangleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>当前评估尚未生成报告，暂不能发起补充评估。</span>
           </div>
         )}
 
         {remainingScales.length === 0 ? (
           <div className="ui-alert mt-6">
-            <IconCheck size={21} stroke={2} aria-hidden="true" />
+            <Check size={21} strokeWidth={2} aria-hidden="true" />
             <p>暂无可补充评估的项目。</p>
           </div>
         ) : (
@@ -126,9 +119,9 @@ export default async function SupplementPage({ params, searchParams }: Supplemen
                       }`}
                     >
                       {scale.needsClinician ? (
-                        <IconStethoscope size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        <Stethoscope size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
                       ) : (
-                        <IconCheck size={17} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
                       )}
                       <span>{scale.needsClinician ? "含医护查看项，先出部分计分报告" : "可直接生成评估报告"}</span>
                     </span>
@@ -137,7 +130,7 @@ export default async function SupplementPage({ params, searchParams }: Supplemen
               ))}
             </div>
             <button type="submit" className="patient-primary-action w-full justify-center sm:w-auto">
-              <IconPlus size={26} stroke={2} aria-hidden="true" />
+              <Plus size={26} strokeWidth={2} aria-hidden="true" />
               <span>开始补充评估</span>
             </button>
           </form>

@@ -122,12 +122,36 @@ test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘�
   expect(pageOverflow.x).toBeLessThanOrEqual(1);
   expect(pageOverflow.y).toBeLessThanOrEqual(1);
 
+  // 2026-11-11 画板改版：工具列在画板右侧，「画好了」同样完整落在视口内
+  const lockButton = page.getByRole("button", { name: "画好了", exact: true });
+  const lockButtonBox = await lockButton.boundingBox();
+  if (!lockButtonBox) throw new Error("无法读取「画好了」按钮尺寸");
+  expect(lockButtonBox.y + lockButtonBox.height).toBeLessThanOrEqual(viewport.height);
+
   const box = canvasBox;
-  await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 2 - 60);
+  const drawDiagonal = async () => {
+    await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 2 - 60);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 60, { steps: 8 });
+    await page.mouse.up();
+  };
+  const canvasPixels = () => canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL());
+  await drawDiagonal();
+
+  // 两步交卷：「画好了」锁定画板（画布仍在、再画无效、工具收起）→「返回修改」可解锁 →「确认提交」才交卷
+  await lockButton.click();
+  await expect(page.getByRole("button", { name: "确认提交", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "画笔", exact: true })).toHaveCount(0);
+  const lockedPixels = await canvasPixels();
+  await page.mouse.move(box.x + 40, box.y + box.height - 40);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 60, { steps: 8 });
+  await page.mouse.move(box.x + box.width - 40, box.y + 40, { steps: 8 });
   await page.mouse.up();
-  await page.getByRole("button", { name: "提交画作", exact: true }).click();
+  expect(await canvasPixels()).toBe(lockedPixels);
+  await page.getByRole("button", { name: "返回修改", exact: true }).click();
+  await expect(page.getByRole("button", { name: "画笔", exact: true })).toBeVisible();
+  await lockButton.click();
+  await page.getByRole("button", { name: "确认提交", exact: true }).click();
 
   // 第 3 题 minicog_3：回忆 3 个词（3 分）；画钟题落 pending 等医生计分，不再轮末复问。
   // 认知题改版（2026-08-13）：复述题不再展示选项按钮（标准答案不泄露），手动模式下文字作答，
@@ -181,7 +205,9 @@ test("患者自助勾选 minicog+便秘两表：画钟交卷不卡死、便秘�
   expect(snapshot?.tagCodes).not.toContain("STOOL_FORM_TYPE_1");
 
   // ---------- 报告页：标签与「部分计分」标注患者可见（2026-08-08 口径：答完自动跳转，无需点击） ----------
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "综合评估结果" })).toBeVisible();
+  await page.getByRole("button", { name: /本次评估项目/ }).click();
   await expect(page.getByText("认知功能初筛阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("便秘筛查阴性", { exact: true })).toBeVisible();
   await expect(page.getByText("便秘筛查阳性", { exact: true })).toHaveCount(0);

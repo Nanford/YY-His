@@ -30,6 +30,8 @@ export async function normalizeAnswer(input: {
   patientCode: string;
   /** 患者档案姓名（可选）：用于出网前的值级替换脱敏，见 deepseek.ts */
   patientName?: string;
+  /** 连减相对计分用：上一步条目的患者原始回答（只在本地换算参考答案，不出网） */
+  previousAnswerText?: string | null;
 }): Promise<NormalizationOutcome> {
   const freeSpec = FREE_ANSWER_ITEMS.get(input.question.id);
   if (freeSpec) {
@@ -40,6 +42,7 @@ export async function normalizeAnswer(input: {
       utterance: input.utterance,
       patientCode: input.patientCode,
       patientName: input.patientName,
+      previousAnswerText: input.previousAnswerText,
     });
   }
   const llmOutcome = await normalizeByDeepSeek({

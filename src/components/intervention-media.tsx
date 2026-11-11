@@ -8,7 +8,7 @@
  */
 "use client";
 import { useState } from "react";
-import { IconZoomIn, IconX, IconPhotoOff } from "@tabler/icons-react";
+import { ZoomIn, X, ImageOff } from "lucide-react";
 
 /** 同名 WebP 派生图（convert-rules 生成，体积约为 PNG 一半）：<picture> 优先取用，不支持时回退 src 的 PNG */
 const toWebp = (src: string) => src.replace(/\.png(\?.*)?$/, ".webp$1");
@@ -68,7 +68,7 @@ export function InterventionImage({
   if (!available || failed) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-dashed border-[#f0b8b8] bg-[#fff5f5] px-4 py-3 text-sm font-semibold text-[#b4322f]">
-        <IconPhotoOff size={18} aria-hidden="true" />
+        <ImageOff size={18} aria-hidden="true" />
         <span>该项图文教程素材待补齐（不以其他干预图片替代）</span>
       </div>
     );
@@ -95,7 +95,7 @@ export function InterventionImage({
           />
         </picture>
         <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2.5 py-1 text-xs font-bold text-white opacity-90">
-          <IconZoomIn size={14} aria-hidden="true" />
+          <ZoomIn size={14} aria-hidden="true" />
           放大查看
         </span>
       </button>
@@ -121,7 +121,7 @@ export function InterventionImage({
             onClick={() => setZoomed(false)}
             className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-white/95 px-3 py-2 text-sm font-bold text-[#173766] shadow"
           >
-            <IconX size={16} aria-hidden="true" />
+            <X size={16} aria-hidden="true" />
             关闭
           </button>
         </div>

@@ -1,0 +1,1693 @@
+/* 评估工作区的白底、分组底色与交互状态使用独立层次，便于区分当前任务。 */
+.care-shell {
+  --care-paper: #fff;
+  --care-band: #f1f6fd;
+  --care-selected: #e3efff;
+  --care-hover: #d8e8fd;
+  --care-rule: #e1e8f2;
+  --care-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* 2026-11-11 选择页精修（用户参考图）：蓝白单色、淡渐变选中态、柔和投影、细线条图标 */
+  --care-ink: #14213d;
+  --care-ink-soft: #5f6b7d;
+  --care-rule-strong: #c9d8ee;
+  --care-band-fill: linear-gradient(180deg, #f7faff 0%, #f2f6fd 100%);
+  --care-band-edge: #e8eef7;
+  --care-selected-fill: linear-gradient(145deg, #e7effd 0%, #f2f7fe 100%);
+  --care-selected-edge: rgba(22, 104, 227, 0.14);
+  --care-shadow-soft: 0 1px 2px rgba(20, 50, 100, 0.04), 0 4px 14px rgba(20, 50, 100, 0.04);
+  --care-shadow-selected: 0 6px 20px rgba(22, 104, 227, 0.1);
+  --canvas: var(--care-paper);
+  background: var(--care-paper);
+}
+
+/* 统一内容框：顶栏与患者端各页共用同一宽度与左右留白，品牌标与页面标题左缘对齐。
+   问询页（.patient-main-interview）保留自己的上下留白与舞台高度，宽度同样对齐此框（见文末问询页一节）。 */
+.care-shell {
+  --care-frame: 1440px;
+  --care-gutter: clamp(1rem, 4.8vw, 4.25rem);
+}
+
+.care-shell .patient-topbar {
+  width: min(100%, var(--care-frame));
+  padding-inline: var(--care-gutter);
+}
+
+.patient-shell .patient-main:not(.patient-main-interview) {
+  width: min(100%, var(--care-frame));
+  padding: 1rem var(--care-gutter) 2.5rem;
+}
+
+.assessment-page-heading {
+  margin: 0.75rem 0 2.25rem;
+}
+
+.assessment-page-heading h1,
+.care-report-title h1 {
+  color: var(--care-ink);
+  font-size: clamp(1.875rem, 3.25vw, 2.875rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.patient-shell .care-report {
+  display: grid;
+  align-content: start;
+  gap: clamp(1.5rem, 3vw, 2.375rem);
+  padding-block: 1.75rem 2.5rem;
+}
+
+.care-report-title {
+  padding-block-end: 1.125rem;
+  border-block-end: 2px solid var(--primary);
+}
+
+.care-report-identity {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem clamp(0.8rem, 2.5vw, 1.5rem);
+  background: var(--care-band);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.care-report-overview {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 720px) {
+  .care-report-overview {
+    grid-template-columns: minmax(0, 1.75fr) minmax(14rem, 1fr);
+  }
+}
+
+.care-report-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin: 0 0 0.75rem;
+  color: var(--foreground);
+  font-size: 1.125rem;
+  font-weight: 750;
+}
+
+.care-report-section > h2::after {
+  flex: 1;
+  height: 1px;
+  background: var(--care-rule);
+  content: "";
+}
+
+/*
+ * 带右侧说明的分区标题（SectionHead）：与上面的平铺 h2 同字号同间距，
+ * 细分割线夹在标题与说明之间，整页分区标题只有一种外观。
+ */
+.care-report-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.care-report-section-head > h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.125rem;
+  font-weight: 750;
+}
+
+/* 分割线用容器伪元素 + order 排在标题与说明之间；min-width 保证说明换行前线不消失 */
+.care-report-section-head::after {
+  flex: 1;
+  order: 1;
+  min-width: 2rem;
+  height: 1px;
+  background: var(--care-rule);
+  content: "";
+}
+
+.care-report-section-aside {
+  order: 2;
+  max-width: 28rem;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  text-align: end;
+}
+
+.care-report-facts {
+  overflow: hidden;
+  border: 1px solid var(--care-rule);
+  border-radius: 0.75rem;
+}
+
+.care-report-facts > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 24%) minmax(0, 1fr);
+}
+
+.care-report-facts > div + div {
+  border-block-start: 1px solid var(--care-rule);
+}
+
+.care-report-facts dt,
+.care-report-facts dd {
+  padding: 0.65rem 0.8rem;
+}
+
+.care-report-facts dt {
+  background: var(--care-band);
+  font-weight: 650;
+}
+
+.care-report-facts dd {
+  overflow-wrap: anywhere;
+}
+
+.care-report-counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0.9rem 0;
+  border: 1px solid var(--care-rule);
+  border-radius: 0.75rem;
+  background: var(--care-band);
+  text-align: center;
+}
+
+.care-report-counts > div + div {
+  border-inline-start: 1px solid var(--care-rule);
+}
+
+.care-report-counts dt {
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.care-report-counts dd {
+  margin: 0.1em 0 0;
+  color: var(--primary);
+  font-size: 2.375rem;
+  font-weight: 750;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+}
+
+.care-report-counts small {
+  margin-inline-start: 0.3em;
+  color: var(--muted-foreground);
+  font-size: 0.38em;
+  font-weight: 600;
+}
+
+.care-report-counts [data-attention] dd {
+  color: #975503;
+}
+
+.care-report-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.care-report-summary .care-report-counts {
+  flex: 1;
+  align-content: center;
+}
+
+.care-report .report-results-screen thead th {
+  border: 0;
+}
+
+@media (min-width: 640px) {
+  .care-report-results {
+    border: 1px solid var(--care-rule);
+  }
+}
+
+.care-shell .report-doc-identity {
+  justify-content: space-between;
+  gap: 5pt 11pt;
+  padding: 7pt 8pt;
+  background: #f1f6fd;
+}
+
+.report-doc-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+  gap: 12pt;
+  margin-top: 11pt;
+  break-inside: avoid;
+}
+
+.report-doc .report-doc-overview > section {
+  margin-top: 0;
+}
+
+.report-doc .report-doc-section h2,
+.report-doc .care-report-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 7pt;
+  margin: 0 0 5pt;
+  padding: 0;
+  border: 0;
+  color: #0e3269;
+  font-size: 10pt;
+  break-after: avoid;
+}
+
+.report-doc h2::after {
+  flex: 1;
+  height: 1px;
+  background: #d6e3f3;
+  content: "";
+}
+
+.report-doc .care-report-counts {
+  grid-template-columns: 1fr;
+  padding: 0 10pt;
+  border-radius: 4pt;
+}
+
+.report-doc .care-report-counts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4pt;
+  padding-block: 4pt;
+}
+
+.report-doc .care-report-counts > div + div {
+  border: 0;
+  border-block-start: 1px solid var(--care-rule);
+}
+
+.report-doc .care-report-counts dd {
+  font-size: 22pt;
+}
+
+.report-doc .report-doc-results thead th {
+  border: 0;
+}
+
+.report-doc .report-doc-results tbody tr:nth-child(even) {
+  background: #f6f9fd;
+}
+
+.assessment-page-heading p {
+  margin-block-start: 0.55rem;
+  color: var(--care-ink-soft);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+}
+
+.assessment-form,
+.assessment-groups {
+  display: grid;
+  min-width: 0;
+  gap: 1.25rem;
+}
+
+.assessment-form {
+  gap: 2rem;
+}
+
+.assessment-packages {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.assessment-package {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  min-height: 6.5rem;
+  padding: 1.35rem 1.6rem;
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
+  cursor: pointer;
+  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease),
+    box-shadow 180ms var(--care-ease);
+}
+
+.assessment-package:hover {
+  border-color: var(--care-rule-strong);
+}
+
+/* 选中态：淡蓝渐变 + 蓝色柔光投影，替代整块实色填充 */
+.assessment-package:has(input:checked) {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+  box-shadow: var(--care-shadow-selected);
+}
+
+.assessment-package:has(input:focus-visible),
+.assessment-tile:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.assessment-package-title,
+.assessment-tile-title {
+  display: block;
+  color: var(--care-ink);
+  font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.assessment-toolbar,
+.assessment-toolbar-actions,
+.assessment-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assessment-toolbar {
+  justify-content: space-between;
+  column-gap: 1rem;
+}
+
+.assessment-toolbar h2 {
+  color: var(--care-ink);
+  font-size: clamp(1.25rem, 2vw, 1.875rem);
+  font-weight: 750;
+}
+
+.assessment-toolbar-actions {
+  column-gap: 1rem;
+}
+
+.assessment-bulk-button {
+  min-height: 2.75rem;
+  padding-inline: 0.55rem;
+  border-radius: 0.5rem;
+  color: var(--primary);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 160ms var(--care-ease), color 160ms var(--care-ease);
+}
+
+.assessment-bulk-button:hover:enabled {
+  background: var(--care-selected);
+}
+
+.assessment-bulk-button:disabled {
+  color: var(--muted-foreground);
+  cursor: default;
+}
+
+.assessment-bulk-button:focus-visible,
+.assessment-details-toggle:has(:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.assessment-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  color: var(--care-ink-soft);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.assessment-toolbar-actions .assessment-details-toggle {
+  padding-inline-start: 1rem;
+  border-inline-start: 1px solid var(--care-rule);
+}
+
+.assessment-band {
+  container-type: inline-size;
+  min-width: 0;
+  border: 1px solid var(--care-band-edge);
+  border-radius: 1.125rem;
+  background: var(--care-band-fill);
+}
+
+.assessment-band-body {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem;
+}
+
+.assessment-band-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+  min-width: 0;
+}
+
+.assessment-band-label h3 {
+  color: var(--care-ink);
+  font-size: clamp(1.1rem, 1.65vw, 1.5rem);
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+/* 细线条图标：CSS stroke-width 覆盖 lucide 默认的 2，观感更轻 */
+.assessment-band-icon,
+.assessment-tile-icon {
+  width: clamp(1.75rem, 2.6vw, 2.375rem);
+  height: clamp(1.75rem, 2.6vw, 2.375rem);
+  color: var(--primary);
+  flex-shrink: 0;
+  stroke-width: 1.6;
+}
+
+.assessment-band-count {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+}
+
+.assessment-tiles {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.assessment-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 7.25rem;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.8rem;
+  padding: clamp(0.85rem, 1.5vw, 1.35rem);
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  cursor: pointer;
+  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease),
+    box-shadow 180ms var(--care-ease);
+}
+
+.assessment-tile:hover {
+  border-color: var(--care-rule-strong);
+}
+
+/* 选中态：淡蓝渐变 + 顶部高光内描边，呈"磨砂玻璃"质感 */
+.assessment-tile:has(input:checked) {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--care-shadow-soft);
+}
+
+.assessment-tile:has(input:checked):hover {
+  border-color: rgba(22, 104, 227, 0.28);
+}
+
+.assessment-tile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.assessment-tile-copy {
+  min-width: 0;
+}
+
+.assessment-assist {
+  display: inline-block;
+  width: fit-content;
+  margin-block-start: 0.45rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 0.5rem;
+  color: #8a5300;
+  background: #fdecd3;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* 底栏改为不透明白底 + 向上柔影：内容超出一屏时，底栏清楚地"浮"在内容之上，
+   而不是半透明地叠在卡片上看起来像遮挡（1366×768 用户反馈）。 */
+.assessment-submit {
+  position: sticky;
+  z-index: 10;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--care-rule);
+  background: var(--care-paper);
+  box-shadow: 0 -10px 24px -14px rgba(20, 50, 100, 0.18);
+}
+
+/* 主按钮：上亮下深的品牌蓝渐变 + 蓝色投影；按下轻微缩放给即时反馈 */
+.assessment-submit button[type="submit"] {
+  min-height: 3.5rem;
+  padding-inline: 1.75rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, #2a78ee 0%, #1662dc 100%);
+  box-shadow: 0 6px 16px rgba(22, 104, 227, 0.24);
+  font-size: 1.125rem;
+  transition: transform 120ms var(--care-ease), box-shadow 180ms var(--care-ease);
+}
+
+.assessment-submit button[type="submit"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.assessment-submit button[type="submit"]:disabled {
+  box-shadow: none;
+}
+
+@media (min-width: 900px) {
+  .assessment-packages {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 500px) {
+  .assessment-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 750px) {
+  .assessment-band-body {
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .assessment-band-label {
+    align-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+    padding-inline: 0.85rem 0.6rem;
+    border-inline-end: 1px solid var(--care-rule);
+  }
+
+  .assessment-tile {
+    min-height: 8.5rem;
+  }
+}
+
+@container (min-width: 960px) {
+  .assessment-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 矮屏 PC：浏览器扣掉标签栏/地址栏后，1366×768 实际可视高约 650px，
+   1920×1080 约 950px。可视高 ≤1000px 时收紧纵向留白与卡片高度，
+   减少底栏浮在内容上的面积；只改间距与尺寸，不改结构，视觉与 1920 参考图一致。 */
+@media (min-width: 900px) and (max-height: 1000px) {
+  .care-shell .patient-topbar {
+    min-height: 64px;
+    padding-block: 10px;
+  }
+
+  .patient-shell .patient-main.assessment-page {
+    padding-block: 0.5rem 1rem;
+  }
+
+  .patient-shell .assessment-page > a:first-child {
+    margin-block-end: 0.25rem;
+  }
+
+  .assessment-page-heading {
+    margin: 0.25rem 0 1.25rem;
+  }
+
+  .assessment-page-heading h1 {
+    font-size: clamp(1.75rem, 2.6vw, 2.25rem);
+  }
+
+  .assessment-page-heading p {
+    margin-block-start: 0.35rem;
+    font-size: 1.0625rem;
+  }
+
+  .assessment-form {
+    gap: 1.25rem;
+  }
+
+  .assessment-groups {
+    gap: 0.875rem;
+  }
+
+  .assessment-package {
+    min-height: 0;
+    padding: 1rem 1.35rem;
+  }
+
+  .assessment-band-body {
+    padding: 0.75rem;
+  }
+
+  /* 左侧分组标签列决定了整行高度，压缩其行距与图标 */
+  .assessment-band-label {
+    row-gap: 0.15rem;
+  }
+
+  .assessment-band-label .assessment-band-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .assessment-tiles {
+    gap: 0.75rem;
+  }
+
+  .assessment-tile {
+    min-height: 0;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .assessment-band-icon,
+  .assessment-tile-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .assessment-assist {
+    margin-block-start: 0.3rem;
+    padding-block: 0.1rem;
+  }
+
+  .assessment-submit {
+    padding-block: 0.75rem;
+  }
+
+  .assessment-submit button[type="submit"] {
+    min-height: 3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .assessment-band-body {
+    gap: 0.65rem;
+    padding: 0.65rem;
+  }
+  .assessment-tiles {
+    gap: 0.5rem;
+  }
+  .assessment-toolbar-actions {
+    column-gap: 0.55rem;
+  }
+  .assessment-toolbar-actions .assessment-details-toggle {
+    padding-inline-start: 0.6rem;
+  }
+}
+
+/* ===== 通用卡片语言（2026-11-11 全站铺开，与选择页同一套令牌） ===== */
+
+/* 白底细边柔影卡片；可点击的卡片悬停时边线加深、投影转为淡蓝 */
+.care-card {
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
+}
+
+.care-card-link {
+  display: flex;
+  cursor: pointer;
+  transition: border-color 180ms var(--care-ease), box-shadow 180ms var(--care-ease),
+    transform 180ms var(--care-ease);
+}
+
+.care-card-link:hover {
+  border-color: var(--care-rule-strong);
+  box-shadow: var(--care-shadow-selected);
+}
+
+.care-card-link:active {
+  transform: scale(0.99);
+}
+
+.care-card-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* 淡蓝分组带（与选择页分组带同款，但不建立容器查询上下文，供表单等通用场景） */
+.care-band {
+  border: 1px solid var(--care-band-edge);
+  border-radius: 1.125rem;
+  background: var(--care-band-fill);
+}
+
+/* 图标底座：淡蓝渐变方块 + 细线条图标 */
+.care-icon-chip {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid var(--care-selected-edge);
+  border-radius: 0.875rem;
+  background: var(--care-selected-fill);
+  color: var(--primary);
+}
+
+.care-icon-chip svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 1.6;
+}
+
+.care-card-title {
+  display: block;
+  color: var(--care-ink);
+  font-size: clamp(1.1rem, 1.4vw, 1.375rem);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.care-card-text {
+  display: block;
+  margin-block-start: 0.35rem;
+  color: var(--care-ink-soft);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* 可切换的卡片按钮（自选组合页预设套餐）：与量表方块同款未选/选中态 */
+.care-toggle-card {
+  display: flex;
+  min-height: 8rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
+  text-align: start;
+  cursor: pointer;
+  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease);
+}
+
+.care-toggle-card:hover {
+  border-color: var(--care-rule-strong);
+}
+
+.care-toggle-card[aria-pressed="true"] {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--care-shadow-soft);
+}
+
+.care-toggle-card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* 与选择页底栏一致的主按钮（非吸底场景使用） */
+.care-primary-button {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding-inline: 1.75rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, #2a78ee 0%, #1662dc 100%);
+  box-shadow: 0 6px 16px rgba(22, 104, 227, 0.24);
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  transition: transform 120ms var(--care-ease), box-shadow 180ms var(--care-ease);
+}
+
+.care-primary-button:hover {
+  box-shadow: 0 8px 22px rgba(22, 104, 227, 0.32);
+}
+
+.care-primary-button:active {
+  transform: scale(0.98);
+}
+
+.care-primary-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* 页面底部操作行：细分隔线 + 右对齐主按钮，与选择页底栏同节奏 */
+.care-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-block-start: 1.25rem;
+  border-top: 1px solid var(--care-rule);
+}
+
+/* ===== 首页（服务入口） ===== */
+.care-home {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 2.5rem var(--care-gutter);
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgba(22, 104, 227, 0.08), transparent 70%),
+    radial-gradient(40rem 24rem at 0% 110%, rgba(22, 104, 227, 0.06), transparent 70%),
+    #f8fbff;
+}
+
+.care-home-panel {
+  display: grid;
+  width: min(100%, 72rem);
+  overflow: hidden;
+  border: 1px solid var(--care-band-edge);
+  border-radius: 1.75rem;
+  background: var(--care-paper);
+  box-shadow: 0 2px 6px rgba(20, 50, 100, 0.04), 0 24px 60px rgba(20, 50, 100, 0.08);
+}
+
+@media (min-width: 900px) {
+  .care-home-panel {
+    min-height: 30rem;
+    grid-template-columns: 1.1fr 1fr;
+  }
+}
+
+/* 左侧主视觉：淡蓝渐变品牌区（2026-11-11 起展示 logo 与品牌名、中英文全称），替代原深藏青色块 */
+.care-home-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  padding: clamp(2rem, 4vw, 3.5rem);
+  background: linear-gradient(150deg, #eef4fe 0%, #e3edfd 55%, #d9e7fc 100%);
+  color: var(--care-ink);
+}
+
+.care-home-logo {
+  width: clamp(5rem, 6.5vw, 6.5rem);
+  height: auto;
+}
+
+/* 品牌名：大字号 + 略放宽字距，与封面「岐颐智护」的庄重感一致 */
+.care-home-hero h1 {
+  font-size: clamp(2.75rem, 4.4vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+}
+
+.care-home-code {
+  margin-block-start: 0.5rem;
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+}
+
+.care-home-fullname {
+  margin-block-start: 1.25rem;
+  color: var(--care-ink);
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  font-weight: 650;
+}
+
+.care-home-fullname-en {
+  max-width: 32em;
+  margin-block-start: 0.5rem;
+  color: var(--care-ink-soft);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* ===== 品牌（顶栏 / 报告）：logo + 品牌名 + 竖线分隔的英文代号 ===== */
+.care-brand {
+  gap: 0.625rem;
+}
+
+.care-brand-name {
+  color: var(--care-ink);
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.care-brand-code {
+  padding-inline-start: 0.625rem;
+  border-inline-start: 1px solid var(--care-rule-strong);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+/* 预览报告末尾的品牌页脚 */
+.care-report-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding-block: 1.25rem 0.5rem;
+  border-top: 1px solid var(--care-rule);
+  color: var(--care-ink-soft);
+  font-size: 0.875rem;
+}
+
+/* A4 下载版：页眉右侧品牌、每页页脚品牌行（.report-doc* 基础版式在 globals.css） */
+.report-doc-brand {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 5pt;
+}
+
+.report-doc-brand b {
+  color: #0e3269;
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.report-doc-brand small {
+  padding-inline-start: 5pt;
+  border-inline-start: 1px solid #d9dde6;
+  color: #1668e3;
+  font-size: 7pt;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.report-doc-brandline {
+  margin: 0;
+  padding: 5pt 0 9mm;
+  border-top: 1px solid #e3e7ee;
+  color: #8a91a0;
+  font-size: 7.5pt;
+  text-align: center;
+}
+
+@media print {
+  .report-doc-brandline {
+    padding-bottom: 0;
+  }
+}
+
+.care-home-nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: clamp(1.5rem, 3.5vw, 3rem);
+}
+
+.care-home-entry {
+  align-items: center;
+  gap: 1rem;
+  min-height: 6rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.care-home-entry .care-card-title {
+  flex: 1;
+}
+
+.care-home-entry > svg:last-child {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary);
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-home-entry:hover > svg:last-child {
+  transform: translateX(3px);
+}
+
+/* 主入口：选中态同款淡蓝渐变，作为默认推荐路径 */
+.care-home-entry[data-primary] {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+}
+
+/* ===== 患者端各页 ===== */
+.care-entry-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .care-entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .care-entry-grid[data-cols="4"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.care-entry-card {
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 11rem;
+  padding: 1.5rem 1.6rem;
+}
+
+.care-entry-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.care-entry-card-top > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary);
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-entry-card:hover .care-entry-card-top > svg {
+  transform: translateX(3px);
+}
+
+/* 标题区贴卡片底部、说明固定两行高：说明文字折行与否，各卡标题都在同一水平线，上下留白对称 */
+.care-entry-card-foot {
+  margin-block-start: auto;
+}
+
+.care-entry-card .care-card-text {
+  min-height: calc(2 * 1.6em);
+}
+
+/* 只有一个入口时改横向长卡：图标居左、箭头居右，占满整行不留半边空白 */
+.care-entry-card[data-wide] {
+  flex-direction: row;
+  align-items: center;
+  min-height: 8rem;
+  gap: 1.5rem;
+  padding-inline: 2rem;
+}
+
+.care-entry-card[data-wide] .care-entry-card-foot {
+  flex: 1;
+  margin-block-start: 0;
+}
+
+.care-entry-card[data-wide] .care-card-text {
+  min-height: 0;
+}
+
+.care-entry-card[data-wide] > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--primary);
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-entry-card[data-wide]:hover > svg {
+  transform: translateX(3px);
+}
+
+.care-entry-card[data-wide] .care-icon-chip {
+  width: 3.75rem;
+  height: 3.75rem;
+  border-radius: 1rem;
+}
+
+.care-entry-card[data-wide] .care-icon-chip svg {
+  width: 1.875rem;
+  height: 1.875rem;
+}
+
+/* 分栏面板标题：左右两栏同高同字号，顶边对齐 */
+.care-panel-title {
+  color: var(--care-ink);
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+/* 六步流程（2026-11-11 第三版，参考用户给的工作台样稿但去掉多余文字）：
+   "采集 / 决策"两阶段各一条淡蓝分组带、各三张等宽等高步骤卡，中间以箭头相连，左右对称；
+   下方蓝色启动区作为全页唯一视觉重点。 */
+.care-flow {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.care-flow-phases {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .care-flow-phases {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+.care-flow-phase {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.care-flow-phase-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--care-ink);
+  font-size: 1.0625rem;
+  font-weight: 750;
+}
+
+.care-flow-phase-label::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--primary);
+  content: "";
+}
+
+.care-flow-phase-label span {
+  color: var(--care-ink-soft);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.care-flow-steps {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.care-flow-step {
+  position: relative;
+  display: grid;
+  /* 高屏适度放大，避免 1920×1080 下卡片相对页面偏小 */
+  min-height: clamp(11rem, 19vh, 13rem);
+  align-content: center;
+  justify-items: center;
+  gap: 0.9rem;
+  padding: 2.25rem 0.75rem 1.5rem;
+  text-align: center;
+}
+
+/* 序号徽标固定在卡片左上角，六张卡位置一致 */
+.care-flow-step-index {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  color: var(--primary);
+  font-size: 0.875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.care-flow-step .care-icon-chip {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+}
+
+.care-flow-step .care-icon-chip svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.care-flow-step .care-card-title {
+  font-size: clamp(1rem, 1.2vw, 1.2rem);
+}
+
+.care-flow-bridge {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .care-flow-bridge {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    /* 居中项的上外边距只下移一半：补上"阶段标签行高 + 间距"，箭头正对卡片中线而非分组带中线 */
+    margin-block-start: calc(1.0625rem * 1.5 + 1rem);
+    place-items: center;
+    border: 1px solid var(--care-rule);
+    border-radius: 999px;
+    background: var(--care-paper);
+    box-shadow: var(--care-shadow-soft);
+    color: var(--primary);
+  }
+
+  .care-flow-bridge svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+/* 启动区：品牌蓝渐变，标题居左、白色主按钮居右 */
+.care-flow-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding: clamp(1.5rem, 2.6vw, 2.25rem) clamp(1.5rem, 3vw, 2.75rem);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(28rem 14rem at 100% 0%, rgba(255, 255, 255, 0.22), transparent 70%),
+    linear-gradient(120deg, #1662dc 0%, #2a78ee 55%, #5a9bf5 100%);
+  box-shadow: 0 12px 30px rgba(22, 104, 227, 0.22);
+  color: #fff;
+}
+
+.care-flow-start h1 {
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.care-flow-start-button {
+  display: inline-flex;
+  min-width: 12rem;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding-inline: 2rem;
+  border-radius: 0.875rem;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(10, 40, 100, 0.18);
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: 800;
+  transition: transform 120ms var(--care-ease), box-shadow 180ms var(--care-ease);
+}
+
+.care-flow-start-button svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-flow-start-button:hover {
+  box-shadow: 0 10px 24px rgba(10, 40, 100, 0.24);
+}
+
+.care-flow-start-button:hover svg {
+  transform: translateX(3px);
+}
+
+.care-flow-start-button:active {
+  transform: scale(0.98);
+}
+
+.care-flow-start-button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.doctor-shell.care-shell .doctor-sidebar {
+  border-inline-end: 1px solid var(--care-rule);
+  background: var(--care-band);
+}
+
+.doctor-shell.care-shell .doctor-brand {
+  border-color: var(--care-rule);
+}
+
+.doctor-shell.care-shell .doctor-brand-title,
+.doctor-shell.care-shell .doctor-nav-link {
+  color: var(--foreground);
+}
+
+/* 侧栏品牌名与患者端顶栏同一字距 */
+.doctor-shell.care-shell .doctor-brand-title {
+  font-size: 17px;
+  letter-spacing: 0.05em;
+}
+
+.doctor-shell.care-shell .doctor-brand-subtitle {
+  color: var(--muted-foreground);
+}
+
+.doctor-shell.care-shell .doctor-nav-link:hover,
+.doctor-shell.care-shell .doctor-nav-link-active {
+  color: var(--foreground);
+  background: var(--care-selected);
+  box-shadow: none;
+}
+
+.doctor-shell.care-shell .doctor-nav-link-active svg {
+  color: var(--primary);
+}
+
+.care-shell .doctor-metrics {
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--care-band);
+}
+
+.care-shell .doctor-metrics > * + * {
+  border-inline-start: 1px solid var(--care-rule);
+}
+
+/* 医生端（2026-11-11 全站铺开第 4 批，只改视觉）：
+   ①顶栏内容与页面内容同一框：宽屏下顶栏左右内边距跟随 .app-page（最大 1280px、内边距 32px），
+     系统全称左缘对齐页面标题，「身份信息仅保存在本机」右缘对齐内容右缘；此前顶栏贴满整列、内容居中，
+     1920 宽时两者左右各差约 200px；
+   ②顶栏高度与侧栏品牌区同为 74px，两条分隔线落在同一水平线上（此前 64px 与 74px 错开 10px）；
+   ③各面板卡头统一浅蓝底（此前白底与三种浅蓝混用），卡头顶角跟随面板圆角，面板不设 overflow 时也不溢出；
+   ④表格里的状态徽标不换行（此前评估记录的状态列被挤成每行一个字）。
+   960px 以下沿用 globals.css 的窄屏顶栏。 */
+@media (min-width: 961px) {
+  .doctor-shell.care-shell .doctor-topbar {
+    min-height: 74px;
+    padding-inline: max(32px, calc((100% - 1280px) / 2 + 32px));
+  }
+}
+
+.doctor-shell.care-shell .ui-panel-heading {
+  background: var(--care-band);
+}
+
+.doctor-shell.care-shell .ui-panel-heading:first-child {
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
+}
+
+.doctor-shell.care-shell .ui-table .ui-badge {
+  white-space: nowrap;
+}
+
+.care-shell .patient-interview-aside {
+  background: var(--care-band);
+}
+
+/* 问询页（2026-11-11 视觉精修第 2 批，只改视觉不改交互）：
+   ①外框与顶栏同一内容框：面板左缘对齐品牌标、右缘对齐「返回服务入口」；
+   ②面板上下留白相等：舞台高度 = 视口 − 顶栏（含底边线）− 上下留白 − 面板上下边框（2px），
+     替代 globals.css 里按 76px 顶栏写死的 124px（矮屏顶栏 64px 时下方留白会比上方大一截）；
+   ③题干与作答区为一组，在题号栏下方垂直居中、共用同一内容列（.care-interview-column），
+     作答区不再是贴底的灰色带——此前短选项题贴顶、多选项题贴底、自由题上下分离，三种构图并存；
+   ④选项卡等高、奇数个时末项居中、长文案不再把箭头挤小。
+   1024px 以下沿用 globals.css 的自然堆叠布局，不覆盖舞台高度。 */
+.care-shell {
+  --care-topbar-h: 77px; /* 顶栏 min-height 76px + 底边线 1px */
+  --care-interview-gap: 1rem;
+}
+
+@media (min-width: 900px) and (max-height: 1000px) {
+  /* 与上方矮屏顶栏（64px）同一断点 */
+  .care-shell {
+    --care-topbar-h: 65px;
+    --care-interview-gap: 0.75rem;
+  }
+}
+
+.patient-shell .patient-main.patient-main-interview {
+  width: min(100%, var(--care-frame));
+  padding: var(--care-interview-gap) var(--care-gutter);
+}
+
+@media (min-width: 1025px) {
+  .care-shell .patient-interview-stage {
+    height: calc(100dvh - var(--care-topbar-h) - 2 * var(--care-interview-gap) - 2px);
+  }
+}
+
+/* 题干与作答区共用的内容列：56rem 让两列选项每格约 27rem，长选项少折行 */
+.care-shell .care-interview-column {
+  max-width: 56rem;
+}
+
+/* 上下 auto 外边距把「题干 + 作答区」整组居中；内容超高时外边距归零、两段按比例收缩并各自内部滚动 */
+.care-shell .patient-interview-log {
+  flex: 0 1 auto;
+  margin-block-start: auto;
+  padding-block: 1.5rem 1rem;
+}
+
+.care-shell .patient-interview-answer {
+  flex: 0 1 auto;
+  margin-block-end: auto;
+  max-height: none;
+  border-top: 0;
+  padding-block: 0.5rem 1.5rem;
+  background: transparent;
+}
+
+/* 画图题：globals.css 让作答区吃满剩余高度（flex: 1 1 auto），画板到上限后下方留空、整组偏上。
+   改为只收缩不伸展：空间够时画板取上限尺寸、整组居中；空间不够时画板沿原 flex 链收缩（逻辑不变） */
+.care-shell .patient-interview-main:has(.drawing-canvas) .patient-interview-answer {
+  flex: 0 1 auto;
+}
+
+/* 画图题内容列放宽（2026-11-11 画板放大）：参照图、画板、工具列横排，56rem 会把临摹题画板压在 430px 左右；
+   题干列同步放宽，题干左缘仍与作答区（临摹题即参照图）左缘对齐 */
+.care-shell .patient-interview-main:has(.drawing-panel) .care-interview-column {
+  max-width: 76rem;
+}
+
+/* 作答列做成 inline-size 容器：舞台高度的 flex 基准要按列宽推算（见下方 .drawing-stage） */
+.care-shell .care-interview-column:has(> .drawing-panel) {
+  container-type: inline-size;
+}
+
+/* 画图舞台（2026-11-11 画图题通用化，同日画板放大）：参照图（临摹题才有）、画板、工具列横排居中。
+   舞台是 size 容器：flex 基准取「横向能给画板的最大边长」（空间够时画板取满），空间不够时沿原 flex 收缩链变矮，
+   子块边长用 cqh/cqw 跟着缩——不靠 vh 算术，题干多长都不出滚动条。
+   画板边长 = min(上限, 舞台高, 横向余量)：横向余量先扣工具列与间距；临摹题参照图边长是画板的 2/3，
+   一行宽 = 5/3 画板 + 工具列 + 两个间距，倒推画板边长不超过 (舞台宽 − 工具列 − 两个间距) × 3/5。
+   flex 基准里的 cqw 取自外层作答列（inline-size 容器，宽度与舞台相同）：画板被宽度卡住时舞台不再多占高度，
+   否则大屏临摹题会在提示与画板之间空出一大段 */
+.care-shell .drawing-stage {
+  --drawing-max-side: 640px;
+  --drawing-stage-gap: 1.5rem;
+  --drawing-tools-width: 10.5rem;
+  container-type: size;
+  flex: 0 1 min(var(--drawing-max-side), calc(100cqw - var(--drawing-tools-width) - var(--drawing-stage-gap)));
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--drawing-stage-gap);
+}
+
+.care-shell .drawing-stage > * {
+  --drawing-side: min(
+    var(--drawing-max-side),
+    100cqh,
+    calc(100cqw - var(--drawing-tools-width) - var(--drawing-stage-gap))
+  );
+  flex: 0 0 auto;
+}
+
+.care-shell .drawing-stage:has(> .drawing-reference) {
+  flex-basis: min(
+    var(--drawing-max-side),
+    calc((100cqw - var(--drawing-tools-width) - 2 * var(--drawing-stage-gap)) * 3 / 5)
+  );
+}
+
+.care-shell .drawing-stage:has(> .drawing-reference) > * {
+  --drawing-side: min(
+    var(--drawing-max-side),
+    100cqh,
+    calc((100cqw - var(--drawing-tools-width) - 2 * var(--drawing-stage-gap)) * 3 / 5)
+  );
+}
+
+.care-shell .drawing-board {
+  width: var(--drawing-side);
+  height: var(--drawing-side);
+}
+
+/* 画布铺满画板：覆盖 globals.css 的 480px 上限与 flex 伸缩，尺寸统一由 .drawing-board 决定 */
+.care-shell .drawing-board > .drawing-canvas {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+}
+
+/* 光标：画笔是十字准星；橡皮是 28px 圆圈，与擦除范围等大（answer-input.tsx 的 ERASER_SCREEN_DIAMETER） */
+.care-shell .drawing-canvas[data-tool="pen"] {
+  cursor: crosshair;
+}
+
+.care-shell .drawing-canvas[data-tool="eraser"] {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='13' fill='%23ffffff' fill-opacity='0.7' stroke='%231e3a5f' stroke-width='1.5'/%3E%3C/svg%3E")
+      14 14,
+    cell;
+}
+
+/* 锁定后画作仍在原处可看，边框由品牌蓝转灰、去掉投影，表明这块板已经不能再画；
+   锁定标记放在右侧工具列（.drawing-lock-status），不压在画作上挡住笔迹 */
+.care-shell .drawing-board[data-locked] > .drawing-canvas {
+  border-color: var(--line-strong);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* 参照图：边长为画板的 2/3，白底细边（画板是品牌蓝粗边，一眼区分"照着看"和"在这画"），线稿等比居中 */
+.care-shell .drawing-reference {
+  width: calc(var(--drawing-side) * 2 / 3);
+  height: calc(var(--drawing-side) * 2 / 3);
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  border: 2px solid var(--care-rule);
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.care-shell .drawing-reference img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 工具列与画板等高：工具在上、提交在下，两组分别对齐画板上下边 */
+.care-shell .drawing-tools {
+  width: var(--drawing-tools-width);
+  height: var(--drawing-side);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.care-shell .drawing-tools-group,
+.care-shell .drawing-tools-commit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.care-shell .drawing-tools-commit {
+  margin-top: auto;
+}
+
+.care-shell .drawing-tools .ui-button {
+  width: 100%;
+}
+
+/* 画笔/橡皮二选一：选中项品牌浅底 + 加粗品牌描边，与实心蓝的「画好了」区分开，不会被看成提交按钮 */
+.care-shell .drawing-tool[aria-pressed="true"] {
+  color: var(--brand-strong);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+/* 锁定状态标记：占工具区顶部、与按钮同高，告诉患者画作已经定下来了 */
+.care-shell .drawing-lock-status {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 14px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* 看图识物（MMSE 命名题，2026-11-11）：白底细边方框居中，图片边长随视口高度收放，
+   1366×768（可视约 650px）下与题干、语音按钮、作答提示同屏不出滚动条 */
+.care-shell .care-stimulus {
+  width: fit-content;
+  /* 只设水平居中：纵向间距交给父级 space-y，写 margin 简写会盖掉它，图片贴住下方提示条 */
+  margin-inline: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.care-shell .care-stimulus img {
+  display: block;
+  width: clamp(140px, 24vh, 240px);
+  height: clamp(140px, 24vh, 240px);
+}
+
+.care-shell .care-option-grid {
+  --care-option-gap: 0.875rem;
+  gap: var(--care-option-gap);
+  /* 1fr 行高 = 最高一行的内容高度，所有选项卡等高 */
+  grid-auto-rows: 1fr;
+}
+
+.care-shell .care-option-grid[data-compact] {
+  --care-option-gap: 0.625rem;
+}
+
+@media (min-width: 640px) {
+  /* 两列排布时选项为奇数个（如 3、5 个）：末项单独一行居中、宽度与其他卡相同，保持左右对称 */
+  .care-shell .care-option-grid > :last-child:nth-child(odd):not(:first-child) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - var(--care-option-gap)) / 2);
+  }
+}
+
+.care-shell .patient-choice-single {
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--care-rule);
+  border-radius: 0.875rem;
+  background: var(--care-band);
+  /* globals.css 为 clamp(22px, 2.4vw, 32px)：1366 宽下即 32px，两列长选项折成三四行；收一档仍大于正文 */
+  font-size: clamp(1.375rem, 1.75vw, 1.75rem);
+  line-height: 1.35;
+  text-align: start;
+  transition: background-color 180ms var(--care-ease), border-color 180ms var(--care-ease);
+}
+
+/* 语音为主时选项作兜底，略矮略小（原 Tailwind 类被 globals.css 非层叠样式压住、实际未生效） */
+.care-shell .care-option-grid[data-compact] .patient-choice-single {
+  min-height: 64px;
+  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
+}
+
+/* 长文案时箭头保持原尺寸，不被 flex 压缩成小点 */
+.care-shell .patient-choice-single svg {
+  flex-shrink: 0;
+}
+
+.care-shell .patient-choice-single:hover,
+.care-shell .patient-choice-single:active {
+  border-color: var(--primary);
+  background: var(--care-selected);
+  box-shadow: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assessment-package,
+  .assessment-tile,
+  .assessment-bulk-button,
+  .care-shell .patient-choice-single {
+    transition: none;
+  }
+}

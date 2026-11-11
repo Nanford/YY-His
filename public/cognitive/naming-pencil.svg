@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" stroke="#1e3a5f" stroke-linecap="round" stroke-linejoin="round">
+  <!-- MMSE 看图识物 mmse_23：铅笔（自绘线稿，不含文字）；先横向画好再整体旋转 -35° -->
+  <g transform="rotate(-35 120 120)">
+    <path d="M70 100 14 120l56 20Z" fill="#ffffff" stroke-width="5"/>
+    <path d="M14 120l16-5.7v11.4Z" fill="#1e3a5f" stroke-width="3"/>
+    <path d="M70 100q-10 6.67 0 13.33q-10 6.67 0 13.33q-10 6.67 0 13.34" fill="#d3e3f8" stroke-width="3.5"/>
+    <path d="M70 100H176V140H70" fill="#d3e3f8" stroke-width="5"/>
+    <line x1="76" y1="113.3" x2="174" y2="113.3" stroke-width="2.5" opacity="0.5"/>
+    <line x1="76" y1="126.7" x2="174" y2="126.7" stroke-width="2.5" opacity="0.5"/>
+    <path d="M198 100h18a10 10 0 0 1 10 10v20a10 10 0 0 1-10 10h-18Z" fill="#e6effb" stroke-width="5"/>
+    <rect x="176" y="97" width="22" height="46" rx="2" fill="#ffffff" stroke-width="5"/>
+    <line x1="183" y1="99" x2="183" y2="141" stroke-width="2.5"/>
+    <line x1="191" y1="99" x2="191" y2="141" stroke-width="2.5"/>
+  </g>
+</svg>

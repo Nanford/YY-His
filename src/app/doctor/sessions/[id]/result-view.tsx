@@ -3,7 +3,7 @@
  * OUTPUT: 评估标签摘要与可展开的逐题确定性评分明细
  * POS:    评估结果下钻组件（M11.2 对齐患者报告：按量表分组 + 异常标签置顶）
  */
-import { IconChevronDown, IconClipboardData } from "@tabler/icons-react";
+import { ChevronDown, ClipboardList } from "lucide-react";
 import { isAttentionTag, type AssessmentTag, type TagLevel } from "@/lib/assessment/report-types";
 import { scaleById } from "@/lib/rules";
 
@@ -44,20 +44,22 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
   groups.sort((a, b) => Number(b.hasAbnormal) - Number(a.hasAbnormal));
 
   return (
-    <section className="ui-panel overflow-hidden">
+    <section id="assessment-results" className="ui-panel scroll-mt-20 overflow-hidden">
       {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），保留浅蓝底作模块识别 */}
       <div className="ui-panel-heading flex-wrap bg-[#f8fbff]">
         <div>
-          <p className="page-eyebrow">评估结果</p>
           <h2 className="ui-panel-title mt-1 inline-flex items-center gap-2">
-            <IconClipboardData size={21} className="text-blue-600" aria-hidden="true" />
+            <ClipboardList size={21} className="text-blue-600" aria-hidden="true" />
             评估标签
           </h2>
           <p className="mt-2 text-sm leading-6 text-[#6b82a4]">
             按量表分组展示，可展开查看每道题的计分依据。
           </p>
         </div>
-        <span className="ui-badge shrink-0">{tags.length} 个标签</span>
+        <div className="flex flex-wrap gap-2">
+          <span className="ui-badge">{tags.length} 个标签</span>
+          {tags.some(isAttentionTag) && <span className="ui-badge ui-badge-warning">{tags.filter(isAttentionTag).length} 个需关注</span>}
+        </div>
       </div>
 
       <div className="ui-panel-body">
@@ -69,14 +71,14 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
         ) : (
           <div className="space-y-6">
             {groups.map((group) => (
-              <div key={group.scaleId}>
-                <p className="mb-2 text-xs font-extrabold tracking-wide text-[#62779a]">
+              <div key={group.scaleId} className="overflow-hidden rounded-xl border border-border">
+                <h3 className="flex flex-wrap items-center gap-2 border-b border-border bg-accent/45 px-4 py-2.5 text-sm font-bold text-foreground">
                   {group.scaleName}
                   {group.hasAbnormal && (
-                    <span className="ml-2 ui-badge ui-badge-warning">含需关注项</span>
+                    <span className="ui-badge ui-badge-warning">含需关注项</span>
                   )}
-                </p>
-                <div className="grid gap-3 lg:grid-cols-2">
+                </h3>
+                <div className="grid gap-2 p-3 md:grid-cols-2">
                   {group.tags.map((tag) => {
                     const abnormal = isAttentionTag(tag);
                     return (
@@ -93,7 +95,7 @@ export function ResultView({ tags, answerLabels = {} }: ResultViewProps) {
                           {abnormal && <span className="ui-badge ui-badge-warning">关注</span>}
                           <span className="ml-auto inline-flex items-center gap-2 text-right text-xs leading-5 text-[#6b82a4]">
                             {tag.score} 分
-                            <IconChevronDown
+                            <ChevronDown
                               size={16}
                               className="text-blue-600 transition group-open:rotate-180"
                               aria-hidden="true"

@@ -16,7 +16,7 @@ import {
   polarOptionsOf,
   type FreeAnswerSpec,
 } from "./cognitive-flow";
-import { judgeByRules, matchWordsByRules } from "./judge-rules";
+import { adjacentDaysOf, judgeByRules, matchWordsByRules, serialReferenceOf } from "./judge-rules";
 import type { NormalizationOutcome } from "./normalize-rules";
 
 const WEEKDAY_CN = ["日", "一", "二", "三", "四", "五", "六"];
@@ -33,11 +33,11 @@ function dateReference(part: "year" | "season" | "month" | "day" | "weekday", no
     }
     case "month":
       return `${now.getMonth() + 1}月`;
+    // 国标注 2：日期和星期差一天可算正确；把三天逐一列给模型，免得它自己算错跨月/跨周
     case "day":
-      // MMSE 惯例：日期允许 ±1 天
-      return `${now.getDate()}号（允许前后差一天也算正确）`;
+      return `${now.getDate()}号（前后差一天也算正确，即${adjacentDaysOf(now).map((day) => `${day.getDate()}号`).join("、")}均可）`;
     case "weekday":
-      return `星期${WEEKDAY_CN[now.getDay()]}`;
+      return `星期${WEEKDAY_CN[now.getDay()]}（前后差一天也算正确，即${adjacentDaysOf(now).map((day) => `星期${WEEKDAY_CN[day.getDay()]}`).join("、")}均可）`;
   }
 }
 
@@ -48,10 +48,16 @@ function criteriaOf(spec: FreeAnswerSpec, now: Date): string {
       return `正确答案是：${dateReference(spec.part, now)}。患者答出该时间（中文/阿拉伯数字均可）即正确。`;
     case "place":
       return `正确答案是：「${MMSE_LOCATION[spec.part]}」。患者答出该地点（允许省略「省/市/楼」等后缀、允许口语说法）即正确。`;
-    case "exactNumber":
-      return `正确答案是：${spec.expected}。患者说出的数字等于该值（含中文数字读法）即正确，其他数字或不作答即错误。`;
+    case "serialSubtraction":
+      // expected 已由 serialReferenceOf 换成本步参考答案（可能是上一步回答 − 7）
+      return `正确答案是：${spec.expected}。患者最终说出的数字等于该值（含中文数字读法；先念算式再说结果、或说错后改口的，以最后说的数为准）即正确，其他数字或不作答即错误。`;
     case "verbatim":
       return `目标句是：「${spec.target}」。患者完整准确复述即正确（允许极轻微语气差异；漏词、错词、换词均算错误）。`;
+    case "naming": {
+      // 看图识物：同义说法算对；说成别的东西或只说笼统类别（如把铅笔说成"笔"）算错
+      const synonyms = spec.synonyms.length > 0 ? `（说成${spec.synonyms.map((name) => `「${name}」`).join("")}也算正确）` : "";
+      return `屏幕上展示的是一张${spec.target}的图片，患者需说出它的名称。正确答案是：「${spec.target}」${synonyms}。说成其他物品、只说笼统的类别、或表示认不出来，均算错误。`;
+    }
     case "wordCount":
       return ""; // wordCount 不走 criteria 通道
   }
@@ -64,6 +70,25 @@ export interface JudgeInput {
   utterance: string;
   patientCode: string;
   patientName?: string;
+  /** 连减相对计分用：上一步条目的患者原始回答（其余题不传） */
+  previousAnswerText?: string | null;
+}
+
+/**
+ * 连减题按上一步回答换算本步参考答案（国标注 4），并给出留痕说明；
+ * 参考答案与 01 表固定答案相同或非连减题时原样返回、说明为空。
+ */
+function resolveSerialReference(
+  spec: FreeAnswerSpec,
+  previousAnswerText: string | null | undefined
+): { spec: FreeAnswerSpec; note: string } {
+  if (spec.kind !== "serialSubtraction") return { spec, note: "" };
+  const reference = serialReferenceOf(spec, previousAnswerText);
+  if (reference === spec.expected) return { spec, note: "" };
+  return {
+    spec: { ...spec, expected: reference },
+    note: `连减相对计分（WS/T 484 注 4）：上一步回答 ${reference + spec.step}，本步应答 ${reference}；`,
+  };
 }
 
 function matchedOutcome(
@@ -83,7 +108,8 @@ function matchedOutcome(
  * wordCount → 命中词数映射"回忆N个词"选项；unclear → 走追问流程。
  */
 export async function judgeFreeAnswer(input: JudgeInput): Promise<NormalizationOutcome> {
-  const { question, options, spec, utterance, patientCode, patientName } = input;
+  const { question, options, utterance, patientCode, patientName } = input;
+  const { spec, note } = resolveSerialReference(input.spec, input.previousAnswerText);
 
   if (spec.kind === "wordCount") {
     const verdict = await judgeWordRecall(spec.words, utterance, patientCode, patientName);
@@ -113,13 +139,13 @@ export async function judgeFreeAnswer(input: JudgeInput): Promise<NormalizationO
   if (llm) {
     if (llm.verdict === "unclear") return { status: "unclear", method: "llm", reason: llm.reason };
     const label = llm.verdict === "correct" ? polar.correct : polar.incorrect;
-    return matchedOutcome(label, options, "llm", llm.reason, llm.confidence);
+    return matchedOutcome(label, options, "llm", `${note}${llm.reason}`, llm.confidence);
   }
   // 规则兜底（无密钥/网络失败）：拿不准一律 unclear 走追问，绝不编造
   const rule = judgeByRules(spec, utterance);
   if (rule === "unclear") return { status: "unclear", method: "rules", reason: "规则兜底无法判定，转追问" };
   const label = rule === "correct" ? polar.correct : polar.incorrect;
-  return matchedOutcome(label, options, "rules", "规则兜底判定");
+  return matchedOutcome(label, options, "rules", `${note}规则兜底判定`);
 }
 
 export interface WordRecallOutcome {

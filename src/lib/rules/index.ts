@@ -17,7 +17,12 @@ import {
   type InterventionV2,
   type ScoringCategoryV2,
 } from "./v2";
-import { isFreeResponseItem } from "@/lib/dialogue/cognitive-flow";
+import {
+  drawingTaskOf,
+  isFreeResponseItem,
+  isPatientScreenItem,
+  screenImageOf,
+} from "@/lib/dialogue/cognitive-flow";
 
 // ---------- 旧形状类型（对话/代填/页面层的消费契约） ----------
 
@@ -83,10 +88,14 @@ export interface ScaleQuestion {
   /** number 题的合法分值范围（来自 options 分值） */
   numberMin?: number;
   numberMax?: number;
-  /** imageChoice 参照图（public 路径） */
+  /** 题目配图（public 路径）：imageChoice 的参照图（Bristol）、看图识物题的物品图、临摹题的参照图 */
   imageSrc?: string;
+  /** 画图题画板上方的作答提示（cognitive-flow.PATIENT_DRAWING_TASKS） */
+  drawingHint?: string;
   /** 需医生/系统侧处理的计分条目（系统读取/逻辑计算/操作测试/医护观察等）：
-   *  旧字段保留给医生端/历史调用方；患者端是否进入时间线以采集语义字段为准。 */
+   *  旧字段保留给医生端/历史调用方；患者端是否进入时间线以采集语义字段为准。
+   *  不标的例外：绘图操作（M9.6 患者可画）、看图识物题（2026-11-11，MMSE 命名 mmse_22/23，屏幕出图）、
+   *  五边形临摹（2026-11-11，mmse_30，参照图与画板并排）均已改为患者端出题。 */
   observerAssisted?: boolean;
   /** V2 条目类型原文（系统读取/逻辑计算/正式问题…），代填界面展示用 */
   entryType?: string;
@@ -203,7 +212,8 @@ const QUESTION_TEXT_OVERRIDES: ReadonlyMap<string, string> = new Map([
 
 /** 从条目形态推断作答题型（M9.6；医学选项仍以 scales-v2 options 为准） */
 function detectAnswerType(item: ScaleItemV2): AnswerType {
-  if (item.entryType === "绘图操作") return "drawing";
+  // 绘图操作（画钟）与已搬到患者端的画图题（五边形临摹，01 表为「操作指令」）
+  if (item.entryType === "绘图操作" || drawingTaskOf(item.id)) return "drawing";
   // Bristol 大便分型：便秘症状表 Q9
   if (item.id === "constipation_symptom_9") return "imageChoice";
   if (item.optionsRaw.includes("可多选")) return "multiChoice";
@@ -273,7 +283,10 @@ function semanticsOf(scaleId: string, item: ScaleItemV2, isScored: boolean): Col
     };
   }
 
-  switch (item.entryType) {
+  // 患者端画图题（PATIENT_DRAWING_TASKS，如 mmse_30 五边形临摹）01 表条目类型虽是「操作指令」，
+  // 2026-11-11 起改为患者端画板作答，按绘图题语义采集（视觉模型判定，拿不准时落医生计分）
+  const entryType = drawingTaskOf(item.id) ? "绘图操作" : item.entryType;
+  switch (entryType) {
     case "正式问题":
       return {
         collectionRole: clinicianJudgment ? "patient_and_clinician" : "patient",
@@ -300,13 +313,23 @@ function semanticsOf(scaleId: string, item: ScaleItemV2, isScored: boolean): Col
         judgmentMode: "clinician",
       };
     case "图片识别":
-      return {
-        collectionRole: "patient_and_clinician",
-        interactionMode: "picture",
-        inTimeline: true,
-        patientResponseMode: "free_text",
-        judgmentMode: "clinician",
-      };
+      // 屏幕出图的看图识物题（SCREEN_STIMULI，2026-11-11）按自由回答题判定后映射回 01 表选项；
+      // 其余图片题需实物或配图，仍由医护判定
+      return isPatientScreenItem(item.id)
+        ? {
+            collectionRole: "patient",
+            interactionMode: "picture",
+            inTimeline: true,
+            patientResponseMode: "free_text",
+            judgmentMode,
+          }
+        : {
+            collectionRole: "patient_and_clinician",
+            interactionMode: "picture",
+            inTimeline: true,
+            patientResponseMode: "free_text",
+            judgmentMode: "clinician",
+          };
     case "操作指令":
       return {
         collectionRole: "patient_and_clinician",
@@ -387,9 +410,11 @@ function toScaleQuestion(item: ScaleItemV2, scaleId: string, isScored: boolean):
   const answerType = detectAnswerType(item);
   const scored = (item.options ?? []).map((o) => o.score).filter((s): s is number => s !== null);
   const semantics = semanticsOf(scaleId, item, isScored);
-  // 兼容旧的医生端/补充评估派生口径：绘图操作虽需医护判定，但不等同于“需医生协助才能开始采集”。
+  // 兼容旧的医生端/补充评估派生口径：绘图操作虽需医护判定，但不等同于“需医生协助才能开始采集”；
+  // 看图识物与患者端画图题（cognitive-flow 的 SCREEN_STIMULI / PATIENT_DRAWING_TASKS）同样已改为患者端出题。
   // 患者端不再读取该历史字段，改用下方显式采集语义决定是否入时间线及如何交互。
-  const observerAssisted = item.entryType !== "正式问题" && item.entryType !== "绘图操作";
+  const observerAssisted =
+    item.entryType !== "正式问题" && item.entryType !== "绘图操作" && !isPatientScreenItem(item.id);
   const text = stripBranchAnnotations(QUESTION_TEXT_OVERRIDES.get(item.id) ?? item.text);
   return {
     id: item.id,
@@ -402,15 +427,17 @@ function toScaleQuestion(item: ScaleItemV2, scaleId: string, isScored: boolean):
     options,
     numberMin: scored.length > 0 ? Math.min(...scored) : undefined,
     numberMax: scored.length > 0 ? Math.max(...scored) : undefined,
-    imageSrc: answerType === "imageChoice" ? "/interventions/bristol-stool.webp" : undefined,
+    imageSrc: answerType === "imageChoice" ? "/interventions/bristol-stool.webp" : screenImageOf(item.id) ?? undefined,
+    drawingHint: drawingTaskOf(item.id)?.hint,
     observerAssisted,
     entryType: item.entryType,
     ...semantics,
-    // 戴镜和助听器提示已移入旁白。MMSE 图片题需要实物或配图，由医护当面采集。
+    // 戴镜和助听器提示已移入旁白。MMSE 图片题需要实物或配图，由医护当面采集；
+    // 已在屏幕出图的看图识物题（mmse_22/23，2026-11-11）例外，进入患者时间线。
     inTimeline: semantics.inTimeline &&
       item.id !== "vision_1" &&
       item.id !== "hearing_1" &&
-      !(scaleId === "mmse" && semantics.interactionMode === "picture"),
+      !(scaleId === "mmse" && semantics.interactionMode === "picture" && !isPatientScreenItem(item.id)),
     isScored,
     responseMode: isFreeResponseItem(item.id) ? "free" : undefined,
   };

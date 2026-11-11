@@ -44,6 +44,15 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await expect(page).toHaveURL(/\/patient\/flow$/);
   await page.getByRole("link", { name: "开始", exact: true }).click();
   await expect(page).toHaveURL(/\/patient\/register$/);
+  const profile = page.getByRole("button", { name: /疾病与用药/ });
+  const diagnosis = page.locator('textarea[name="diagnoses"]');
+  await expect(profile).toHaveAttribute("aria-expanded", "false");
+  await expect(diagnosis).toBeHidden();
+  await profile.click();
+  await diagnosis.fill("高血压");
+  await profile.click();
+  await expect(diagnosis).toBeHidden();
+  await expect(diagnosis).toHaveValue("高血压");
 
   await page.locator('input[name="name"]').fill("E2E 自助建档患者");
   // 性别选项渲染为大按钮样式的 label（内部 radio 视觉隐藏），点击 label 才是真实用户操作
@@ -56,6 +65,19 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await expect(page).toHaveURL(/\/patient\/select-scales\?patientId=/);
   await expect(page.getByText("常规综合评估", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("自选组合评估", { exact: false })).toBeVisible();
+
+  // 2026-11-11 起分组内不再有全选/清除按钮；整页清空后不可提交，重新全选可恢复。
+  await page.getByRole("link", { name: /常规综合评估/ }).click();
+  const firstGroup = page.getByRole("region", { name: "老年综合征" });
+  const secondGroup = page.getByRole("region", { name: "精神心理" });
+  await expect(firstGroup.locator("input:checked")).toHaveCount(4);
+  await expect(secondGroup.locator("input:checked")).toHaveCount(3);
+  await expect(firstGroup.getByRole("button")).toHaveCount(0);
+  await page.getByRole("button", { name: "清除已选", exact: true }).click();
+  await expect(page.getByRole("button", { name: "确认并开始评估" })).toBeDisabled();
+  await page.getByRole("button", { name: "全选", exact: true }).click();
+  await expect(page.locator('input[name="scaleIds"]:checked')).toHaveCount(7);
+  await page.getByRole("link", { name: "返回方式选择" }).click();
 
   // 走自选组合 · 临时自定义选择：勾选 跌倒风险 + 衰弱评估（与原默认 frail+fall_3q 一致，
   // 可纯自助当场出报告的两项）。注意"跌倒风险详评"（morse）同名前缀，用完整可访问名精确匹配。
@@ -97,10 +119,15 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
 
   // 报告页：全阴性标签 + frail 系统读取题豁免的"部分计分"标注；积分矩阵无匹配 → 暂无干预
   // 2026-08-08 口径：答完自动跳转报告视图，无需点击按钮
-  await expect(page.getByRole("heading", { name: "您的评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "老年综合评估报告" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "评估概览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "综合评估结果" })).toBeVisible();
   await expect(page.getByText("无衰弱", { exact: true })).toBeVisible();
   await expect(page.getByText("跌倒风险筛查阴性", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /本次评估项目/ }).click();
   await expect(page.getByText("部分计分", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "基本情况" })).toBeVisible();
+  await expect(page.getByText("高血压", { exact: true })).toBeVisible();
   await expect(page.getByText("本次评估暂无需要执行的干预项目", { exact: false })).toBeVisible();
 
   // ---------- 核心不变量：自助建档不能绕过医生审核关卡 ----------

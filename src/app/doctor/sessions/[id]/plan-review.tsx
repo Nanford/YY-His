@@ -6,15 +6,7 @@
  *         来源：需求更新说明 V2.0 §4.2 医生审核（保留/删除/同类替换，记录操作人/时间/原因/前后编码）、
  *         §5 干预展示、§5.3 安全提示与"初步方案→医生已确认"。
  */
-import {
-  IconAlertTriangle,
-  IconArrowBackUp,
-  IconArrowsExchange,
-  IconClipboardCheck,
-  IconInfoCircle,
-  IconShieldCheck,
-  IconBan,
-} from "@tabler/icons-react";
+import { TriangleAlert, Undo2, ArrowLeftRight, ClipboardCheck, Info, ShieldCheck, Ban } from "lucide-react";
 import { confirmPlan, reopenSession } from "@/lib/actions/doctor";
 import type { PlanDecision as ReviewPlanDecision } from "@/lib/assessment/plan-review";
 import type { ForbiddenItemV2, PlanCandidateItemV2 } from "@/lib/recommend-v2";
@@ -106,24 +98,24 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
   return (
     <article
       className={[
-        "rounded-2xl border bg-white p-5 shadow-[0_8px_20px_rgba(33,87,160,0.05)]",
+        "overflow-hidden rounded-2xl border bg-card",
         item.forced ? "border-2 border-[#c23b4a] bg-[#fff8f8]" : "border-[#dbe7f6]",
       ].join(" ")}
     >
-      <div className="space-y-2">
+      <div className="space-y-2 border-b border-border bg-accent/35 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs font-bold tracking-wide text-blue-500">{item.code}</span>
           <h4 className="text-base font-extrabold text-[#173766]">{item.name}</h4>
           <span className="ui-badge">匹配分 {item.total}</span>
           {item.forced && (
             <span className="ui-badge ui-badge-danger">
-              <IconAlertTriangle size={13} aria-hidden="true" />
+              <TriangleAlert size={13} aria-hidden="true" />
               强制优先推荐（100）
             </span>
           )}
           {decision?.action === "replace" && (
             <span className="ui-badge">
-              <IconArrowsExchange size={13} aria-hidden="true" />
+              <ArrowLeftRight size={13} aria-hidden="true" />
               替换自 {decision.fromCode}
             </span>
           )}
@@ -133,67 +125,75 @@ function InterventionCard({ item, reviewing, decision, forbidden = [] }: Interve
             系统标记为强制优先推荐，审核时请优先保留并确认。
           </p>
         )}
-        <ScoreDetail item={item} />
       </div>
 
-      <div className="mt-4">
-        <MediaBlock item={item} />
-      </div>
+      <div className={reviewing ? "grid md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]" : "grid"}>
+        <div className="min-w-0 space-y-3 p-4">
+          <MediaBlock item={item} />
+          <details className="rounded-lg border border-border px-3 py-2">
+            <summary className="cursor-pointer text-sm font-semibold text-primary">查看匹配依据</summary>
+            <div className="mt-2"><ScoreDetail item={item} /></div>
+          </details>
+        </div>
 
-      {reviewing ? (
-        <fieldset className="mt-4 space-y-4 border-t border-[#eef3fb] pt-4">
-          <legend className="sr-only">{item.name}审核操作</legend>
-          <div className="flex flex-wrap gap-4 text-sm font-bold text-[#29496f]">
-            <label className="ui-choice">
-              <input type="radio" name={`action.${item.code}`} value="keep" defaultChecked />
-              保留
-            </label>
-            <label className="ui-choice">
-              <input type="radio" name={`action.${item.code}`} value="remove" />
-              删除
-            </label>
-            <label className="ui-choice">
-              <input type="radio" name={`action.${item.code}`} value="replace" />
-              同类替换
-            </label>
-          </div>
+        {reviewing ? (
+          <fieldset className="group/review min-w-0 space-y-3 border-t border-border bg-muted/45 p-4 md:border-t-0 md:border-l">
+            <legend className="sr-only">{item.name}审核操作</legend>
+            <p className="text-xs font-bold text-muted-foreground">审核决定</p>
+            <div className="flex flex-wrap gap-1.5 text-sm font-semibold text-foreground">
+              <label className="ui-choice">
+                <input type="radio" name={`action.${item.code}`} value="keep" defaultChecked />
+                保留
+              </label>
+              <label className="ui-choice">
+                <input type="radio" name={`action.${item.code}`} value="remove" />
+                删除
+              </label>
+              <label className="ui-choice">
+                <input type="radio" name={`action.${item.code}`} value="replace" />
+                同类替换
+              </label>
+            </div>
 
-          {options.length > 0 && (
+            {options.length > 0 && (
+              <div className="hidden group-has-[input[value=replace]:checked]/review:block">
+              <label className="ui-field">
+                <span className="ui-label">替换为</span>
+                <select name={`replaceWith.${item.code}`} defaultValue="" className="ui-select" aria-label={`${item.name}同类替换项`}>
+                  <option value="">— 保持原项 —</option>
+                  {options.map((o) => {
+                    const banned = forbiddenByCode.get(o.code);
+                    return (
+                      <option
+                        key={o.code}
+                        value={o.code}
+                        disabled={Boolean(banned)}
+                        className={banned ? "font-bold text-red-700" : undefined}
+                      >
+                        {o.code}　{o.name}
+                        {banned ? "（本患者禁止）" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              </div>
+            )}
+
             <label className="ui-field">
-              <span className="ui-label">替换为（选择「同类替换」时生效）</span>
-              <select name={`replaceWith.${item.code}`} defaultValue="" className="ui-select" aria-label={`${item.name}同类替换项`}>
-                <option value="">— 保持原项 —</option>
-                {options.map((o) => {
-                  const banned = forbiddenByCode.get(o.code);
-                  return (
-                    <option
-                      key={o.code}
-                      value={o.code}
-                      disabled={Boolean(banned)}
-                      className={banned ? "font-bold text-red-700" : undefined}
-                    >
-                      {o.code}　{o.name}
-                      {banned ? "（本患者禁止）" : ""}
-                    </option>
-                  );
-                })}
-              </select>
+              <span className="ui-label">调整原因 / 审核备注</span>
+              <input type="text" name={`note.${item.code}`} placeholder="删除或替换必须填写明确审核理由；保留可不填" className="ui-input" />
             </label>
-          )}
-
-          <label className="ui-field">
-            <span className="ui-label">调整原因 / 审核备注</span>
-            <input type="text" name={`note.${item.code}`} placeholder="删除或替换必须填写明确审核理由；保留可不填" className="ui-input" />
-          </label>
-        </fieldset>
-      ) : (
-        decision?.note && (
-          <p className="ui-alert mt-4 text-xs">
-            <IconInfoCircle size={16} className="shrink-0" aria-hidden="true" />
-            审核备注：{decision.note}
-          </p>
-        )
-      )}
+          </fieldset>
+        ) : (
+          decision?.note && (
+            <p className="ui-alert mx-4 mb-4 text-xs">
+              <Info size={16} className="shrink-0" aria-hidden="true" />
+              审核备注：{decision.note}
+            </p>
+          )
+        )}
+      </div>
     </article>
   );
 }
@@ -223,11 +223,10 @@ function GroupedList({
         if (group.length === 0) return null;
         return (
           <section key={category} className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-xs font-bold tracking-[0.16em] text-blue-500">{CATEGORY_INDEX[category] ?? "--"}</span>
-              <h3 className="text-sm font-extrabold text-[#245286]">{category}</h3>
+            <div className="flex items-center gap-3 rounded-lg bg-accent px-3 py-2">
+              <span className="font-mono text-xs font-bold text-primary">{CATEGORY_INDEX[category] ?? "--"}</span>
+              <h3 className="flex-1 text-sm font-bold text-foreground">{category}</h3>
               <span className="ui-badge">{group.length} 项</span>
-              <span className="h-px flex-1 bg-[#dbe7f6]" />
             </div>
             <div className="space-y-3">
               {group.map((item) => (
@@ -245,7 +244,7 @@ function EmptyPlan({ final }: { final: boolean }) {
   return (
     <div className="rounded-2xl border border-dashed border-[#bcd4f5] bg-[#f8fbff] px-6 py-9 text-center">
       <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-        <IconShieldCheck size={23} aria-hidden="true" />
+        <ShieldCheck size={23} aria-hidden="true" />
       </span>
       <p className="mt-3 font-extrabold text-[#2b4a75]">{final ? "本次评估无最终干预项目" : "暂无候选干预方案"}</p>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6980a3]">
@@ -262,9 +261,9 @@ function ForbiddenSection({ forbidden }: { forbidden: readonly ForbiddenItemV2[]
   if (forbidden.length === 0) return null;
   return (
     // 外边距与 ui-panel-body 的 22px 内边距对齐，左缘与上方卡体内容齐平
-    <section className="mx-[22px] mb-[22px] rounded-2xl border border-red-200 bg-red-50 px-5 py-4" aria-label="禁止自动推荐明细">
+    <section className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 sm:mx-5" aria-label="禁止自动推荐明细">
       <h3 className="inline-flex items-center gap-2 text-sm font-extrabold text-red-800">
-        <IconBan size={17} aria-hidden="true" />
+        <Ban size={17} aria-hidden="true" />
         已禁止自动推荐（{forbidden.length} 项）
       </h3>
       <ul className="mt-3 space-y-2">
@@ -296,36 +295,33 @@ export function PlanReview({
   const hasCandidates = candidates.length > 0;
 
   return (
-    <section className="ui-panel overflow-hidden">
-      {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），说明文字收进左块 */}
+    <section id="intervention-plan" className="ui-panel scroll-mt-20">
       <div className="ui-panel-heading flex-wrap bg-[#f8fbff]">
         <div>
-          <p className="page-eyebrow">INTERVENTION REVIEW</p>
           <h2 className="ui-panel-title mt-1">候选干预方案审核</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[#667fa5]">
             {hasCandidates
-              ? "逐项核对积分来源与教程内容；可保留、删除或在同类别中替换。运动/膳食营养/中医食养/就诊建议/其他五类，每类最多 2 项。"
+              ? "逐项核对教程、适用情况与审核决定。"
               : "当前没有候选项目，仍需由医生完成确认并形成审核记录。"}
           </p>
         </div>
         <span className="ui-badge shrink-0">{candidates.length} 项候选</span>
       </div>
 
+      <ForbiddenSection forbidden={forbidden} />
       <form action={confirmPlan.bind(null, sessionId)} className="ui-panel-body space-y-7">
         {hasCandidates ? <GroupedList items={candidates} reviewing forbidden={forbidden} /> : <EmptyPlan final={false} />}
-        <div className="flex justify-end border-t border-[#dbe7f6] pt-5">
+        <div className="sticky bottom-3 z-10 flex justify-end rounded-xl border border-border bg-card p-2.5 shadow-lg shadow-blue-950/10">
           <button type="submit" className="ui-button ui-button-primary ui-button-lg">
-            <IconClipboardCheck size={19} aria-hidden="true" />
+            <ClipboardCheck size={19} aria-hidden="true" />
             {hasCandidates ? "确认最终干预方案" : "确认暂无候选方案"}
           </button>
         </div>
       </form>
 
-      <ForbiddenSection forbidden={forbidden} />
-
-      <form action={reopenSession.bind(null, sessionId)} className="border-t border-[#dbe7f6] bg-[#f8fbff] px-6 py-3">
+      <form action={reopenSession.bind(null, sessionId)} className="rounded-b-[inherit] border-t border-border bg-muted/50 px-5 py-3">
         <button type="submit" className="ui-button ui-button-quiet min-h-0 px-0 py-1 text-sm">
-          <IconArrowBackUp size={17} aria-hidden="true" />
+          <Undo2 size={17} aria-hidden="true" />
           返回修改答案（本次评估结果将重新生成）
         </button>
       </form>
@@ -348,11 +344,10 @@ export function FinalPlan({
   const changed = [...replaced, ...removed];
 
   return (
-    <section className="ui-panel overflow-hidden">
+    <section id="intervention-plan" className="ui-panel scroll-mt-20 overflow-hidden">
       {/* 卡头统一走 ui-panel-heading（令牌自带内边距与底部分隔线），统计徽标收进左块 */}
       <div className="ui-panel-heading flex-wrap bg-[#eff6ff]">
         <div>
-          <p className="page-eyebrow">CONFIRMED PLAN</p>
           <h2 className="ui-panel-title mt-1">最终干预方案</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="ui-badge ui-badge-success">最终保留 {finalPlan.length} 项</span>
@@ -377,7 +372,7 @@ export function FinalPlan({
                 <div key={`${decision.action}-${decision.code}`} className="rounded-xl border border-[#dbe7f6] bg-white px-3 py-3">
                   <div className="flex items-center gap-2">
                     <span className={decision.action === "replace" ? "ui-badge" : "ui-badge ui-badge-danger"}>
-                      {decision.action === "replace" ? <IconArrowsExchange size={13} aria-hidden="true" /> : <IconAlertTriangle size={13} aria-hidden="true" />}
+                      {decision.action === "replace" ? <ArrowLeftRight size={13} aria-hidden="true" /> : <TriangleAlert size={13} aria-hidden="true" />}
                       {decision.action === "replace" ? "已替换" : "已删除"}
                     </span>
                     <span className="text-sm font-bold text-[#29496f]">

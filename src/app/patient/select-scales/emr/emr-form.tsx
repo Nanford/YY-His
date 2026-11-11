@@ -8,14 +8,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import {
-  IconAlertCircle,
-  IconArrowRight,
-  IconBulb,
-  IconClipboardText,
-  IconSparkles,
-  IconUpload,
-} from "@tabler/icons-react";
+import { CircleAlert, ClipboardList, FileSearch, Sparkles, Upload } from "lucide-react";
+import { AssessmentBulkActions, AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption, updateAssessmentSelection } from "@/components/assessment-selection";
+import { SectionDisclosure } from "@/components/section-disclosure";
 
 export interface EmrScaleItem {
   id: string;
@@ -89,6 +84,7 @@ async function extractImageText(file: File): Promise<string> {
 }
 
 export default function EmrForm({ patientId, catalog, supplementIds, error, action }: Props) {
+  const [showDetails, setShowDetails] = useState(false);
   const [emrText, setEmrText] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [loading, setLoading] = useState(false);
@@ -183,29 +179,13 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
     }
   };
 
-  const toggle = (scaleId: string, on: boolean) => {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (on) next.add(scaleId);
-      else next.delete(scaleId);
-      return next;
-    });
-  };
+  const toggle = (ids: readonly string[], on: boolean) =>
+    setChecked((prev) => updateAssessmentSelection(prev, ids, on));
 
   const renderScaleCheck = (scale: EmrScaleItem) => (
-    <label key={scale.id} className="patient-check">
-      <input
-        type="checkbox"
-        name="scaleIds"
-        value={scale.id}
-        checked={checked.has(scale.id)}
-        onChange={(e) => toggle(scale.id, e.target.checked)}
-      />
-      <span className="min-w-0">
-        <span className="block text-lg font-extrabold leading-tight text-[#173766]">{scale.label}</span>
-        <span className="mt-0.5 block text-sm leading-5 text-[#62779a]">{scale.subtitle}</span>
-      </span>
-    </label>
+    <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle}
+      name="scaleIds" value={scale.id} checked={checked.has(scale.id)} showDetails={showDetails}
+      onChange={(e) => toggle([scale.id], e.target.checked)} />
   );
 
   return (
@@ -213,20 +193,20 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
       <input type="hidden" name="mode" value="emr" />
       {error === "scales" && (
         <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
-          <IconAlertCircle size={23} stroke={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>请至少保留一项推荐项目。</span>
         </div>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         {/* 左栏：病历与诊断输入 */}
-        <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-            <IconClipboardText size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
-            病历与诊断输入
+        <section className="care-band space-y-4 p-5 sm:p-6">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-[var(--care-ink)]">
+            <ClipboardList size={22} strokeWidth={1.6} className="text-primary" aria-hidden="true" />
+            导入病历
           </h2>
           <label className="block">
-            <span className="text-base font-bold text-[#29496f]">病历内容（可粘贴病历或录入病史信息）</span>
+            <span className="text-base font-bold text-foreground">病历内容</span>
             <textarea
               value={emrText}
               onChange={(e) => setEmrText(e.target.value.slice(0, MAX_LEN))}
@@ -253,15 +233,15 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
             />
             <button
               type="button"
-              className="ui-button ui-button-secondary w-full"
+              className="ui-button ui-button-secondary w-full border-dashed"
               disabled={uploading}
               onClick={() => fileInputRef.current?.click()}
             >
-              <IconUpload size={20} aria-hidden="true" />
+              <Upload size={20} aria-hidden="true" />
               {uploading ? "正在读取文件…" : "上传病历文件或图片"}
             </button>
-            <p className="mt-1.5 text-sm leading-6 text-[#7f94b3]">
-              支持 txt / docx / xlsx / pdf / 图片；文件只在本机读取，不上传外网。
+            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+              支持文本、Word、Excel、PDF 和图片。原始文件在本机读取。
             </p>
             {uploadStatus && (
               <p className="mt-1.5 text-sm font-bold leading-6 text-[#405a81]" role="status">
@@ -281,33 +261,44 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
           </label>
           <button
             type="button"
-            className="ui-button ui-button-secondary ui-button-lg w-full"
+            className="ui-button ui-button-primary ui-button-lg w-full"
             disabled={loading || emrText.trim().length < 8}
             onClick={() => void runSuggest()}
           >
-            <IconSparkles size={20} aria-hidden="true" />
+            <Sparkles size={20} aria-hidden="true" />
             {loading ? "智能解析中…" : "智能解析"}
           </button>
           {fetchError && <p className="text-sm font-bold text-red-600">{fetchError}</p>}
         </section>
 
         {/* 右栏：系统推荐评估项目 */}
-        <section className="space-y-4 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-            <IconSparkles size={22} stroke={1.9} className="text-blue-600" aria-hidden="true" />
-            系统推荐评估项目
-          </h2>
+        <section className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-[var(--care-ink)]">推荐评估项目</h2>
+            {/* 页面级全选/清除覆盖「优先推荐 + 可补充项目」（2026-11-11 起分组内不再单设全选/清除） */}
+            {analyzed && (
+              <div className="assessment-toolbar-actions">
+                <AssessmentBulkActions ids={[...recommended, ...supplements].map((scale) => scale.id)}
+                  selected={checked} onChange={toggle} />
+                <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+              </div>
+            )}
+          </div>
 
           {!analyzed && (
-            <p className="rounded-2xl bg-[#f8fbff] px-5 py-6 text-center text-base leading-7 text-[#7f94b3]">
-              粘贴或上传病历后点「智能解析」，这里会显示推荐的评估项目。
-            </p>
+            <div className="grid min-h-56 place-content-center justify-items-center gap-3 rounded-2xl border border-dashed border-[var(--care-rule-strong)] bg-[var(--care-paper)] p-6 text-center text-muted-foreground">
+              <span className="care-icon-chip" aria-hidden="true">
+                <FileSearch />
+              </span>
+              <p>完成病历解析后，可在此勾选推荐项目。</p>
+            </div>
           )}
 
           {analyzed && (
             <>
-              {keywords.length > 0 && (
-                <div>
+              {(keywords.length > 0 || reason) && (
+                <SectionDisclosure title="查看推荐依据">
+                  {keywords.length > 0 && <>
                   <p className="text-sm font-extrabold tracking-wide text-[#62779a]">提取的风险关键词</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {keywords.map((kw) => (
@@ -319,50 +310,28 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
                       </span>
                     ))}
                   </div>
-                </div>
+                  </>}
+                  {reason && <p className="mt-3 text-sm text-muted-foreground">{reason}</p>}
+                </SectionDisclosure>
               )}
 
               {/* 推荐重点（默认全选，可手动增减） */}
-              <div>
-                <p className="text-sm font-extrabold tracking-wide text-[#62779a]">
-                  推荐重点（建议优先完成，已为您预选）
-                </p>
-                <div className="mt-2 grid grid-cols-1 gap-2">{recommended.map(renderScaleCheck)}</div>
-              </div>
+              <ScaleGroup title="优先推荐" count={recommended.length}>
+                {recommended.map(renderScaleCheck)}
+              </ScaleGroup>
 
               {/* 可补充池（按需勾选） */}
               {supplements.length > 0 && (
-                <div>
-                  <p className="text-sm font-extrabold tracking-wide text-[#62779a]">可补充（按需选择）</p>
-                  <div className="mt-2 grid grid-cols-1 gap-2">{supplements.map(renderScaleCheck)}</div>
-                </div>
-              )}
-
-              {reason && (
-                <p className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-[#f8fbff] px-4 py-2.5 text-sm leading-6 text-[#405a81]">
-                  <IconBulb size={19} stroke={2} className="mt-1 shrink-0 text-blue-600" aria-hidden="true" />
-                  <span>
-                    <span className="font-extrabold">系统判断：</span>
-                    {reason}
-                  </span>
-                </p>
+                <SectionDisclosure title="可补充项目" summary={`${supplements.length} 项`}>
+                  <div className="grid gap-2 sm:grid-cols-2">{supplements.map(renderScaleCheck)}</div>
+                </SectionDisclosure>
               )}
             </>
           )}
         </section>
       </div>
 
-      <p className="text-center text-sm leading-6 text-[#7f94b3]">
-        推荐项目可手动增减；病历仅在本机解析。
-      </p>
-
-      <div className="space-y-2">
-        <button type="submit" className="patient-primary-action w-full" disabled={!analyzed || checked.size === 0}>
-          确认推荐项目（{checked.size} 项）
-          <IconArrowRight size={25} stroke={2.1} aria-hidden="true" />
-        </button>
-        <p className="text-center text-sm leading-6 text-[#62779a]">提交后将直接进入健康问询。</p>
-      </div>
+      <AssessmentSubmitBar count={checked.size} label="确认推荐项目" disabled={!analyzed} />
     </form>
   );
 }

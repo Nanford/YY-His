@@ -10,10 +10,10 @@
 "use client";
 
 import Image from "next/image";
-import { IconVolume } from "@tabler/icons-react";
+import { Volume2 } from "lucide-react";
 
-/** 形象尺寸档位：md=作答陪伴态；xl=改版后患者大屏的主视觉大数字医生 */
-export type AvatarSize = "md" | "xl";
+/** 窄屏收成状态条，大屏放入问询侧栏。 */
+export type AvatarSize = "md" | "rail";
 
 /** 各档位的具体尺寸（外框/播报角标），集中在此便于统一调节 */
 const SIZE_STYLE: Record<
@@ -26,11 +26,10 @@ const SIZE_STYLE: Record<
     volume: "-left-2 -top-2 size-10 rounded-xl",
     volumeIcon: 20,
   },
-  // 大屏问询主视觉：略放大，与左侧栏约 1:2.1 比例协调，避免形象过小像缩略图
-  xl: {
-    frame: "size-60 sm:size-72 xl:size-80 max-w-full aspect-square",
-    volume: "-left-3 -top-3 size-12 sm:size-14 rounded-2xl",
-    volumeIcon: 26,
+  rail: {
+    frame: "size-14 lg:size-32 xl:size-40 max-w-full aspect-square",
+    volume: "-left-1 -top-1 size-7 lg:size-10 rounded-xl",
+    volumeIcon: 16,
   },
 };
 
@@ -70,6 +69,7 @@ function SdkAvatar({ speaking, mouthLevel, size }: { speaking: boolean; mouthLev
  */
 function FallbackAvatar({ speaking, mouthLevel, size }: { speaking: boolean; mouthLevel: number; size: AvatarSize }) {
   const s = SIZE_STYLE[size];
+  const imageSizes = size === "rail" ? "(max-width: 1023px) 56px, (max-width: 1279px) 128px, 160px" : "(max-width: 639px) 160px, 176px";
   return (
     <div className={`relative grid ${s.frame} place-items-center select-none`} aria-label="3D 女医护数字医生形象">
       {/* 播报时晕开的柔光呼吸；非播报时透明（B 呼吸感，样式见 globals.css .avatar-halo） */}
@@ -83,8 +83,8 @@ function FallbackAvatar({ speaking, mouthLevel, size }: { speaking: boolean; mou
           src="/images/digital-doctor/female-doctor-idle.png"
           alt=""
           fill
-          preload={size === "xl"}
-          sizes={size === "xl" ? "(max-width: 640px) 15rem, (max-width: 1280px) 18rem, 20rem" : "(max-width: 640px) 10rem, 11rem"}
+          preload
+          sizes={imageSizes}
           className="object-cover object-center"
         />
         {/* 只在口鼻下方小区域按音量分级显隐开口图，避免完整人像交替造成面部抖动。 */}
@@ -92,7 +92,7 @@ function FallbackAvatar({ speaking, mouthLevel, size }: { speaking: boolean; mou
           src="/images/digital-doctor/female-doctor-speaking.png"
           alt=""
           fill
-          sizes={size === "xl" ? "(max-width: 640px) 15rem, (max-width: 1280px) 18rem, 20rem" : "(max-width: 640px) 10rem, 11rem"}
+          sizes={imageSizes}
           className="digital-doctor-mouth-layer object-cover object-center"
           style={{ opacity: mouthLevel }}
         />
@@ -101,7 +101,7 @@ function FallbackAvatar({ speaking, mouthLevel, size }: { speaking: boolean; mou
         <span
           className={`absolute ${s.volume} grid place-items-center bg-[var(--brand)] text-white shadow-[0_8px_16px_rgb(23_105_232_/_20%)]`}
         >
-          <IconVolume className="animate-pulse" size={s.volumeIcon} stroke={1.9} aria-hidden="true" />
+          <Volume2 className="animate-pulse" size={s.volumeIcon} strokeWidth={1.9} aria-hidden="true" />
         </span>
       )}
       <span className="sr-only">{speaking ? "3D 女医护数字医生正在播报" : "3D 女医护数字医生等待作答"}</span>

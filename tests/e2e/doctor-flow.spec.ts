@@ -92,6 +92,7 @@ test("医生完成常规综合评估包全量代填、评估、方案调整与�
   await page.locator('input[name="heightCm"]').fill("165");
   await page.locator('input[name="weightKg"]').fill("55");
   // V2 补充档案：2 种诊断（frail_4 系统读取 → 否）、体重史平稳（frail_5 → 否、mnasf_2 → 没有下降）
+  await page.getByRole("button", { name: /疾病与用药情况/ }).click();
   await page.locator('textarea[name="diagnoses"]').fill("高血压、糖尿病");
   await page.locator('input[name="weightM3"]').fill("55");
   await page.locator('input[name="weightM12"]').fill("55");

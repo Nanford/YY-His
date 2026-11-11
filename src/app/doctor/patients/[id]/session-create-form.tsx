@@ -3,11 +3,13 @@
  * OUTPUT: 医生端「发起新评估」量表工具选择表单（客户端交互组件）
  * POS:    量表工具选择（docx §2）：预设套餐 / 自定义 / 随访复评 / 病历智能评估（M10.2）。
  *         提交字段口径见 parseSessionScaleSelection。
+ *         2026-11-11 视觉精修：评估方式卡片共奇数个时末项占满整行。
  */
 "use client";
 
 import { useState } from "react";
-import { IconClipboardText, IconHistory, IconSparkles } from "@tabler/icons-react";
+import { ClipboardList, History, Sparkles } from "lucide-react";
+import { AssessmentBulkActions, ScaleDetailsToggle, ScaleGroup as ScaleGroupCard, ScaleOption, updateAssessmentSelection } from "@/components/assessment-selection";
 import type { ScalePackage } from "@/lib/assessment/scale-packages";
 
 export interface ScaleGroup {
@@ -36,11 +38,19 @@ const EMR_KEY = "emr";
 export default function SessionCreateForm({ packages, groups, followup, patientId, action }: Props) {
   // 选择模式：套餐 key / "custom" / "emr" / "followup"
   const [mode, setMode] = useState<string>(packages[0]?.key ?? CUSTOM_KEY);
+  const [showDetails, setShowDetails] = useState(false);
+  const [customSelected, setCustomSelected] = useState<ReadonlySet<string>>(new Set());
   const [emrText, setEmrText] = useState("");
   const [emrLoading, setEmrLoading] = useState(false);
   const [emrReason, setEmrReason] = useState<string | null>(null);
-  const [emrSelected, setEmrSelected] = useState<Set<string>>(new Set());
+  const [emrSelected, setEmrSelected] = useState<ReadonlySet<string> | null>(null);
   const [emrError, setEmrError] = useState<string | null>(null);
+  const allScales = groups.flatMap((group) => group.scales);
+  const allIds = allScales.map((scale) => scale.id);
+  const toggleCustom = (ids: readonly string[], on: boolean) =>
+    setCustomSelected((prev) => updateAssessmentSelection(prev, ids, on));
+  const toggleEmr = (ids: readonly string[], on: boolean) =>
+    setEmrSelected((prev) => prev && updateAssessmentSelection(prev, ids, on));
 
   const runEmrSuggest = async () => {
     setEmrLoading(true);
@@ -71,24 +81,22 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
   };
 
   return (
-    <form action={action} className="ui-panel overflow-hidden">
-      <div className="ui-panel-heading">
+    <form action={action} className="ui-panel">
+      <div className="ui-panel-heading flex-wrap rounded-t-[inherit] bg-accent/45">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-            <IconClipboardText size={21} stroke={1.9} aria-hidden="true" />
+            <ClipboardList size={21} strokeWidth={1.9} aria-hidden="true" />
           </span>
           <div>
             <h2 className="ui-panel-title">选择评估内容</h2>
-            <p className="mt-1 text-xs text-[#62779a]">
-              常规综合评估 · 病历智能评估 · 随访对比评估 · 自选组合评估
-            </p>
           </div>
         </div>
-        <span className="ui-badge">默认：常规综合评估</span>
+        <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
       </div>
       <div className="ui-panel-body space-y-5">
         {followup && (
-          <label className="ui-choice">
+          <div className="flex flex-wrap items-center gap-2">
+          <label className="ui-choice min-w-0 flex-1">
             <input
               type="radio"
               name="followup"
@@ -98,7 +106,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
             />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 font-bold">
-                <IconHistory size={16} stroke={2} aria-hidden="true" />
+                <History size={16} strokeWidth={2} aria-hidden="true" />
                 随访对比评估
               </span>
               <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
@@ -106,13 +114,19 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
               </span>
             </span>
           </label>
+          {mode === "followup" && (
+            <button type="button" className="ui-button ui-button-quiet" onClick={() => setMode(packages[0]?.key ?? CUSTOM_KEY)}>
+              更换评估方式
+            </button>
+          )}
+          </div>
         )}
 
         {mode !== "followup" && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {packages.map((pkg) => (
-                <label key={pkg.key} className="ui-choice">
+                <label key={pkg.key} className="ui-choice min-h-16">
                   <input
                     type="radio"
                     name="package"
@@ -122,7 +136,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold">{pkg.name}</span>
-                    <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">{pkg.description}</span>
+                    {showDetails && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{pkg.description}</span>}
                     <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
                       {pkg.scaleIds.length} 个量表
                     </span>
@@ -139,12 +153,13 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">自选组合 · 临时自定义</span>
-                  <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
+                  {showDetails && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
                     按躯体 / 精神心理 / 社会环境 / 老年综合征 / 中医 分类勾选
-                  </span>
+                  </span>}
                 </span>
               </label>
-              <label className="ui-choice">
+              {/* 套餐 + 自选 + 病历共奇数项时，末项占满整行，与上方整行的「随访对比评估」呼应、右侧不留空 */}
+              <label className={["ui-choice", (packages.length + 2) % 2 === 1 ? "sm:col-span-2" : ""].join(" ")}>
                 {/* 不写 name=package：提交时由下方 hidden 转成 custom + scale.* */}
                 <input
                   type="radio"
@@ -153,37 +168,28 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 font-bold">
-                    <IconSparkles size={16} stroke={2} aria-hidden="true" />
+                    <Sparkles size={16} strokeWidth={2} aria-hidden="true" />
                     病历智能评估
                   </span>
-                  <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                    粘贴病历与诊断，系统推荐量表（LLM，出网前脱敏）
-                  </span>
+                  {showDetails && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                    根据脱敏后的病历摘要推荐量表
+                  </span>}
                 </span>
               </label>
             </div>
 
             {mode === CUSTOM_KEY && (
-              <div className="space-y-4 rounded-2xl border border-[#dbe7f6] p-4">
+              <div className="space-y-3">
+                <AssessmentBulkActions ids={allIds} selected={customSelected} onChange={toggleCustom} />
                 {groups.map((group) => (
-                  <div key={group.category}>
-                    <p className="text-xs font-extrabold tracking-wide text-[#62779a]">{group.category}</p>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      {group.scales.map((scale) => (
-                        <label key={scale.id} className="ui-choice text-sm">
-                          <input type="checkbox" name={`scale.${scale.id}`} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block font-bold">{scale.name}</span>
-                            <span className="mt-0.5 block text-xs font-normal text-[#7f94b3]">
-                              {scale.questionCount} 题
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  <ScaleGroupCard key={group.category} title={group.category} count={group.scales.length}>
+                    {group.scales.map((scale) => (
+                      <ScaleOption key={scale.id} scaleId={scale.id} name={`scale.${scale.id}`}
+                        title={scale.name} description={`${scale.questionCount} 题`} showDetails={showDetails}
+                        checked={customSelected.has(scale.id)} onChange={(e) => toggleCustom([scale.id], e.target.checked)} />
+                    ))}
+                  </ScaleGroupCard>
                 ))}
-                <p className="text-xs text-[#7f94b3]">仅列出已配置判定规则、可直接评分的量表；请至少勾选一项。</p>
               </div>
             )}
 
@@ -208,36 +214,24 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                     disabled={emrLoading || emrText.trim().length < 8}
                     onClick={() => void runEmrSuggest()}
                   >
-                    <IconSparkles size={17} aria-hidden="true" />
+                    <Sparkles size={17} aria-hidden="true" />
                     {emrLoading ? "分析中…" : "智能推荐量表"}
                   </button>
                   {emrReason && <p className="text-xs text-[#62779a]">{emrReason}</p>}
                   {emrError && <p className="text-xs text-red-600">{emrError}</p>}
                 </div>
-                {emrSelected.size > 0 && (
+                {emrSelected !== null && (
                   <div className="space-y-3 border-t border-[#dbe7f6] pt-4">
-                    <p className="text-xs font-extrabold text-[#62779a]">推荐结果（可再勾选调整）</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-foreground">已选 {emrSelected.size} 项</p>
+                      <AssessmentBulkActions ids={allIds} selected={emrSelected} onChange={toggleEmr} />
+                    </div>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      {groups.flatMap((g) =>
-                        g.scales.map((scale) => (
-                          <label key={scale.id} className="ui-choice text-sm">
-                            <input
-                              type="checkbox"
-                              name={`scale.${scale.id}`}
-                              checked={emrSelected.has(scale.id)}
-                              onChange={(e) => {
-                                setEmrSelected((prev) => {
-                                  const next = new Set(prev);
-                                  if (e.target.checked) next.add(scale.id);
-                                  else next.delete(scale.id);
-                                  return next;
-                                });
-                              }}
-                            />
-                            <span className="font-bold">{scale.name}</span>
-                          </label>
-                        ))
-                      )}
+                      {allScales.map((scale) => (
+                        <ScaleOption key={scale.id} scaleId={scale.id} name={`scale.${scale.id}`}
+                          title={scale.name} description={`${scale.questionCount} 题`} showDetails={showDetails}
+                          checked={emrSelected.has(scale.id)} onChange={(e) => toggleEmr([scale.id], e.target.checked)} />
+                      ))}
                     </div>
                   </div>
                 )}
@@ -246,9 +240,11 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
           </>
         )}
 
-        <div className="flex justify-end">
-          <button className="ui-button ui-button-primary ui-button-lg" type="submit">
-            <IconClipboardText size={19} stroke={2.1} aria-hidden="true" />
+        <div className="sticky bottom-3 z-10 flex justify-end rounded-xl border border-border bg-card p-2.5 shadow-lg shadow-blue-950/10">
+          <button className="ui-button ui-button-primary ui-button-lg" type="submit"
+            disabled={(mode === CUSTOM_KEY && customSelected.size === 0)
+              || (mode === EMR_KEY && (emrLoading || !emrSelected?.size))}>
+            <ClipboardList size={19} strokeWidth={2.1} aria-hidden="true" />
             创建评估会话
           </button>
         </div>
