@@ -6,6 +6,8 @@
  *         由父组件（interview-screen.tsx）通过 autoStart 驱动自动开始听，免去
  *         每题都要患者手动点一次的问题；mode="manual" 时完全不出现语音入口，
  *         尊重患者在开始画面的选择。
+ *         2026-11-11 视觉精修：根容器与题干同列（.care-interview-column）；单选大按钮网格
+ *         .care-option-grid 等高、奇数个时末项居中（样式在 assessment-design.css）。
  */
 "use client";
 
@@ -121,7 +123,8 @@ export function AnswerInput(props: AnswerInputProps) {
   );
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4">
+    // 与题干同一内容列（.care-interview-column），题干左缘与选项左缘对齐
+    <div className="care-interview-column mx-auto w-full space-y-4">
       {voicePrimary && props.micStream && (
         <VoiceButton
           micStream={props.micStream}
@@ -208,12 +211,10 @@ function OptionButtons({
 }) {
   const twoColumns = prompt.options.length > 2;
   return (
+    // care-option-grid：各选项等高、奇数个时末项居中（样式见 assessment-design.css）
     <div
-      className={[
-        "grid",
-        compact ? "gap-2.5" : "gap-3.5",
-        twoColumns ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2",
-      ].join(" ")}
+      className={["care-option-grid grid", twoColumns ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2"].join(" ")}
+      data-compact={compact ? "" : undefined}
     >
       {prompt.options.map((option) => (
         <button

@@ -5,6 +5,8 @@
  *         适老化改版（意见4）：界面只留一个大大的数字医生形象；2026-08-08 设计口径起主区
  *         只展示当前这一条问题/旁白，不再累积滚动聊天记录。TTS/ASR 任何一环失败自动降级
  *         （纯字幕 + 按钮/文字作答）。
+ *         2026-11-11 视觉精修：题干与作答区共用 .care-interview-column 内容列、整组垂直居中
+ *         （样式在 assessment-design.css），交互与状态流转不变。
  *
  * 语音模式的麦克风流只在"开始评估"这一次点击里申请一次（浏览器策略要求首次授权必须由
  * 真实手势触发），此后由本组件持有并跨题复用；每题播报（playSpeaks）结束后置
@@ -542,11 +544,9 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
               </div>
             </aside>
 
-            {/* 短选项题紧邻题干，画钟等专用题型保留各自的可用高度。 */}
-            <div className="patient-interview-main"
-              data-short-choice={state.phase === "in_question" && state.prompt
-                && (state.prompt.answerType === "boolean" || state.prompt.answerType === "choice")
-                && state.prompt.options.length === 2 ? "" : undefined}>
+            {/* 2026-11-11 视觉精修：题干与作答区作为一组在题号栏下方垂直居中、共用同一内容列
+                （.care-interview-column，样式见 assessment-design.css），不再分上下两段 */}
+            <div className="patient-interview-main">
               {state.phase === "not_started" && (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:px-12">
                   <span className="ui-badge">
@@ -643,7 +643,8 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                     />
                   </div>
                   <div className="patient-interview-answer">
-                    <div className="flex items-center justify-between gap-3">
+                    {/* 与说明文字同列：「再听一遍」对齐左缘、「继续」对齐右缘 */}
+                    <div className="care-interview-column mx-auto flex w-full items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={replayNarration}
@@ -704,7 +705,7 @@ export function InterviewScreen({ sessionId, patientLabel }: InterviewScreenProp
                         多选/图片/画钟等专用控件题不收语音作答（多选只点选、画钟交卷），
                         展示语音入口没有意义，反而挤占作答区高度（2026-09-04 修改意见 4/7） */}
                     {!voiceReady && state.capabilities.asr && voiceAnswerable(state.prompt.answerType) && (
-                      <div className="mb-4">
+                      <div className="care-interview-column mx-auto mb-4 flex w-full justify-center">
                         <button
                           type="button"
                           disabled={submitting}
@@ -955,7 +956,8 @@ function CurrentPrompt({
   compact?: boolean;
 }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    // 与作答区同一内容列（左缘对齐），列宽见 assessment-design.css 的 .care-interview-column
+    <div className="care-interview-column mx-auto w-full">
       <div
         className={
           compact
