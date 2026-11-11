@@ -23,8 +23,8 @@
 │  Next.js    │──► SQLite  prisma/dev.db     （PII 只在本地）
 │  16.2       │──► storage/audio-cache/       （TTS 音频 + 录音）
 └─────┬───────┘
-      │  出网 HTTPS（仅携带患者编号，无 PII）
-      ▼  DeepSeek / 火山 TTS·ASR
+      │  出网 HTTPS（仅携带患者编号，无 PII；视觉模型只发画作图片，不带编号/姓名）
+      ▼  DeepSeek / 火山 TTS·ASR / 阿里云百炼视觉模型（画图题看图判定）
 ```
 
 ---
@@ -34,7 +34,7 @@
 1. **DNS**：把 `his.hootoolai.com` 的 **A 记录**指向服务器公网 IP（certbot 签证书要它先解析对）。
 2. **服务器**：Debian 12+，**≥2GB 内存**（`next build` 偏吃内存，1GB 机器请先加 swap），x86_64。
 3. **端口**：`80`、`443`（Nginx；80 用于 certbot 验证与跳转）、`22`（SSH）。**不要**对外开 `3000`。
-4. **密钥就绪**：DeepSeek、火山 APP_ID/ACCESS_TOKEN（缺失时语音自动降级，流程仍可跑）。
+4. **密钥就绪**：DeepSeek、火山 APP_ID/ACCESS_TOKEN（缺失时语音自动降级，流程仍可跑）；阿里云百炼 `DASHSCOPE_API_KEY`（画钟、五边形临摹的看图判定；缺失时画图题一律落「待医生确认」，流程仍可跑）。
 
 ---
 
@@ -63,8 +63,10 @@ sudo apt-get install -y nginx certbot python3-certbot-nginx
 sudo mkdir -p /opt/his && sudo chown "$USER":"$USER" /opt/his
 git clone https://github.com/Nanford/YY-His.git /opt/his
 cd /opt/his
-git checkout feature/patient-interview-voice-redesign   # 或已合并后的 main
+git checkout main
 ```
+
+> 📌 **生产一律跟 `main`**。`feature/patient-interview-voice-redesign` 远端分支停在 2026-08 的旧版本（`904a79a`），之后的更新都只合并推送到 `main`；服务器若还在 feature 分支上，`git pull` 拉不到新版本（见第 9 节的切换命令）。
 
 ---
 
@@ -87,6 +89,10 @@ VOLC_TTS_VOICE=zh_female_xiaohe_uranus_bigtts
 
 # —— 数字人：未商务开通用 fallback ——
 AVATAR_MODE=fallback
+
+# —— 阿里云百炼视觉模型：画钟/五边形临摹看图判定（缺失则画图题落"待医生确认"）——
+DASHSCOPE_API_KEY=你的dashscope_key
+# 可选：VISION_MODEL 默认 qwen3-vl-plus（2026-11-11 对比后拍板维持）；换厂商见 .env.example 的 VISION_* 说明
 EOF
 chmod 600 /opt/his/.env.local
 ```
@@ -200,15 +206,52 @@ sudo ufw enable
 
 ## 9. 更新 / 发布流程
 
-以后每次发新版本：
+以后每次发新版本（`npm run build` 要几分钟，期间线上页面可能短暂报错，**别在演示中更新**）：
 
 ```bash
 cd /opt/his
-git pull
+
+# 1. 先看状态并记下当前版本（回退用）
+git status                         # 应为干净；有本地改动先停下来处理，别直接 pull
+git branch --show-current          # 应为 main；若还在 feature 分支，下一步会切过去
+git rev-parse --short HEAD | tee ~/his-prev-commit.txt
+
+# 2. 备份数据库与录音（见第 10 节；大版本更新前必做）
+mkdir -p /opt/his-backups
+sqlite3 /opt/his/prisma/dev.db ".backup '/opt/his-backups/dev-$(date +%F-%H%M).db'"
+tar czf /opt/his-backups/storage-$(date +%F-%H%M).tgz -C /opt/his storage
+
+# 3. 拉新版本（生产跟 main）
+git fetch origin
+git checkout main
+git pull origin main
+git log -1 --oneline               # 核对是否为要发布的提交
+
+# 4. 核对新增的环境变量：.env.example 里有、.env.local 里没有的键
+comm -23 <(grep -oE '^[A-Z_]+=' .env.example | sort -u) <(grep -oE '^[A-Z_]+=' .env.local | sort -u)
+#    有输出就按需补进 /opt/his/.env.local（如 DASHSCOPE_API_KEY）；无输出说明没有新增的键
+
+# 5. 装依赖、迁移、构建、重启
 npm install
 DATABASE_URL=file:./prisma/dev.db npx prisma migrate deploy   # 有新迁移才需要，跑一遍也无害
 npm run build
 sudo systemctl restart his
+
+# 6. 检查
+sudo systemctl status his          # running
+curl -I http://127.0.0.1:3000      # 200
+```
+
+发布后浏览器先 **Ctrl+F5** 强制刷新（否则旧页面提交会报 `Failed to find Server Action`），再按第 12 节抽查。
+
+**回退**：
+
+```bash
+cd /opt/his
+git checkout "$(cat ~/his-prev-commit.txt)"
+npm install && npm run build && sudo systemctl restart his
+# 数据也要回退时：先 sudo systemctl stop his，把第 2 步的 dev-*.db 拷回 prisma/dev.db，再 start
+# 回退后要回到正常更新流程：git checkout main
 ```
 
 > **数据库和录音不会被 git 覆盖**：`prisma/dev.db` 与 `storage/` 都在 `.gitignore`，`git pull` 不动它们。
@@ -238,9 +281,10 @@ tar czf /opt/his-backups/storage-$(date +%F).tgz -C /opt/his storage
 | **ASR body size** | `/api/asr` 上传 WAV，Nginx `client_max_body_size` 已设 25MB；默认 1MB 会截断录音。 |
 | **PII 留本地** | 姓名/身份证/手机等只在 `prisma/dev.db`；出网只带患者编号。别把 DB 文件放进任何 public 目录或对象存储。 |
 | **密钥不入库** | 只在 `/opt/his/.env.local`（`chmod 600`）；切勿写进文档或提交。 |
-| **降级可用** | 密钥缺失/网络异常时语音链路自动降级为字幕 + 按钮/文字，流程仍完整——可先无密钥上线验流程。 |
+| **降级可用** | 密钥缺失/网络异常时语音链路自动降级为字幕 + 按钮/文字，流程仍完整——可先无密钥上线验流程。视觉模型同理：缺 `DASHSCOPE_API_KEY` 或调用失败时，画图题落「待医生确认」、报告标「部分计分」。 |
 | **数字人** | `AVATAR_MODE=fallback`（内置 3D 形象）；火山虚拟数字人商务开通后再切 `sdk`。 |
-| **出网白名单** | 若服务器有出站限制，放通到 DeepSeek、火山（openspeech/tts/asr）的 HTTPS。 |
+| **出网白名单** | 若服务器有出站限制，放通到 DeepSeek、火山（openspeech/tts/asr）、阿里云百炼（`dashscope.aliyuncs.com`）的 HTTPS。 |
+| **计费调用** | 视觉模型按次计费：每次画图交卷调用一次（约 3～5 秒）。 |
 
 ---
 
@@ -248,11 +292,13 @@ tar czf /opt/his-backups/storage-$(date +%F).tgz -C /opt/his storage
 
 - [ ] `his.hootoolai.com` A 记录已生效（`dig his.hootoolai.com` 指向本机 IP）
 - [ ] Node ≥ v20.9（`node -v`）
+- [ ] `git branch --show-current` = main，`git log -1 --oneline` 为要发布的提交
 - [ ] `systemctl status his` = running，`curl -I http://127.0.0.1:3000` = 200
 - [ ] `sudo nginx -t` 通过，`his.hootoolai.com` server 块已 reload
 - [ ] 浏览器打开 `https://his.hootoolai.com`，锁图标正常（证书有效）
 - [ ] `/patient/register` 建档 → 语音评估能出报告；`/doctor` 能看列表
 - [ ] 麦克风授权弹窗正常出现（证明安全上下文 OK）
+- [ ] 勾选 Mini-Cog 画一个规整的钟：医生端该会话的追溯记录里，这道「画图交卷」题有判定结果与「原因」，而不是「待医生确认」（用画钟验证；MMSE 五边形按从严口径，画对也常交医生，属正常）
 - [ ] 备份 cron 已配置
 
 ---
@@ -266,6 +312,8 @@ tar czf /opt/his-backups/storage-$(date +%F).tgz -C /opt/his storage
 | `Could not find Prisma Schema` / `Missing script: build` | 不在项目目录；先 `cd /opt/his`。 |
 | `P2021 The table 'main.Patient' does not exist`（页面 500） | 迁移没成功、库是空的（App 空跑时自动建了空 dev.db）；`cd /opt/his` 后 `sudo systemctl stop his` → `DATABASE_URL=file:./prisma/dev.db npx prisma migrate deploy` → `sudo systemctl start his`。 |
 | `Failed to find Server Action "xxx"` | 浏览器开着旧构建的页面提交到新构建；硬刷新（Ctrl+F5）即可，非 bug。 |
+| `git pull` 显示 Already up to date，但线上还是旧版 | 服务器还在 `feature/patient-interview-voice-redesign` 旧分支；`git fetch origin && git checkout main && git pull origin main`，再走第 9 节第 5 步。 |
+| 画钟/五边形交卷后总是「待医生确认」 | `.env.local` 缺 `DASHSCOPE_API_KEY`（改完要 `sudo systemctl restart his`），或出网到 `dashscope.aliyuncs.com` 不通；`journalctl -u his -n 100` 看调用报错。注意：画作本身拿不准时交医生属正常判定，不是故障。 |
 | Caddy/Nginx `:443 address already in use` | 端口被占；`ss -tlnp | grep :443` 查谁占，Caddy 用 `disable --now caddy` 让出。 |
 | `caddy.service is not active, cannot reload` | 服务没起来（多因 Caddyfile 错或端口占用）；本方案已改用 Nginx。 |
 
