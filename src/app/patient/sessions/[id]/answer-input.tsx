@@ -573,7 +573,7 @@ function drawingStatusHint(hint: string, locked: LockedDrawing | null, submittin
 
 /**
  * M9.6 画图画板（画钟、五边形临摹）：画笔/橡皮作画 →「画好了」锁定画作 →「确认提交」交给视觉模型看图判定
- * （拿不准交医生确认计分）。锁定只拦截输入、不卸载 <canvas>：globals.css 的画板 flex 收缩链靠
+ * （临界的由模型复核定分，视觉通道不可用才交医生）。锁定只拦截输入、不卸载 <canvas>：globals.css 的画板 flex 收缩链靠
  * :has(.drawing-canvas) 生效，卸掉画布整页布局会塌。空白画板也允许提交（不会画的患者不能卡死在这一题），
  * 锁定时会明确提示「还没有画任何内容」，两步确认足以防误触。
  */

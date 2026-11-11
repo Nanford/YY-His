@@ -155,7 +155,7 @@ export interface SubmitAnswerInput {
   questionId: string;
   /**
    * 输入模式：
-   * voice/text/button 既有；multi=多选；drawing=画图交卷（视觉模型看图判定计分；拿不准/不可用时落 pending 等医生计分）；
+   * voice/text/button 既有；multi=多选；drawing=画图交卷（视觉模型看图判定计分，临界由复核定分；不可用时落 pending 等医生计分）；
    * acknowledge=完成操作确认（不自评分）
    */
   mode: "voice" | "text" | "button" | "multi" | "drawing" | "acknowledge";
@@ -755,7 +755,8 @@ function multiOutcome(item: AskableQuestion, labels: string[] | undefined): Norm
 /**
  * 画图题交卷（M9.6 画钟；2026-11-10 起接视觉模型看图判定）：
  * 模型给出对/错 → 映射到标准选项直接计分（医生事后可改判）；
- * 拿不准/未配置/调用失败 → unclear，落 pending 等医生确认计分（原口径兜底）。
+ * 规则拿不准 → 临界复核由模型定分（2026-11-11 用户拍板：画图不再等医生确认，见 drawing-judge.ts）；
+ * 未配置/调用失败/复核失败 → unclear，落 pending 等医生确认计分（原口径兜底）。
  */
 async function drawingOutcome(
   item: AskableQuestion,

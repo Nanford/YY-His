@@ -284,7 +284,7 @@ function semanticsOf(scaleId: string, item: ScaleItemV2, isScored: boolean): Col
   }
 
   // 患者端画图题（PATIENT_DRAWING_TASKS，如 mmse_30 五边形临摹）01 表条目类型虽是「操作指令」，
-  // 2026-11-11 起改为患者端画板作答，按绘图题语义采集（视觉模型判定，拿不准时落医生计分）
+  // 2026-11-11 起改为患者端画板作答，按绘图题语义采集（视觉模型判定，临界由临界复核定分；视觉通道不可用时落医生计分）
   const entryType = drawingTaskOf(item.id) ? "绘图操作" : item.entryType;
   switch (entryType) {
     case "正式问题":
