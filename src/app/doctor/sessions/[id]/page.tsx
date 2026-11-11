@@ -2,10 +2,11 @@
  * INPUT:  Prisma（会话、答案、评估结果、干预方案）、路由参数 id、查询提示参数
  * OUTPUT: 评估会话工作台：采集表单 → 结果与方案审核 → 最终方案
  * POS:    医生端核心页面，承载“采集 → 评估 → 推荐 → 审核确认”完整闭环
+ *         2026-11-11 视觉精修：页头改为与其他医生端页面同款的平铺标题（去掉外层卡片与标题图标）。
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronRight, ClipboardList, MonitorCheck, ExternalLink, Info } from "lucide-react";
+import { ArrowLeft, ChevronRight, MonitorCheck, ExternalLink, Info } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { scaleById, scales } from "@/lib/rules";
 import type { AssessmentTag } from "@/lib/assessment/report-types";
@@ -158,13 +159,11 @@ export default async function SessionPage({
 
   return (
     <div className="app-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+      {/* 与患者管理/患者档案/新建档案同一页头：平铺标题 + 右侧返回按钮，不再单独套卡片 */}
+      <div className="page-heading">
         <div className="page-heading-copy">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="page-title inline-flex items-center gap-2">
-              <ClipboardList size={27} className="text-blue-600" aria-hidden="true" />
-              评估会话
-            </h1>
+            <h1 className="page-title">评估会话</h1>
             <span className={meta.cls}>{meta.label}</span>
           </div>
           <p className="page-description inline-flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -2,6 +2,7 @@
  * INPUT: 患者档案、评估会话和待审核数量
  * OUTPUT: 医生工作台的档案总览与评估入口
  * POS: 医生端首页，列表为发起评估的主要入口。
+ *      2026-11-11 视觉精修：患者档案卡头改为浅蓝底，与其他医生端面板卡头一致。
  */
 import Link from "next/link";
 import { ArrowUpRight, ClipboardCheck, ClipboardList, FolderOpen, Plus, UsersRound } from "lucide-react";
@@ -60,7 +61,8 @@ export default async function DoctorHomePage() {
       </div>
 
       <Card className="gap-0 p-0 ring-border" aria-labelledby="patient-list-title">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
+        {/* 卡头浅蓝底与医生端其他面板卡头（.ui-panel-heading）一致 */}
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-[var(--care-band)] px-5 py-4 sm:px-6">
           <h2 id="patient-list-title" className="text-base font-bold">患者档案</h2>
           <Badge variant="secondary" className="px-2.5">共 {patients.length} 位</Badge>
         </div>

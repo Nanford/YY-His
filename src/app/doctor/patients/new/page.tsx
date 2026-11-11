@@ -5,9 +5,11 @@
  *         测量数据（身高/体重/腹围/小腿围）供 MNA-SF F 题与体质题 9/28 换算分值。
  *         V2 扩展分区（基本情况补充/疾病与用药/测量补充，来源：Demo_v2更新说明.docx §1）
  *         全部选填，仅医生端完整表单可见，患者自助建档保持简版。
+ *         2026-11-11 视觉精修：左右两栏等宽；「基本情况」卡头与「人体测量」同为标题 + 说明 + 徽标
+ *         （此前图标与标题被 space-between 推到两端）；返回入口改为带边框次按钮、右缘对齐内容框。
  */
 import Link from "next/link";
-import { ArrowLeft, CircleAlert, UserPlus, UserRound } from "lucide-react";
+import { ArrowLeft, CircleAlert, UserPlus } from "lucide-react";
 import { createPatient } from "@/lib/actions/doctor";
 import {
   CARE_SITUATIONS,
@@ -100,7 +102,7 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
           <h1 className="page-title">新建患者档案</h1>
           <p className="page-description">姓名、性别和年龄必填。</p>
         </div>
-        <Link href="/doctor" className="ui-button ui-button-quiet">
+        <Link href="/doctor" className="ui-button ui-button-secondary">
           <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
           返回患者管理
         </Link>
@@ -128,12 +130,18 @@ export default async function NewPatientPage({ searchParams }: PageProps<"/docto
         </div>
       )}
 
-      <form action={createPatient} className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      {/* 左右两栏等宽，卡头同为「标题 + 说明 + 右侧徽标」，两条卡头分隔线落在同一水平线上 */}
+      <form action={createPatient} className="grid items-start gap-4 xl:grid-cols-2">
         {/* §1 基本情况：姓名、性别、年龄、文化程度、婚姻、居住、照护 + 就诊标识 */}
         <section className="ui-panel overflow-hidden">
-          <div className="ui-panel-heading justify-start gap-2 bg-accent/45">
-            <UserRound className="size-5 text-primary" aria-hidden="true" />
-            <h2 className="ui-panel-title">基本情况</h2>
+          {/* 标题组需包一层：.ui-panel-heading 是 space-between（globals.css 未分层，盖过 justify-start），
+              图标与标题直接作子项会被推到两端 */}
+          <div className="ui-panel-heading flex-wrap">
+            <div>
+              <h2 className="ui-panel-title">基本情况</h2>
+              <p className="mt-1 text-xs text-[#62779a]">生活照护与联系方式可稍后补录。</p>
+            </div>
+            <span className="ui-badge">含必填项</span>
           </div>
           <div className="ui-panel-body grid gap-5 sm:grid-cols-2">
             <Field label="姓名" name="name" required placeholder="张三" />

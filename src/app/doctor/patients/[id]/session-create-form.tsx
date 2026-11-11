@@ -3,6 +3,7 @@
  * OUTPUT: 医生端「发起新评估」量表工具选择表单（客户端交互组件）
  * POS:    量表工具选择（docx §2）：预设套餐 / 自定义 / 随访复评 / 病历智能评估（M10.2）。
  *         提交字段口径见 parseSessionScaleSelection。
+ *         2026-11-11 视觉精修：评估方式卡片共奇数个时末项占满整行。
  */
 "use client";
 
@@ -157,7 +158,8 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
                   </span>}
                 </span>
               </label>
-              <label className="ui-choice">
+              {/* 套餐 + 自选 + 病历共奇数项时，末项占满整行，与上方整行的「随访对比评估」呼应、右侧不留空 */}
+              <label className={["ui-choice", (packages.length + 2) % 2 === 1 ? "sm:col-span-2" : ""].join(" ")}>
                 {/* 不写 name=package：提交时由下方 hidden 转成 custom + scale.* */}
                 <input
                   type="radio"

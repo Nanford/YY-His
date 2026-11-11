@@ -1368,6 +1368,34 @@
   border-inline-start: 1px solid var(--care-rule);
 }
 
+/* 医生端（2026-11-11 全站铺开第 4 批，只改视觉）：
+   ①顶栏内容与页面内容同一框：宽屏下顶栏左右内边距跟随 .app-page（最大 1280px、内边距 32px），
+     系统全称左缘对齐页面标题，「身份信息仅保存在本机」右缘对齐内容右缘；此前顶栏贴满整列、内容居中，
+     1920 宽时两者左右各差约 200px；
+   ②顶栏高度与侧栏品牌区同为 74px，两条分隔线落在同一水平线上（此前 64px 与 74px 错开 10px）；
+   ③各面板卡头统一浅蓝底（此前白底与三种浅蓝混用），卡头顶角跟随面板圆角，面板不设 overflow 时也不溢出；
+   ④表格里的状态徽标不换行（此前评估记录的状态列被挤成每行一个字）。
+   960px 以下沿用 globals.css 的窄屏顶栏。 */
+@media (min-width: 961px) {
+  .doctor-shell.care-shell .doctor-topbar {
+    min-height: 74px;
+    padding-inline: max(32px, calc((100% - 1280px) / 2 + 32px));
+  }
+}
+
+.doctor-shell.care-shell .ui-panel-heading {
+  background: var(--care-band);
+}
+
+.doctor-shell.care-shell .ui-panel-heading:first-child {
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
+}
+
+.doctor-shell.care-shell .ui-table .ui-badge {
+  white-space: nowrap;
+}
+
 .care-shell .patient-interview-aside {
   background: var(--care-band);
 }

@@ -3,6 +3,8 @@
  * OUTPUT: 患者详情页：档案信息、测量数据维护、评估会话列表与创建
  * POS:    医生端患者主页。发起评估按 V2/Demo_v2更新说明.docx §2 量表工具选择：
  *         常规综合评估包（默认）/ 系统预设套餐 / 自定义组合 / 随访对比复评（表单见 session-create-form.tsx）。
+ *         2026-11-11 视觉精修：返回入口改为带边框次按钮，与其他医生端页面同款、右缘对齐内容框；
+ *         评估记录的状态徽标不换行、各卡头统一浅蓝底（样式在 assessment-design.css 医生端一节）。
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -112,7 +114,8 @@ export default async function PatientDetailPage({
           </div>
           <p className="page-description">{patient.gender} · {patient.age} 岁</p>
         </div>
-        <Link href="/doctor" className="ui-button ui-button-quiet">
+        {/* 带边框的次按钮：边框右缘即内容框右缘，与评估会话页「返回患者」同款 */}
+        <Link href="/doctor" className="ui-button ui-button-secondary">
           <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
           返回列表
         </Link>
