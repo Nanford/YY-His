@@ -1,6 +1,6 @@
 /**
  * INPUT:  src/lib/dialogue/drawing-judge.ts（画图题判定编排）、src/lib/providers/vision.ts（视觉模型通道）
- * OUTPUT: 画图题看图判定的单测（全部用桩函数/桩 fetch，不出网）
+ * OUTPUT: 画图题看图判定的单测（画钟、五边形临摹；全部用桩函数/桩 fetch，不出网）
  * POS:    锁定三条红线：① 对错由确定性规则根据模型的观察结果判定，结论只映射到 01 表既有选项，
  *         分值取选项分值（硬约束 2）；② 拿不准/临界/不可用/输出不合法一律交医生确认，不强行给结论
  *         （硬约束 3）；③ 出网请求只含图片与提示词，不带任何患者标识（硬约束 1）。
@@ -9,10 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clockVerdict,
   createClockJudge,
+  createPentagonJudge,
   judgeDrawing,
   parseClockObservation,
+  parsePentagonObservation,
+  pentagonVerdict,
   validateDrawing,
   type ClockObservation,
+  type PentagonObservation,
 } from "@/lib/dialogue/drawing-judge";
 import { extractJsonObject, requestVisionJson, visionAvailable } from "@/lib/providers/vision";
 import { questionById } from "@/lib/rules";
@@ -98,7 +102,7 @@ describe("clockVerdict：画钟确定性判定", () => {
     );
   });
 
-  it("不评指针指向的具体时间，只要求至少两根指针（用户拍板 3A）", () => {
+  it("不评指针指向的具体时间，只要求至少两根指针（用户拍板 3A，2026-11-11 再次确认维持）", () => {
     expect(clockVerdict(observe({ handCount: 3 })).verdict).toBe("correct");
     expect(clockVerdict(observe({ handCount: 1 })).verdict).toBe("incorrect");
     expect(clockVerdict(observe({ handCount: 0 })).verdict).toBe("incorrect");
@@ -171,6 +175,97 @@ describe("createClockJudge：观察 → 判定", () => {
   });
 });
 
+/** 正确临摹的模型原始输出；overrides 覆盖个别字段构造错误画法 */
+function rawPentagons(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    shapes: [
+      { corners: 5, closed: true },
+      { corners: 5, closed: true },
+    ],
+    overlapping: true,
+    overlapCorners: 4,
+    confidence: 0.9,
+    note: "",
+    ...overrides,
+  };
+}
+
+function observePentagons(overrides: Record<string, unknown> = {}): PentagonObservation {
+  const observation = parsePentagonObservation(rawPentagons(overrides));
+  if (!observation) throw new Error("测试观察数据应合法");
+  return observation;
+}
+
+describe("parsePentagonObservation：模型输出逐字段校验", () => {
+  it("合法输出解析；角数写成字符串也接受；不交叠时 overlapCorners 为 null", () => {
+    expect(observePentagons().shapes).toHaveLength(2);
+    const stringCorners = parsePentagonObservation(
+      rawPentagons({ shapes: [{ corners: "5", closed: true }, { corners: 5, closed: true }] })
+    );
+    expect(stringCorners?.shapes[0].corners).toBe(5);
+    expect(observePentagons({ overlapping: false, overlapCorners: null }).overlapCorners).toBeNull();
+  });
+
+  it("形状不合法返回 null", () => {
+    expect(parsePentagonObservation(null)).toBeNull();
+    expect(parsePentagonObservation(rawPentagons({ shapes: "两个" }))).toBeNull();
+    expect(parsePentagonObservation(rawPentagons({ shapes: [{ corners: 5 }] }))).toBeNull();
+    expect(parsePentagonObservation(rawPentagons({ overlapping: "是" }))).toBeNull();
+    expect(parsePentagonObservation(rawPentagons({ overlapCorners: "四" }))).toBeNull();
+    expect(parsePentagonObservation(rawPentagons({ confidence: 2 }))).toBeNull();
+  });
+});
+
+describe("pentagonVerdict：五边形临摹确定性判定（国标 WS/T 484 表 C.1 注 8）", () => {
+  it("两个闭合五边形相交、交叉处为四边形 → 正确", () => {
+    expect(pentagonVerdict(observePentagons()).verdict).toBe("correct");
+  });
+
+  it("图形个数不对、没闭合、角数明显不对、不相交 → 错误", () => {
+    const shapesOf = (...corners: number[]) => corners.map((count) => ({ corners: count, closed: true }));
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(5) })).verdict).toBe("incorrect");
+    expect(pentagonVerdict(observePentagons({ shapes: [] })).verdict).toBe("incorrect");
+    expect(
+      pentagonVerdict(observePentagons({ shapes: [{ corners: 5, closed: true }, { corners: 5, closed: false }] })).verdict
+    ).toBe("incorrect");
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(4, 4) })).verdict).toBe("incorrect"); // 两个都不是五边形
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(4, 6) })).verdict).toBe("incorrect");
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(5, 3) })).verdict).toBe("incorrect"); // 差两个角
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(0, 0) })).verdict).toBe("incorrect"); // 画成圆
+    expect(pentagonVerdict(observePentagons({ overlapping: false, overlapCorners: null })).verdict).toBe("incorrect");
+    // 不相交时即使有一个只差一个角，也已确定判错，不交医生
+    expect(
+      pentagonVerdict(observePentagons({ shapes: shapesOf(5, 4), overlapping: false, overlapCorners: null })).verdict
+    ).toBe("incorrect");
+  });
+
+  it("差一点的情况从严交医生：只差一个角、交叠区域看不清或不是四边形、模型把握不足（2026-11-11 实测模型易把画对的看错）", () => {
+    const shapesOf = (...corners: number[]) => corners.map((count) => ({ corners: count, closed: true }));
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(5, 4) })).verdict).toBe("unclear"); // 交叠处的角被挡住漏数
+    expect(pentagonVerdict(observePentagons({ shapes: shapesOf(6, 5) })).verdict).toBe("unclear");
+    expect(pentagonVerdict(observePentagons({ overlapCorners: 3 })).verdict).toBe("unclear");
+    expect(pentagonVerdict(observePentagons({ overlapCorners: 5 })).verdict).toBe("unclear");
+    expect(pentagonVerdict(observePentagons({ overlapCorners: null })).verdict).toBe("unclear");
+    expect(pentagonVerdict(observePentagons({ confidence: 0.5 })).verdict).toBe("unclear");
+  });
+});
+
+describe("createPentagonJudge：观察 → 判定", () => {
+  it("通道返回 null 或输出不合法 → null", async () => {
+    expect(await createPentagonJudge(async () => null)(DRAWING)).toBeNull();
+    expect(await createPentagonJudge(async () => ({ foo: 1 }))(DRAWING)).toBeNull();
+  });
+
+  it("只发患者画作（不发示例图，避免模型照示例脑补），提示词要求按实际画的报告", async () => {
+    const request = vi.fn(async () => rawPentagons());
+    const verdict = await createPentagonJudge(request)(DRAWING);
+    expect(verdict?.verdict).toBe("correct");
+    const sent = (request.mock.calls[0] as unknown as [{ imageDataUrls: string[]; systemPrompt: string }])[0];
+    expect(sent.imageDataUrls).toEqual([DRAWING]);
+    expect(sent.systemPrompt).toContain("绝不能按示例应有的样子推断");
+  });
+});
+
 describe("judgeDrawing：映射回标准选项", () => {
   it("正确 → 最高分选项（2 分）；错误 → 0 分选项", async () => {
     const correct = await judgeDrawing("minicog_2", clockOptions(), DRAWING, async () => ({
@@ -201,6 +296,23 @@ describe("judgeDrawing：映射回标准选项", () => {
     expect(unsure.status).toBe("unclear");
     const unavailable = await judgeDrawing("minicog_2", clockOptions(), DRAWING, async () => null);
     expect(unavailable).toMatchObject({ status: "unclear", method: "none" });
+  });
+
+  it("五边形临摹（mmse_30）：正确 → 1 分选项；错误 → 0 分选项", async () => {
+    const question = questionById.get("mmse_30");
+    if (!question?.options) throw new Error("mmse_30 应有标准选项");
+    const correct = await judgeDrawing("mmse_30", question.options, DRAWING, async () => ({
+      verdict: "correct",
+      confidence: 0.9,
+      reason: "相交",
+    }));
+    expect(correct).toMatchObject({ status: "matched", optionLabel: "正确复制两个相交的五边形（1分）", score: 1 });
+    const incorrect = await judgeDrawing("mmse_30", question.options, DRAWING, async () => ({
+      verdict: "incorrect",
+      confidence: 0.9,
+      reason: "不相交",
+    }));
+    expect(incorrect).toMatchObject({ status: "matched", optionLabel: "复制错误或未完成（0分）", score: 0 });
   });
 
   it("未接入判定器的画图题保持医生确认口径", async () => {

@@ -67,8 +67,10 @@ export interface PatientPromptDto {
   /** number 题合法分值范围 */
   numberMin?: number;
   numberMax?: number;
-  /** imageChoice 参照图 */
+  /** 题目配图：imageChoice 参照图、看图识物的物品图、临摹题的参照图 */
   imageSrc?: string;
+  /** 画图题画板上方的作答提示 */
+  drawingHint?: string;
   scaleName: string;
   questionNo: string;
   title: string;
@@ -261,6 +263,7 @@ function promptDto(step: DialogueStep): PatientPromptDto | null {
     numberMin: item.question.numberMin,
     numberMax: item.question.numberMax,
     imageSrc: item.question.imageSrc,
+    drawingHint: item.question.drawingHint,
     scaleName: item.scaleName,
     questionNo: item.question.no,
     title: item.question.title,

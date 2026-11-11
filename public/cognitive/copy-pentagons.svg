@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="332.5 244.5 300 300" role="img" aria-label="临摹参照图">
+  <!-- MMSE 五边形临摹 mmse_30 参照图：按国标 WS/T 484—2015 表 C.1 第 11 项原图坐标自绘
+       左为尖顶朝上的"房子形"五边形，右为尖角朝左的五边形，交叉处为小四边形；方形视框与患者画板等大并排 -->
+  <g fill="none" stroke="#1e3a5f" stroke-width="3.5" stroke-linejoin="round">
+    <path d="M401 310 466 380V479H352V380Z" />
+    <path d="M433 366 498 310H613V437H498Z" />
+  </g>
+</svg>

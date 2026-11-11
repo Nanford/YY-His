@@ -2,7 +2,8 @@
  * INPUT:  画图题条目 id 与其标准选项（src/lib/rules 的 QuestionOption）、患者画作 data URL、
  *         视觉模型看图通道（src/lib/providers/vision.ts，可注入便于测试）
  * OUTPUT: validateDrawing —— 画作数据校验；judgeDrawing —— 画图题看图判定并映射回标准选项；
- *         parseClockObservation / clockVerdict —— 画钟观察结果的校验与确定性判定（纯函数）
+ *         parseClockObservation / clockVerdict —— 画钟观察结果的校验与确定性判定（纯函数）；
+ *         parsePentagonObservation / pentagonVerdict —— 五边形临摹（MMSE mmse_30）的同类纯函数
  * POS:    画图题（2026-11-10 用户拍板）的判定编排，分两段：
  *         ① 视觉模型只做"观察"——如实报告图里有什么（轮廓、每个数字的实际方位、指针数），不评对错；
  *         ② 对错由本文件的确定性规则根据观察结果判定，再映射回 01 表既有选项（正确项=最高分选项、
@@ -12,6 +13,7 @@
  *         改为逐个数字报告实际方位、由规则判定，脑补空间小得多，且每一步都可追溯。
  *         拿不准、临界、未配置视觉模型、调用失败 → unclear，调用方落「待医生确认计分」（原 M9.6 口径），
  *         不强行给结论（硬约束 3）。明确结论直接计分进报告、医生事后可改判（用户拍板 2A）。
+ *         2026-11-11：MMSE 五边形临摹（mmse_30）接入同一套两段式判定；画钟维持原口径（见 clockVerdict）。
  */
 import type { QuestionOption } from "@/lib/rules";
 import { requestVisionJson, type VisionJsonRequest } from "@/lib/providers/vision";
@@ -142,6 +144,7 @@ function sectorDistance(a: Sector, b: Sector): number {
  * 题面只要求"标上 1 到 12、画上时针分针秒针"，并未规定时间，选项里的"规定时间"无从对照——
  * 2026-11-10 用户拍板（3A）先按现有题面判：钟面完整、数字齐全且位置正确、画了指针即为正确，
  * 不评指针指向的具体时间；该矛盾待甲方确认，若改为指定时间需同步改这里与观察提示词。
+ * 2026-11-11 用户再次确认维持原口径（规定时间以后可能改为随机给出，届时再加判指针指向）。
  * 判定（方位偏差按八方位的格数计）：
  *   错误 —— 无闭合轮廓 / 1～12 不齐或有重复、多余数字 / 指针不足两根 /
  *           12、3、6、9 任一偏离正方位两格及以上 / 其余数字有两个及以上偏离两格及以上；
@@ -197,10 +200,140 @@ export function createClockJudge(request: VisionRequester = requestVisionJson): 
   };
 }
 
+// ---------- 五边形临摹（mmse_30） ----------
+
+/** 视觉模型对临摹图形的观察结果（逐字段校验后的可信形状） */
+export interface PentagonObservation {
+  /** 画了的每个独立图形：实际的角（顶点）数、是否基本闭合 */
+  shapes: { corners: number; closed: boolean }[];
+  /** 两个图形是否有交叠（边互相穿过） */
+  overlapping: boolean;
+  /** 两个图形交叠部分本身的角数；不交叠为 null */
+  overlapCorners: number | null;
+  confidence: number;
+  note: string;
+}
+
+/*
+ * 观察提示词不出现"五边形""四边形"等应有答案，防模型顺着说（早先版本写了"交叠部分可能不是四个角"，
+ * 实测模型报交叠区角数几乎全是 4）。2026-11-11 用合成图实测过两种问法（qwen3-vl-plus，12 张）：
+ * 直接报角数、逐点列顶点坐标，都是 10/12，错的都是把画对的看错——参照图里尖角插进另一个图形的那个角被漏数、
+ * 坐标点不准。逐点列坐标更慢（约 7 秒/次 vs 约 4 秒）且不更准，故用直接报角数，判定从严兜底（见 pentagonVerdict）。
+ */
+const PENTAGON_SYSTEM_PROMPT = [
+  "你是画图题的图像观察助手。图片是一位老人在触摸屏上照着示例图临摹的线条图形。",
+  "你的任务只是如实报告图中实际画了什么，不评价对错，也绝不能按示例应有的样子推断。",
+  "",
+  "数角的方法：分别沿着每个图形自己的线条完整走一圈，数线条明显转向、形成角的地方。",
+  "两个图形交叠时，伸进另一个图形里面的那段线条和那里的角同样属于它自己，必须一并数上，",
+  "不能因为和另一个图形的线交叉就漏数，也不能把两个图形的线条接起来当成一个图形。",
+  "线条抖动、边不够直属正常：小的抖动和毛刺不算角；圆和弧线没有角。起笔和收笔之间的小缺口算闭合。",
+  "",
+  "交叠部分：如果两个图形的边互相穿过、有一块区域同时在两个图形里面，沿这块区域的边界走一圈，数它本身有几个角。",
+  "",
+  "只输出一个 JSON 对象，不要输出其他文字：",
+  "{",
+  '  "shapes": [{"corners": 这个图形的角数（整数，圆或无法辨认的曲线写 0）, "closed": 是否基本闭合（true/false）}, ...（画了几个图形写几项）],',
+  '  "overlapping": 两个图形是否有交叠（true/false；不足两个图形写 false）,',
+  '  "overlapCorners": 交叠区域的角数（整数；不交叠写 null）,',
+  '  "confidence": 你对以上观察的把握（0到1）,',
+  '  "note": "简短中文说明"',
+  "}",
+].join("\n");
+
+/** 来源：01 表 mmse_30 题面（示例图不发给模型，避免模型按示例脑补） */
+const PENTAGON_USER_TEXT = "患者被要求：照着屏幕上的示例图，在白板上画一个一样的图形。请观察下图并按要求报告。";
+
+function toShape(value: unknown): { corners: number; closed: boolean } | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const { corners, closed } = value as Record<string, unknown>;
+  const parsedCorners = toInteger(corners);
+  if (parsedCorners === null || typeof closed !== "boolean") return null;
+  return { corners: parsedCorners, closed };
+}
+
+/** 校验模型输出的观察结果；任何字段形状不符都返回 null（视为通道失败） */
+export function parsePentagonObservation(raw: Record<string, unknown> | null): PentagonObservation | null {
+  if (!raw) return null;
+  const { shapes, overlapping, overlapCorners, confidence, note } = raw;
+  if (!Array.isArray(shapes)) return null;
+  const parsedShapes = shapes.map(toShape);
+  if (parsedShapes.some((shape) => shape === null)) return null;
+  if (typeof overlapping !== "boolean") return null;
+  const parsedOverlap = overlapCorners === null ? null : toInteger(overlapCorners);
+  if (overlapCorners !== null && parsedOverlap === null) return null;
+  if (typeof confidence !== "number" || confidence < 0 || confidence > 1) return null;
+  return {
+    shapes: parsedShapes as { corners: number; closed: boolean }[],
+    overlapping,
+    overlapCorners: parsedOverlap,
+    confidence,
+    note: typeof note === "string" ? note : "",
+  };
+}
+
+/** 来源：国标 WS/T 484—2015 表 C.1 注 8（两个五边形） */
+const PENTAGON_CORNERS = 5;
+/** 来源：同上（交叉处形成 1 个小四边形） */
+const OVERLAP_CORNERS = 4;
+
+/**
+ * 五边形临摹的确定性判定（纯函数）。
+ * 标准（来源：国标 WS/T 484—2015 表 C.1 注 8「只有绘出两个五边形的图案，交叉处形成 1 个小四边形，
+ * 才算对」，与 01 表 mmse_30 选项「正确复制两个相交的五边形」一致）：
+ *   错误 —— 图形不是两个 / 有图形没闭合 / 角数明显不对（两个都不是 5 个角，或有一个差 2 个及以上）/ 两个图形不交叠；
+ *   临界（交医生）—— 模型把握不足 / 交叠时只有一个图形差 1 个角 / 交叠区域看不清或看成不是四个角；
+ *   正确 —— 两个闭合的五边形交叠，交叠处是四边形。
+ * 从严的理由（2026-11-11 合成图实测，见观察提示词处注释）：模型出错集中在把画对的看错——交叠处被另一个图形
+ * 挡住的角漏数（报成 5、4）、交叠区角数说不准；这类"差一点"一律交医生，宁可多交医生也不把画对的判成 0 分。
+ */
+export function pentagonVerdict(observation: PentagonObservation): DrawingVerdict {
+  const { confidence, shapes } = observation;
+  const incorrect = (reason: string): DrawingVerdict => ({ verdict: "incorrect", confidence, reason });
+  const unclear = (reason: string): DrawingVerdict => ({ verdict: "unclear", confidence, reason });
+
+  if (confidence < MIN_CONFIDENCE) return unclear(`模型对观察结果把握不足（${confidence}）`);
+  if (shapes.length !== 2) return incorrect(`画了 ${shapes.length} 个图形（应为两个相交的五边形）`);
+  if (shapes.some((shape) => !shape.closed)) return incorrect("有图形没有闭合");
+
+  const corners = shapes.map((shape) => shape.corners);
+  const cornerGaps = corners.map((count) => Math.abs(count - PENTAGON_CORNERS));
+  const cornerText = `两个图形的角数为 ${corners.join("、")}`;
+  if (cornerGaps.every((gap) => gap > 0) || cornerGaps.some((gap) => gap >= 2)) {
+    return incorrect(`${cornerText}（应均为 5）`);
+  }
+  if (!observation.overlapping) return incorrect("两个图形没有交叠");
+  if (cornerGaps.some((gap) => gap === 1)) {
+    return unclear(`${cornerText}，与五边形只差一个角，模型可能数错（交叠处的角容易被挡住），请医生核对`);
+  }
+  if (observation.overlapCorners === null) return unclear("两个五边形有交叠，但交叠区域的形状看不清");
+  if (observation.overlapCorners !== OVERLAP_CORNERS) {
+    return unclear(`交叠处看成 ${observation.overlapCorners} 个角的图形（应为四边形）`);
+  }
+  return { verdict: "correct", confidence, reason: "两个闭合的五边形相交，交叉处形成四边形" };
+}
+
+/** 五边形临摹判定器：只发患者画作（不发示例图），观察 → 校验 → 确定性判定 */
+export function createPentagonJudge(request: VisionRequester = requestVisionJson): DrawingJudge {
+  return async (imageDataUrl) => {
+    const observation = parsePentagonObservation(
+      await request({
+        systemPrompt: PENTAGON_SYSTEM_PROMPT,
+        userText: PENTAGON_USER_TEXT,
+        imageDataUrls: [imageDataUrl],
+      })
+    );
+    return observation ? pentagonVerdict(observation) : null;
+  };
+}
+
 // ---------- 通用编排 ----------
 
 /** 已接入看图判定的画图题；未列出的画图题保持"待医生确认计分" */
-const DRAWING_JUDGES: ReadonlyMap<string, DrawingJudge> = new Map([["minicog_2", createClockJudge()]]);
+const DRAWING_JUDGES: ReadonlyMap<string, DrawingJudge> = new Map([
+  ["minicog_2", createClockJudge()],
+  ["mmse_30", createPentagonJudge()],
+]);
 
 /** 画作数据校验失败的原因（调用方映射为业务冲突错误）；通过返回 null */
 export function validateDrawing(drawingDataUrl: string | undefined): string | null {

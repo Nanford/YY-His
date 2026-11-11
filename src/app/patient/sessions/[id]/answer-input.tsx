@@ -9,6 +9,8 @@
  *         2026-11-11 视觉精修：根容器与题干同列（.care-interview-column）；单选大按钮网格
  *         .care-option-grid 等高、奇数个时末项居中（样式在 assessment-design.css）。
  *         2026-11-11 看图识物：题目带配图（MMSE 命名题）时图片置于作答控件之上（.care-stimulus）。
+ *         2026-11-11 画图题通用化：作答提示取题目配置（drawingHint）；临摹题（MMSE 五边形）参照图
+ *         与画板等大并排（.drawing-stage）。
  */
 "use client";
 
@@ -65,8 +67,8 @@ export function AnswerInput(props: AnswerInputProps) {
     answerType === "imageChoice" ||
     answerType === "drawing";
   const showVoiceTextFallback = !specialType || answerType === "number";
-  /** 看图识物题（MMSE 命名，2026-11-11）的屏幕图片；Bristol 参照图由 ImageChoicePanel 自行展示 */
-  const stimulusSrc = answerType === "imageChoice" ? undefined : props.prompt.imageSrc;
+  /** 看图识物题（MMSE 命名，2026-11-11）的屏幕图片；Bristol 参照图、临摹参照图由各自面板展示 */
+  const stimulusSrc = answerType === "imageChoice" || answerType === "drawing" ? undefined : props.prompt.imageSrc;
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -110,7 +112,12 @@ export function AnswerInput(props: AnswerInputProps) {
       onSelect={props.onSubmitOption}
     />
   ) : answerType === "drawing" ? (
-    <DrawingPanel disabled={props.disabled} onSubmit={props.onSubmitDrawing} />
+    <DrawingPanel
+      disabled={props.disabled}
+      onSubmit={props.onSubmitDrawing}
+      hint={props.prompt.drawingHint}
+      referenceSrc={props.prompt.imageSrc}
+    />
   ) : freeAnswer ? (
     // 自由回答题：选项区只放作答提示，标准答案不出现在患者屏幕上
     <p className="rounded-2xl border border-blue-100 bg-blue-50/60 px-6 py-4 text-center text-lg font-semibold text-[var(--ink-muted)]">
@@ -392,13 +399,21 @@ function ImageChoicePanel({
   );
 }
 
-/** M9.6 画钟画布：患者绘制后交卷，医生端确认计分 */
+/** 未配置提示的画图题兜底文案（正常情况下画图题都在 cognitive-flow.PATIENT_DRAWING_TASKS 配了提示） */
+const DEFAULT_DRAWING_HINT = "请在白板上按题目要求作画，画完后点提交";
+
+/** M9.6 画图画板（画钟、五边形临摹）：患者绘制后交卷，视觉模型看图判定，拿不准交医生确认计分 */
 function DrawingPanel({
   disabled,
   onSubmit,
+  hint,
+  referenceSrc,
 }: {
   disabled: boolean;
   onSubmit: (dataUrl: string) => void;
+  hint?: string;
+  /** 临摹参照图：有则与画板等大并排在左边 */
+  referenceSrc?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
@@ -426,37 +441,43 @@ function DrawingPanel({
 
   return (
     <div className="drawing-panel space-y-3">
-      <p className="text-center text-base font-semibold text-[var(--ink-muted)]">
-        请在白板上画一个钟，标上数字和指针；画完后点提交
-      </p>
-      {/* 画布内部分辨率 480×480 不变；展示尺寸由 .drawing-canvas flex 自适应剩余空间，
-          保证整个画钟区域（画布+按钮）一屏放得下、不需要拖滚动条（2026-09-04 修改意见 4/7） */}
-      <canvas
-        ref={canvasRef}
-        width={480}
-        height={480}
-        className="drawing-canvas touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
-        onPointerDown={(e) => {
-          drawing.current = true;
-          const ctx = canvasRef.current?.getContext("2d");
-          if (!ctx) return;
-          const p = pos(e);
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
-        }}
-        onPointerMove={(e) => {
-          if (!drawing.current) return;
-          const ctx = canvasRef.current?.getContext("2d");
-          if (!ctx) return;
-          const p = pos(e);
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
-        }}
-        onPointerUp={() => {
-          drawing.current = false;
-        }}
-      />
+      <p className="text-center text-base font-semibold text-[var(--ink-muted)]">{hint ?? DEFAULT_DRAWING_HINT}</p>
+      {/* 画布内部分辨率 480×480 不变；展示尺寸由 .drawing-stage 按剩余空间自适应，
+          保证整个画图区域（参照图+画布+按钮）一屏放得下、不需要拖滚动条（2026-09-04 修改意见 4/7） */}
+      <div className="drawing-stage">
+        {referenceSrc && (
+          <figure className="drawing-reference">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={referenceSrc} alt="临摹参照图" />
+          </figure>
+        )}
+        <canvas
+          ref={canvasRef}
+          width={480}
+          height={480}
+          className="drawing-canvas touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
+          onPointerDown={(e) => {
+            drawing.current = true;
+            const ctx = canvasRef.current?.getContext("2d");
+            if (!ctx) return;
+            const p = pos(e);
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (!drawing.current) return;
+            const ctx = canvasRef.current?.getContext("2d");
+            if (!ctx) return;
+            const p = pos(e);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+          }}
+          onPointerUp={() => {
+            drawing.current = false;
+          }}
+        />
+      </div>
       <div className="flex flex-wrap justify-center gap-3">
         <button
           type="button"

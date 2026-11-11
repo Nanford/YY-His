@@ -1459,6 +1459,51 @@
   flex: 0 1 auto;
 }
 
+/* 画图舞台（2026-11-11 画图题通用化）：画板在作答区剩余空间里取最大正方形；临摹题（MMSE 五边形）
+   参照图与画板等大并排、整体居中。舞台是 size 容器：flex 基准 480px（空间够时取画板原尺寸），
+   空间不够时沿原 flex 收缩链变矮，子块边长用 cqh/cqw 跟着缩——不靠 vh 算术，题干多长都不出滚动条 */
+.care-shell .drawing-stage {
+  --drawing-stage-gap: 1.5rem;
+  container-type: size;
+  flex: 0 1 480px;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--drawing-stage-gap);
+}
+
+.care-shell .drawing-stage > .drawing-canvas,
+.care-shell .drawing-stage > .drawing-reference {
+  --drawing-side: min(480px, 100cqh, 100cqw);
+  flex: 0 0 auto;
+  width: var(--drawing-side);
+  height: var(--drawing-side);
+  max-height: none;
+  margin: 0;
+}
+
+/* 有参照图时两块并排：边长再受「半宽减去间距」约束 */
+.care-shell .drawing-stage:has(.drawing-reference) > * {
+  --drawing-side: min(480px, 100cqh, calc((100cqw - var(--drawing-stage-gap)) / 2));
+}
+
+/* 参照图：白底细边（画板是品牌蓝粗边，一眼区分"照着看"和"在这画"），线稿等比居中 */
+.care-shell .drawing-reference {
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  border: 2px solid var(--care-rule);
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.care-shell .drawing-reference img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* 看图识物（MMSE 命名题，2026-11-11）：白底细边方框居中，图片边长随视口高度收放，
    1366×768（可视约 650px）下与题干、语音按钮、作答提示同屏不出滚动条 */
 .care-shell .care-stimulus {

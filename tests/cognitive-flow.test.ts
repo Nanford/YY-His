@@ -14,6 +14,7 @@ import {
   INSTRUCTION_BROADCASTS,
   MINICOG_WORDS,
   MMSE_WORDS,
+  PATIENT_DRAWING_TASKS,
   SCREEN_STIMULI,
   WORD_RECALL_GROUPS,
   displayTextOverride,
@@ -128,7 +129,7 @@ describe("cognitive-flow：投影与可问性", () => {
     expect(isFreeResponseItem("frail_1")).toBe(false);
   });
 
-  it("MMSE 患者端可问清单：trigger 可问、组目标不单独提问、看图识物可问、操作题不问", () => {
+  it("MMSE 患者端可问清单：trigger 可问、组目标不单独提问、看图识物与五边形临摹可问、其余操作题不问", () => {
     const ids = askableQuestions(["mmse"]).map((item) => item.question.id);
     expect(ids).toContain("mmse_11"); // 立即复述 trigger（虽为记忆指令仍提问）
     expect(ids).toContain("mmse_19"); // 延迟回忆 trigger
@@ -138,8 +139,10 @@ describe("cognitive-flow：投影与可问性", () => {
     // 看图识物（图片识别）改为患者端出题（2026-11-11）
     expect(ids).toContain("mmse_22");
     expect(ids).toContain("mmse_23");
-    // 操作指令仍为医生题，患者端不问
-    for (const clinical of ["mmse_25", "mmse_28", "mmse_29", "mmse_30"]) {
+    // 五边形临摹改为患者端画（2026-11-11）
+    expect(ids).toContain("mmse_30");
+    // 其余操作指令仍为医生题，患者端不问
+    for (const clinical of ["mmse_25", "mmse_28", "mmse_29"]) {
       expect(ids).not.toContain(clinical);
     }
   });
@@ -159,7 +162,22 @@ describe("cognitive-flow：投影与可问性", () => {
       expect(stimulus.imageSrc).not.toContain(stimulus.spec.target);
     }
     // 其他图片识别以外的医生题不受影响
-    expect(questionById.get("mmse_30")?.observerAssisted).toBe(true);
-    expect(questionById.get("mmse_30")?.imageSrc).toBeUndefined();
+    expect(questionById.get("mmse_29")?.observerAssisted).toBe(true);
+    expect(questionById.get("mmse_29")?.imageSrc).toBeUndefined();
   });
+
+  it("患者端画图题：投影为画图题、非医生题、带作答提示；临摹题参照图文件存在", () => {
+    expect(PATIENT_DRAWING_TASKS.map((task) => task.itemId)).toEqual(["minicog_2", "mmse_30"]);
+    for (const task of PATIENT_DRAWING_TASKS) {
+      const question = questionById.get(task.itemId);
+      expect(question?.answerType, task.itemId).toBe("drawing");
+      expect(question?.observerAssisted, task.itemId).toBe(false);
+      expect(question?.drawingHint, task.itemId).toBe(task.hint);
+      expect(question?.imageSrc, task.itemId).toBe(task.referenceSrc ?? undefined);
+      if (task.referenceSrc) {
+        expect(existsSync(path.join(process.cwd(), "public", task.referenceSrc)), task.referenceSrc).toBe(true);
+      }
+    }
+  });
+
 });
