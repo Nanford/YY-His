@@ -1453,19 +1453,36 @@
   background: transparent;
 }
 
-/* 画钟题：globals.css 让作答区吃满剩余高度（flex: 1 1 auto），画布到 480px 上限后下方留空、整组偏上。
-   改为只收缩不伸展：空间够时画布取 480px 原尺寸、整组居中；空间不够时画布沿原 flex 链收缩（逻辑不变） */
+/* 画图题：globals.css 让作答区吃满剩余高度（flex: 1 1 auto），画板到上限后下方留空、整组偏上。
+   改为只收缩不伸展：空间够时画板取上限尺寸、整组居中；空间不够时画板沿原 flex 链收缩（逻辑不变） */
 .care-shell .patient-interview-main:has(.drawing-canvas) .patient-interview-answer {
   flex: 0 1 auto;
 }
 
-/* 画图舞台（2026-11-11 画图题通用化）：画板在作答区剩余空间里取最大正方形；临摹题（MMSE 五边形）
-   参照图与画板等大并排、整体居中。舞台是 size 容器：flex 基准 480px（空间够时取画板原尺寸），
-   空间不够时沿原 flex 收缩链变矮，子块边长用 cqh/cqw 跟着缩——不靠 vh 算术，题干多长都不出滚动条 */
+/* 画图题内容列放宽（2026-11-11 画板放大）：参照图、画板、工具列横排，56rem 会把临摹题画板压在 430px 左右；
+   题干列同步放宽，题干左缘仍与作答区（临摹题即参照图）左缘对齐 */
+.care-shell .patient-interview-main:has(.drawing-panel) .care-interview-column {
+  max-width: 76rem;
+}
+
+/* 作答列做成 inline-size 容器：舞台高度的 flex 基准要按列宽推算（见下方 .drawing-stage） */
+.care-shell .care-interview-column:has(> .drawing-panel) {
+  container-type: inline-size;
+}
+
+/* 画图舞台（2026-11-11 画图题通用化，同日画板放大）：参照图（临摹题才有）、画板、工具列横排居中。
+   舞台是 size 容器：flex 基准取「横向能给画板的最大边长」（空间够时画板取满），空间不够时沿原 flex 收缩链变矮，
+   子块边长用 cqh/cqw 跟着缩——不靠 vh 算术，题干多长都不出滚动条。
+   画板边长 = min(上限, 舞台高, 横向余量)：横向余量先扣工具列与间距；临摹题参照图边长是画板的 2/3，
+   一行宽 = 5/3 画板 + 工具列 + 两个间距，倒推画板边长不超过 (舞台宽 − 工具列 − 两个间距) × 3/5。
+   flex 基准里的 cqw 取自外层作答列（inline-size 容器，宽度与舞台相同）：画板被宽度卡住时舞台不再多占高度，
+   否则大屏临摹题会在提示与画板之间空出一大段 */
 .care-shell .drawing-stage {
+  --drawing-max-side: 640px;
   --drawing-stage-gap: 1.5rem;
+  --drawing-tools-width: 10.5rem;
   container-type: size;
-  flex: 0 1 480px;
+  flex: 0 1 min(var(--drawing-max-side), calc(100cqw - var(--drawing-tools-width) - var(--drawing-stage-gap)));
   min-height: 0;
   display: flex;
   align-items: center;
@@ -1473,23 +1490,69 @@
   gap: var(--drawing-stage-gap);
 }
 
-.care-shell .drawing-stage > .drawing-canvas,
-.care-shell .drawing-stage > .drawing-reference {
-  --drawing-side: min(480px, 100cqh, 100cqw);
+.care-shell .drawing-stage > * {
+  --drawing-side: min(
+    var(--drawing-max-side),
+    100cqh,
+    calc(100cqw - var(--drawing-tools-width) - var(--drawing-stage-gap))
+  );
   flex: 0 0 auto;
+}
+
+.care-shell .drawing-stage:has(> .drawing-reference) {
+  flex-basis: min(
+    var(--drawing-max-side),
+    calc((100cqw - var(--drawing-tools-width) - 2 * var(--drawing-stage-gap)) * 3 / 5)
+  );
+}
+
+.care-shell .drawing-stage:has(> .drawing-reference) > * {
+  --drawing-side: min(
+    var(--drawing-max-side),
+    100cqh,
+    calc((100cqw - var(--drawing-tools-width) - 2 * var(--drawing-stage-gap)) * 3 / 5)
+  );
+}
+
+.care-shell .drawing-board {
   width: var(--drawing-side);
   height: var(--drawing-side);
+}
+
+/* 画布铺满画板：覆盖 globals.css 的 480px 上限与 flex 伸缩，尺寸统一由 .drawing-board 决定 */
+.care-shell .drawing-board > .drawing-canvas {
+  width: 100%;
+  height: 100%;
+  max-width: none;
   max-height: none;
   margin: 0;
 }
 
-/* 有参照图时两块并排：边长再受「半宽减去间距」约束 */
-.care-shell .drawing-stage:has(.drawing-reference) > * {
-  --drawing-side: min(480px, 100cqh, calc((100cqw - var(--drawing-stage-gap)) / 2));
+/* 光标：画笔是十字准星；橡皮是 28px 圆圈，与擦除范围等大（answer-input.tsx 的 ERASER_SCREEN_DIAMETER） */
+.care-shell .drawing-canvas[data-tool="pen"] {
+  cursor: crosshair;
 }
 
-/* 参照图：白底细边（画板是品牌蓝粗边，一眼区分"照着看"和"在这画"），线稿等比居中 */
+.care-shell .drawing-canvas[data-tool="eraser"] {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='13' fill='%23ffffff' fill-opacity='0.7' stroke='%231e3a5f' stroke-width='1.5'/%3E%3C/svg%3E")
+      14 14,
+    cell;
+}
+
+/* 锁定后画作仍在原处可看，边框由品牌蓝转灰、去掉投影，表明这块板已经不能再画；
+   锁定标记放在右侧工具列（.drawing-lock-status），不压在画作上挡住笔迹 */
+.care-shell .drawing-board[data-locked] > .drawing-canvas {
+  border-color: var(--line-strong);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* 参照图：边长为画板的 2/3，白底细边（画板是品牌蓝粗边，一眼区分"照着看"和"在这画"），线稿等比居中 */
 .care-shell .drawing-reference {
+  width: calc(var(--drawing-side) * 2 / 3);
+  height: calc(var(--drawing-side) * 2 / 3);
+  margin: 0;
   display: grid;
   place-items: center;
   padding: 0.75rem;
@@ -1502,6 +1565,52 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* 工具列与画板等高：工具在上、提交在下，两组分别对齐画板上下边 */
+.care-shell .drawing-tools {
+  width: var(--drawing-tools-width);
+  height: var(--drawing-side);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.care-shell .drawing-tools-group,
+.care-shell .drawing-tools-commit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.care-shell .drawing-tools-commit {
+  margin-top: auto;
+}
+
+.care-shell .drawing-tools .ui-button {
+  width: 100%;
+}
+
+/* 画笔/橡皮二选一：选中项品牌浅底 + 加粗品牌描边，与实心蓝的「画好了」区分开，不会被看成提交按钮 */
+.care-shell .drawing-tool[aria-pressed="true"] {
+  color: var(--brand-strong);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+/* 锁定状态标记：占工具区顶部、与按钮同高，告诉患者画作已经定下来了 */
+.care-shell .drawing-lock-status {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 14px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 /* 看图识物（MMSE 命名题，2026-11-11）：白底细边方框居中，图片边长随视口高度收放，

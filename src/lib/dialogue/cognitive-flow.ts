@@ -308,12 +308,12 @@ export const PATIENT_DRAWING_TASKS: readonly PatientDrawingTask[] = [
   {
     itemId: "minicog_2",
     referenceSrc: null,
-    hint: "请在白板上画一个钟，标上数字和指针；画完后点提交",
+    hint: "请在白板上画一个钟，标上数字和指针；画完后点「画好了」",
   },
   {
     itemId: "mmse_30",
     referenceSrc: "/cognitive/copy-pentagons.svg",
-    hint: "请照着左边的图，在右边白板上画一个一样的图形；画完后点提交",
+    hint: "请照着左边的图，在右边白板上画一个一样的图形；画完后点「画好了」",
   },
 ];
 

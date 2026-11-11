@@ -10,12 +10,14 @@
  *         .care-option-grid 等高、奇数个时末项居中（样式在 assessment-design.css）。
  *         2026-11-11 看图识物：题目带配图（MMSE 命名题）时图片置于作答控件之上（.care-stimulus）。
  *         2026-11-11 画图题通用化：作答提示取题目配置（drawingHint）；临摹题（MMSE 五边形）参照图
- *         与画板等大并排（.drawing-stage）。
+ *         与画板并排（.drawing-stage）。
+ *         2026-11-11 画板改版：画板放大（工具列移到右侧、参照图缩为画板 2/3）、画笔/橡皮切换；
+ *         交卷改两步——「画好了」锁定并拍下 480 快照，「确认提交」才把快照交给视觉模型。
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ArrowRight, Check, Keyboard, LoaderCircle, Mic, RefreshCw, Send, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { ArrowRight, Check, Eraser, Keyboard, LoaderCircle, Lock, Mic, Pencil, RefreshCw, Send, Undo2, Volume2 } from "lucide-react";
 import type { PatientPromptDto } from "@/lib/dialogue/service";
 import { RecorderError, WavRecorder, type VadStopReason } from "./wav-recorder";
 import { logTiming } from "./timing";
@@ -400,9 +402,152 @@ function ImageChoicePanel({
 }
 
 /** 未配置提示的画图题兜底文案（正常情况下画图题都在 cognitive-flow.PATIENT_DRAWING_TASKS 配了提示） */
-const DEFAULT_DRAWING_HINT = "请在白板上按题目要求作画，画完后点提交";
+const DEFAULT_DRAWING_HINT = "请在白板上按题目要求作画，画完后点「画好了」";
 
-/** M9.6 画图画板（画钟、五边形临摹）：患者绘制后交卷，视觉模型看图判定，拿不准交医生确认计分 */
+/** 画板内部分辨率：展示边长最大 640px（assessment-design.css），内部取 720 让放大后的笔迹不发虚 */
+const DRAWING_CANVAS_SIZE = 720;
+/** 交给视觉模型的图片边长：与改版前画板一致（480），模型输入尺寸和 data URL 体积都不变 */
+const DRAWING_EXPORT_SIZE = 480;
+const PEN_COLOR = "#1e3a5f";
+/** 720 画布上 4.5px，缩到 480 导出后约 3px，与改版前笔迹粗细一致，视觉模型此前的测试结论仍适用 */
+const PEN_WIDTH = 4.5;
+/** 橡皮直径按屏幕像素定，与 CSS 里 28px 的圆形光标等大，按下时再换算到画布坐标——所见即所擦 */
+const ERASER_SCREEN_DIAMETER = 28;
+/** 空白判定阈值：任一像素红色通道低于此值即算有笔迹（橡皮擦过的边缘会留下接近白色的抗锯齿像素） */
+const INK_CHANNEL_THRESHOLD = 235;
+
+type DrawingTool = "pen" | "eraser";
+
+interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+/** 锁定时拍下的画作：dataUrl 是缩到 480 的 PNG；blank 用于提示患者交的是空白画板 */
+interface LockedDrawing {
+  dataUrl: string;
+  blank: boolean;
+}
+
+/** 画板铺白底：导出的 PNG 没有透明像素，视觉模型看到的是白纸蓝黑线 */
+function fillCanvasWhite(canvas: HTMLCanvasElement | null): void {
+  const ctx = canvas?.getContext("2d");
+  if (!canvas || !ctx) return;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+/** 画板上是否一笔都没留下（画了又全部擦掉也算空白） */
+function isCanvasBlank(canvas: HTMLCanvasElement): boolean {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return true;
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  for (let index = 0; index < data.length; index += 4) {
+    if (data[index] < INK_CHANNEL_THRESHOLD) return false;
+  }
+  return true;
+}
+
+/** 交给视觉模型的快照：缩到 480×480 的 PNG；离屏画布拿不到 2D 上下文时退回原尺寸（720 线稿 PNG 仍远低于体积上限） */
+function exportDrawingSnapshot(canvas: HTMLCanvasElement): string {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = DRAWING_EXPORT_SIZE;
+  exportCanvas.height = DRAWING_EXPORT_SIZE;
+  const ctx = exportCanvas.getContext("2d");
+  if (!ctx) return canvas.toDataURL("image/png");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(canvas, 0, 0, DRAWING_EXPORT_SIZE, DRAWING_EXPORT_SIZE);
+  return exportCanvas.toDataURL("image/png");
+}
+
+/** 屏幕坐标换算到画布内部坐标（画布展示尺寸随视口变，内部固定 720） */
+function toCanvasPoint(event: ReactPointerEvent<HTMLCanvasElement>): CanvasPoint {
+  const canvas = event.currentTarget;
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+    y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+  };
+}
+
+/** 按当前工具设置笔触：画笔是固定粗细的深蓝线；橡皮是白色粗线（画板本就是白底，导出无需处理透明） */
+function applyBrush(ctx: CanvasRenderingContext2D, tool: DrawingTool, canvas: HTMLCanvasElement): void {
+  const screenToCanvas = canvas.width / canvas.getBoundingClientRect().width;
+  ctx.strokeStyle = tool === "pen" ? PEN_COLOR : "#ffffff";
+  ctx.lineWidth = tool === "pen" ? PEN_WIDTH : ERASER_SCREEN_DIAMETER * screenToCanvas;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+}
+
+function strokeSegment(ctx: CanvasRenderingContext2D, from: CanvasPoint, to: CanvasPoint): void {
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
+/**
+ * 画板笔触：画笔/橡皮两种工具。interactive=false（已锁定或交卷中）时不响应任何指针输入。
+ * 每次移动只描「上一点→当前点」一小段（圆头圆角拼接无缝），不反复重描整条路径，长笔画也不卡。
+ */
+function useDrawingStrokes(interactive: boolean) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastPointRef = useRef<CanvasPoint | null>(null);
+  const [tool, setTool] = useState<DrawingTool>("pen");
+
+  useEffect(() => fillCanvasWhite(canvasRef.current), []);
+
+  const endStroke = () => {
+    lastPointRef.current = null;
+  };
+
+  const strokeHandlers = {
+    onPointerDown: (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      const canvas = event.currentTarget;
+      const ctx = canvas.getContext("2d");
+      if (!interactive || !ctx) return;
+      applyBrush(ctx, tool, canvas);
+      const point = toCanvasPoint(event);
+      // 原地描一段零长度线：点一下也留下圆点（画钟的圆心）或擦掉一小块
+      strokeSegment(ctx, point, point);
+      lastPointRef.current = point;
+      canvas.setPointerCapture(event.pointerId);
+    },
+    onPointerMove: (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      const from = lastPointRef.current;
+      const ctx = event.currentTarget.getContext("2d");
+      if (!interactive || !from || !ctx) return;
+      const point = toCanvasPoint(event);
+      strokeSegment(ctx, from, point);
+      lastPointRef.current = point;
+    },
+    onPointerUp: endStroke,
+    onPointerCancel: endStroke,
+  };
+
+  const clearCanvas = () => {
+    fillCanvasWhite(canvasRef.current);
+    setTool("pen");
+  };
+
+  return { canvasRef, tool, setTool, strokeHandlers, clearCanvas };
+}
+
+/** 画板上方的提示：作画时是题目提示；锁定后告诉患者下一步点哪个按钮 */
+function drawingStatusHint(hint: string, locked: LockedDrawing | null, submitting: boolean): string {
+  if (!locked) return hint;
+  if (submitting) return "正在识别画作，请稍候…";
+  if (locked.blank) return "画板上还没有画任何内容。确定这样提交请点「确认提交」，要画请点「返回修改」";
+  return "画作已锁定。确认无误请点「确认提交」，还要修改请点「返回修改」";
+}
+
+/**
+ * M9.6 画图画板（画钟、五边形临摹）：画笔/橡皮作画 →「画好了」锁定画作 →「确认提交」交给视觉模型看图判定
+ * （拿不准交医生确认计分）。锁定只拦截输入、不卸载 <canvas>：globals.css 的画板 flex 收缩链靠
+ * :has(.drawing-canvas) 生效，卸掉画布整页布局会塌。空白画板也允许提交（不会画的患者不能卡死在这一题），
+ * 锁定时会明确提示「还没有画任何内容」，两步确认足以防误触。
+ */
 function DrawingPanel({
   disabled,
   onSubmit,
@@ -412,38 +557,24 @@ function DrawingPanel({
   disabled: boolean;
   onSubmit: (dataUrl: string) => void;
   hint?: string;
-  /** 临摹参照图：有则与画板等大并排在左边 */
+  /** 临摹参照图：有则以画板 2/3 的边长排在画板左边 */
   referenceSrc?: string;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const drawing = useRef(false);
+  const [locked, setLocked] = useState<LockedDrawing | null>(null);
+  const { canvasRef, tool, setTool, strokeHandlers, clearCanvas } = useDrawingStrokes(!disabled && !locked);
 
-  useEffect(() => {
+  const lockDrawing = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#1e3a5f";
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-  }, []);
-
-  const pos = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
-    };
+    setLocked({ dataUrl: exportDrawingSnapshot(canvas), blank: isCanvasBlank(canvas) });
   };
 
   return (
     <div className="drawing-panel space-y-3">
-      <p className="text-center text-base font-semibold text-[var(--ink-muted)]">{hint ?? DEFAULT_DRAWING_HINT}</p>
-      {/* 画布内部分辨率 480×480 不变；展示尺寸由 .drawing-stage 按剩余空间自适应，
-          保证整个画图区域（参照图+画布+按钮）一屏放得下、不需要拖滚动条（2026-09-04 修改意见 4/7） */}
+      <p aria-live="polite" className="text-center text-base font-semibold text-[var(--ink-muted)]">
+        {drawingStatusHint(hint ?? DEFAULT_DRAWING_HINT, locked, disabled)}
+      </p>
+      {/* 舞台按剩余空间自适应（assessment-design.css .drawing-stage），参照图 + 画板 + 工具列一屏放得下、不出滚动条 */}
       <div className="drawing-stage">
         {referenceSrc && (
           <figure className="drawing-reference">
@@ -451,60 +582,95 @@ function DrawingPanel({
             <img src={referenceSrc} alt="临摹参照图" />
           </figure>
         )}
-        <canvas
-          ref={canvasRef}
-          width={480}
-          height={480}
-          className="drawing-canvas touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
-          onPointerDown={(e) => {
-            drawing.current = true;
-            const ctx = canvasRef.current?.getContext("2d");
-            if (!ctx) return;
-            const p = pos(e);
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
-          }}
-          onPointerMove={(e) => {
-            if (!drawing.current) return;
-            const ctx = canvasRef.current?.getContext("2d");
-            if (!ctx) return;
-            const p = pos(e);
-            ctx.lineTo(p.x, p.y);
-            ctx.stroke();
-          }}
-          onPointerUp={() => {
-            drawing.current = false;
-          }}
+        <div className="drawing-board" data-locked={locked ? "true" : undefined}>
+          <canvas
+            ref={canvasRef}
+            width={DRAWING_CANVAS_SIZE}
+            height={DRAWING_CANVAS_SIZE}
+            aria-label="画板"
+            data-tool={tool}
+            className="drawing-canvas touch-none rounded-2xl border-2 border-[var(--brand)] bg-white shadow-sm"
+            {...strokeHandlers}
+          />
+        </div>
+        <DrawingTools
+          tool={tool}
+          locked={locked !== null}
+          disabled={disabled}
+          onToolChange={setTool}
+          onClear={clearCanvas}
+          onLock={lockDrawing}
+          onUnlock={() => setLocked(null)}
+          onConfirm={() => locked && onSubmit(locked.dataUrl)}
         />
       </div>
-      <div className="flex flex-wrap justify-center gap-3">
-        <button
-          type="button"
-          disabled={disabled}
-          className="ui-button ui-button-secondary ui-button-lg"
-          onClick={() => {
-            const canvas = canvasRef.current;
-            const ctx = canvas?.getContext("2d");
-            if (!canvas || !ctx) return;
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }}
-        >
+    </div>
+  );
+}
+
+/** 画板右侧工具列：作画时是 画笔/橡皮/清空重画 + 画好了；锁定后换成 锁定状态 + 返回修改/确认提交 */
+function DrawingTools(props: {
+  tool: DrawingTool;
+  locked: boolean;
+  disabled: boolean;
+  onToolChange: (tool: DrawingTool) => void;
+  onClear: () => void;
+  onLock: () => void;
+  onUnlock: () => void;
+  onConfirm: () => void;
+}) {
+  if (props.locked) {
+    return (
+      <div className="drawing-tools">
+        <p className="drawing-lock-status">
+          <Lock size={19} strokeWidth={2} aria-hidden="true" />
+          <span>画作已锁定</span>
+        </p>
+        <div className="drawing-tools-commit">
+          <button type="button" disabled={props.disabled} className="ui-button ui-button-secondary ui-button-lg" onClick={props.onUnlock}>
+            <Undo2 size={21} strokeWidth={1.9} aria-hidden="true" />
+            <span>返回修改</span>
+          </button>
+          <button type="button" disabled={props.disabled} className="ui-button ui-button-primary ui-button-lg" onClick={props.onConfirm}>
+            {props.disabled ? (
+              <LoaderCircle size={21} strokeWidth={1.9} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Send size={21} strokeWidth={1.9} aria-hidden="true" />
+            )}
+            <span>{props.disabled ? "正在识别…" : "确认提交"}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const toolButton = (value: DrawingTool, label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      aria-pressed={props.tool === value}
+      disabled={props.disabled}
+      className="drawing-tool ui-button ui-button-secondary ui-button-lg"
+      onClick={() => props.onToolChange(value)}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+
+  return (
+    <div className="drawing-tools">
+      <div role="group" aria-label="画板工具" className="drawing-tools-group">
+        {toolButton("pen", "画笔", <Pencil size={21} strokeWidth={1.9} aria-hidden="true" />)}
+        {toolButton("eraser", "橡皮", <Eraser size={21} strokeWidth={1.9} aria-hidden="true" />)}
+        <button type="button" disabled={props.disabled} className="ui-button ui-button-secondary ui-button-lg" onClick={props.onClear}>
           <RefreshCw size={21} strokeWidth={1.9} aria-hidden="true" />
           <span>清空重画</span>
         </button>
-        <button
-          type="button"
-          disabled={disabled}
-          className="ui-button ui-button-primary ui-button-lg"
-          onClick={() => {
-            const dataUrl = canvasRef.current?.toDataURL("image/png");
-            if (dataUrl) onSubmit(dataUrl);
-          }}
-        >
-          <Send size={21} strokeWidth={1.9} aria-hidden="true" />
-          <span>提交画作</span>
+      </div>
+      <div className="drawing-tools-commit">
+        <button type="button" disabled={props.disabled} className="ui-button ui-button-primary ui-button-lg" onClick={props.onLock}>
+          <Check size={21} strokeWidth={1.9} aria-hidden="true" />
+          <span>画好了</span>
         </button>
       </div>
     </div>
