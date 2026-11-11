@@ -3,7 +3,7 @@
  * OUTPUT: 患者端「常规综合评估」配置页（2026-08-08 设计图·方式一）
  * POS:    患者自助建档第二步·方式一：预设套餐（标准包/门诊简版/住院入院）+ 按一级分类分组的
  *         量表配置（可增减）。套餐定义见 src/lib/assessment/patient-scale-packages.ts。
- *         2026-11-11 起为 iOS 风格样板页（样式 src/app/ios-design.css，仅本页挂载）。
+ *         2026-11-11 起为 iOS 风格样板页（PC 16:9 左右分栏、蓝白单色；样式 src/app/ios-design.css，仅本页挂载）。
  */
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -64,15 +64,17 @@ export default async function PatientRoutineScalesPage({
 
   return (
     <main className="ios-page flex-1">
-      <Link href={`/patient/select-scales?patientId=${patientId}`} className="ios-back">
-        <ChevronLeft size={26} strokeWidth={2.4} aria-hidden="true" />
-        评估方式
-      </Link>
-
-      <h1 className="ios-large-title">常规综合评估</h1>
-      <p className="ios-lede">选择一个套餐，可按需增减项目。</p>
-
       <RoutineForm
+        heading={
+          <>
+            <Link href={`/patient/select-scales?patientId=${patientId}`} className="ios-back">
+              <ChevronLeft size={26} strokeWidth={2.4} aria-hidden="true" />
+              评估方式
+            </Link>
+            <h1 className="ios-large-title">常规综合评估</h1>
+            <p className="ios-lede">选择一个套餐，可按需增减项目。</p>
+          </>
+        }
         packages={packageOptions}
         error={error}
         action={startAssessment.bind(null, patientId)}

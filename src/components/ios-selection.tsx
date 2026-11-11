@@ -1,54 +1,57 @@
 /**
  * INPUT:  量表/套餐选项与勾选状态（由页面表单组件持有）；样式见 src/app/ios-design.css
- * OUTPUT: iOS 风格的选择类组件：分段控件、分组列表、开关行、全选按钮、毛玻璃提交底栏
+ * OUTPUT: iOS 风格的选择类组件：单选列表（对勾）、分组列表、开关行、全选按钮、已选数量与开始按钮
  * POS:    2026-11-11 UI 改版样板（目前仅「常规综合评估」页使用）；只负责呈现，
  *         提交仍靠原生表单控件（radio / checkbox 的 name、value 原样随表单提交）。
+ *         配色为蓝白单色系（图标统一品牌蓝，不按量表上色）。
  *         与旧版 assessment-selection.tsx 并存，样板确认后再迁移其余三个方式页。
  */
 "use client";
 
 import type { ChangeEventHandler, ReactNode } from "react";
-import { motion } from "motion/react";
 import {
-  Activity, Apple, Bandage, Brain, BrainCircuit, ClipboardList, Ear, Eye, Footprints, Hand,
+  Activity, Apple, Bandage, Brain, BrainCircuit, Check, ClipboardList, Ear, Eye, Footprints, Hand,
   HeartPulse, House, Moon, Pill, ShoppingBasket, Smile, Soup, Users, Wind, Zap, type LucideIcon,
 } from "lucide-react";
 
-interface ScaleGlyph {
-  icon: LucideIcon;
-  /** iOS 设置页式的彩色图标底，按主题区分，仅作视觉识别 */
-  tint: string;
-}
-
-const SCALE_GLYPHS: Record<string, ScaleGlyph> = {
-  frail: { icon: HeartPulse, tint: "#ff3b30" },
-  mnasf: { icon: Soup, tint: "#ff9500" },
-  nrs2002: { icon: Apple, tint: "#ff9500" },
-  fall_3q: { icon: Footprints, tint: "#30b0c7" },
-  morse: { icon: Footprints, tint: "#30b0c7" },
-  motor_screen: { icon: Activity, tint: "#30b0c7" },
-  ais: { icon: Moon, tint: "#5856d6" },
-  sleep_1q: { icon: Moon, tint: "#5856d6" },
-  minicog: { icon: Brain, tint: "#ff2d55" },
-  mmse: { icon: BrainCircuit, tint: "#ff2d55" },
-  cam: { icon: BrainCircuit, tint: "#af52de" },
-  depression_2q: { icon: Smile, tint: "#ff9f0a" },
-  anxiety_2q: { icon: Wind, tint: "#32ade6" },
-  adl: { icon: Hand, tint: "#34c759" },
-  iadl: { icon: ShoppingBasket, tint: "#34c759" },
-  vision: { icon: Eye, tint: "#007aff" },
-  hearing: { icon: Ear, tint: "#af52de" },
-  lubben: { icon: Users, tint: "#007aff" },
-  home_env: { icon: House, tint: "#a2845e" },
-  braden: { icon: Bandage, tint: "#ff2d55" },
-  polypharmacy: { icon: Pill, tint: "#af52de" },
-  pain_1q: { icon: Zap, tint: "#ff3b30" },
+/** 量表图标只作识别辅助，颜色统一由样式层决定 */
+const SCALE_ICONS: Record<string, LucideIcon> = {
+  frail: HeartPulse,
+  mnasf: Soup,
+  nrs2002: Apple,
+  fall_3q: Footprints,
+  morse: Footprints,
+  motor_screen: Activity,
+  ais: Moon,
+  sleep_1q: Moon,
+  minicog: Brain,
+  mmse: BrainCircuit,
+  cam: BrainCircuit,
+  depression_2q: Smile,
+  anxiety_2q: Wind,
+  adl: Hand,
+  iadl: ShoppingBasket,
+  vision: Eye,
+  hearing: Ear,
+  lubben: Users,
+  home_env: House,
+  braden: Bandage,
+  polypharmacy: Pill,
+  pain_1q: Zap,
 };
 
-const FALLBACK_GLYPH: ScaleGlyph = { icon: ClipboardList, tint: "#8e8e93" };
+/** 一级标题行（「评估套餐」「本次评估项目」），右侧可放全选按钮。 */
+export function IosPrimaryHeader({ title, action }: { title: string; action?: ReactNode }) {
+  return (
+    <div className="ios-section-header ios-section-header-primary">
+      <h2>{title}</h2>
+      {action}
+    </div>
+  );
+}
 
-/** 选项卡式单选：选中滑块用 layoutId 在各段之间做临界阻尼弹簧滑动（无回弹）。 */
-export function IosSegmentedControl({ name, legend, options, value, onChange }: {
+/** iOS 原生单选列表：选中行右侧出现对勾，标题变蓝。 */
+export function IosChoiceList({ name, legend, options, value, onChange }: {
   name: string;
   legend: string;
   options: readonly { value: string; title: string; meta: string; badge?: string }[];
@@ -58,41 +61,23 @@ export function IosSegmentedControl({ name, legend, options, value, onChange }: 
   return (
     <fieldset>
       <legend className="sr-only">{legend}</legend>
-      <div className="ios-segmented">
-        {options.map((option) => {
-          const selected = option.value === value;
-          return (
-            <label key={option.value} className="ios-segment">
-              {selected && (
-                <motion.span
-                  layoutId={`ios-segment-thumb-${name}`}
-                  className="ios-segment-thumb"
-                  transition={{ type: "spring", bounce: 0, duration: 0.35 }}
-                  aria-hidden="true"
-                />
-              )}
-              <input type="radio" name={name} value={option.value} checked={selected}
-                onChange={() => onChange(option.value)} />
-              <span className="ios-segment-title">{option.title}</span>
-              <span className="ios-segment-meta">
-                {option.meta}
-                {option.badge && <span className="ios-segment-badge">{option.badge}</span>}
+      <div className="ios-list">
+        {options.map((option) => (
+          <label key={option.value} className="ios-row ios-choice">
+            <input type="radio" name={name} value={option.value} checked={option.value === value}
+              onChange={() => onChange(option.value)} />
+            <span className="min-w-0">
+              <span className="ios-row-title">
+                {option.title}
+                {option.badge && <span className="ios-choice-badge">{option.badge}</span>}
               </span>
-            </label>
-          );
-        })}
+              <span className="ios-row-subtitle">{option.meta}</span>
+            </span>
+            <Check className="ios-choice-check" strokeWidth={2.6} aria-hidden="true" />
+          </label>
+        ))}
       </div>
     </fieldset>
-  );
-}
-
-/** 一级标题行（「本次评估项目」等），右侧可放全选按钮。 */
-export function IosPrimaryHeader({ title, action }: { title: string; action?: ReactNode }) {
-  return (
-    <div className="ios-section-header ios-section-header-primary">
-      <h2>{title}</h2>
-      {action}
-    </div>
   );
 }
 
@@ -106,7 +91,7 @@ export function IosListSection({ title, count, action, children }: {
   return (
     <section aria-label={title}>
       <div className="ios-section-header">
-        <h3 className="ios-section-title">
+        <h3>
           {title}
           {count !== undefined && <span className="ios-section-count">{count} 项</span>}
         </h3>
@@ -128,11 +113,11 @@ export function IosToggleRow({ scaleId, title, subtitle, note, name, value, chec
   checked: boolean;
   onChange: ChangeEventHandler<HTMLInputElement>;
 }) {
-  const { icon: Icon, tint } = SCALE_GLYPHS[scaleId] ?? FALLBACK_GLYPH;
+  const Icon = SCALE_ICONS[scaleId] ?? ClipboardList;
   return (
     <label className="ios-row">
-      <span className="ios-icon" style={{ background: tint }} aria-hidden="true">
-        <Icon strokeWidth={2.1} />
+      <span className="ios-icon" aria-hidden="true">
+        <Icon strokeWidth={2} />
       </span>
       <span className="min-w-0">
         <span className="ios-row-title">{title}</span>
@@ -166,18 +151,17 @@ export function IosSelectAllButton({ ids, selected, onChange, group }: {
   );
 }
 
-/** 固定在视口底部的毛玻璃提交栏，页面内容从下方滚过。 */
-export function IosBottomBar({ count, label }: { count: number; label: string }) {
+/** 已选数量 + 开始按钮（放在左栏底部，16:9 下始终可见，无需滚动到页尾）。 */
+export function IosSubmitSummary({ count, label }: { count: number; label: string }) {
   return (
-    <div className="ios-bottom-bar">
-      <div className="ios-bottom-bar-inner">
-        <p className="ios-bottom-count" aria-live="polite">
-          已选<strong>{count}</strong>项
-        </p>
-        <button type="submit" className="ios-pill-button" disabled={count === 0}>
-          {label}
-        </button>
-      </div>
-    </div>
+    <>
+      <p className="ios-summary" aria-live="polite">
+        <span>本次评估</span>
+        <span>已选<strong>{count}</strong>项</span>
+      </p>
+      <button type="submit" className="ios-pill-button" disabled={count === 0}>
+        {label}
+      </button>
+    </>
   );
 }
