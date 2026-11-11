@@ -4,6 +4,7 @@
  * POS:    患者端问询的服务端编排层：加载快照 → 状态机决策 → 落库（DialogueTurn/Answer）→ 返回 DTO。
  *         不实现任何医学规则；评分仍由医生端 finalize 时调用评分引擎完成。
  *         2026-11-10：画图题交卷接视觉模型看图判定（drawing-judge.ts），判定在事务外完成。
+ *         2026-11-11：连减题判定前读取上一步原始回答，供相对计分换算参考答案（国标注 4）。
  */
 import { prisma } from "@/lib/db";
 import { displayOptionLabel, questionById, scaleById } from "@/lib/rules";
@@ -618,6 +619,21 @@ async function drawingOutcome(
 }
 
 /**
+ * 连减相对计分（2026-11-11，国标 WS/T 484 注 4）需要上一步的患者原始回答；非连减题或无上一步回答返回 null。
+ * 原文只在本地换算参考答案，送 DeepSeek 的只有换算后的数字。
+ */
+async function previousSerialAnswerText(sessionId: string, questionId: string): Promise<string | null> {
+  const spec = FREE_ANSWER_ITEMS.get(questionId);
+  if (spec?.kind !== "serialSubtraction" || spec.previousItemId === null) return null;
+  const previous = await prisma.answer.findUnique({
+    where: { sessionId_questionId: { sessionId, questionId: spec.previousItemId } },
+    select: { rawText: true, status: true },
+  });
+  // superseded 是分支切换后的历史答案，不作依据
+  return previous && previous.status !== "superseded" ? previous.rawText : null;
+}
+
+/**
  * 提交患者回答：归一化 → 状态机决策 → 事务落库（患者轮次 + 答案 + 下一题提问轮次）。
  * 归一化含网络调用，放在事务外执行；事务内重新校验状态防并发错位。
  */
@@ -694,6 +710,7 @@ export async function submitPatientAnswer(
                 utterance,
                 patientCode: preview.session.patientCode,
                 patientName: preview.session.patientName,
+                previousAnswerText: await previousSerialAnswerText(sessionId, input.questionId),
               });
   }
 

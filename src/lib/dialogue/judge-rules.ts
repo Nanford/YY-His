@@ -1,6 +1,8 @@
 /**
  * INPUT:  自由回答题配置（cognitive-flow.FREE_ANSWER_ITEMS）、患者原始回答、当前时间
- * OUTPUT: judgeByRules / matchWordsByRules —— 无 DeepSeek 密钥时的确定性规则兜底判定
+ * OUTPUT: judgeByRules / matchWordsByRules —— 无 DeepSeek 密钥时的确定性规则兜底判定；
+ *         statedNumberOf / serialReferenceOf / adjacentDaysOf —— 连减相对计分与日期 ±1 的确定性口径
+ *         （LLM 通道的参考答案也由它们算出，两条通道同口径）
  * POS:    认知题自由回答的兜底通道（对应 normalize-rules.ts 之于归一化）。
  *         原则与归一化一致：拿不准一律 unclear（走追问→待确认→待人工确认），
  *         绝不强行编造结论（AGENTS.md 硬约束 3）；LLM 通道的结论规则不复核。
@@ -22,6 +24,45 @@ export function extractFirstNumber(text: string): number | null {
   const run = text.match(/[零一二两三四五六七八九十百千]+/);
   if (!run) return null;
   return parseChineseNumber(run[0]);
+}
+
+/** 口头禅里的「一」（想一下、一个、一点）不是作答数字 */
+const NON_ANSWER_ONE = /[想等看算让]一[下会想]|一[个点共]/g;
+const NUMBER_TOKEN = /\d+|[零一二两三四五六七八九十百千]+/g;
+
+/**
+ * 患者最终说出的数字：取最后一个数。先念算式再说结果（「100 减 7 等于 93」）、
+ * 说错后自己改口（「93，不对，92」）都以最后说的为准。
+ */
+export function statedNumberOf(text: string): number | null {
+  const tokens = text.replace(NON_ANSWER_ONE, "").match(NUMBER_TOKEN) ?? [];
+  for (let index = tokens.length - 1; index >= 0; index -= 1) {
+    const token = tokens[index];
+    const value = /\d/.test(token) ? Number(token) : parseChineseNumber(token);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
+/**
+ * 连减本步的参考答案（国标 WS/T 484—2015 表 C.1 注 4）：上一步说出了数字 → 该数 − step；
+ * 首步、上一步无回答或回答里没有数字 → 01 表固定答案。
+ */
+export function serialReferenceOf(
+  spec: Extract<FreeAnswerSpec, { kind: "serialSubtraction" }>,
+  previousAnswerText: string | null | undefined
+): number {
+  if (spec.previousItemId === null || !previousAnswerText) return spec.expected;
+  const previous = statedNumberOf(normalizeText(previousAnswerText));
+  return previous === null ? spec.expected : previous - spec.step;
+}
+
+/**
+ * 前一天、当天、后一天（按真实日历推算，跨月、跨周不出错）。
+ * 国标 WS/T 484—2015 表 C.1 注 2：日期和星期差一天可算正确（2026-11-11 用户拍板星期也放宽）。
+ */
+export function adjacentDaysOf(now: Date): Date[] {
+  return [-1, 0, 1].map((offset) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset));
 }
 
 function parseChineseNumber(s: string): number | null {
@@ -99,14 +140,14 @@ function judgeDatePart(part: "year" | "season" | "month" | "day" | "weekday", ut
     if (!match) return "unclear";
     const value = extractFirstNumber(match[1]);
     if (value === null) return "unclear";
-    // MMSE 惯例：日期允许 ±1 天
-    return Math.abs(value - now.getDate()) <= 1 ? "correct" : "incorrect";
+    // 差一天也算对（国标注 2）：1 号答 31 号、31 号答 1 号按真实日历判
+    return adjacentDaysOf(now).some((day) => day.getDate() === value) ? "correct" : "incorrect";
   }
-  // weekday
+  // weekday：同样差一天也算对，周六/周日/周一跨周相邻
   const match = text.match(/(?:星期|礼拜)([一二三四五六天日])/);
   if (!match) return "unclear";
   const map: Record<string, number> = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
-  return map[match[1]] === now.getDay() ? "correct" : "incorrect";
+  return adjacentDaysOf(now).some((day) => day.getDay() === map[match[1]]) ? "correct" : "incorrect";
 }
 
 /** 地点定向题判定：命中配置位置（允许去掉省/市/楼等后缀的核心词）判对；否则保守 unclear 走追问 */
@@ -150,7 +191,8 @@ function judgeNaming(spec: Extract<FreeAnswerSpec, { kind: "naming" }>, text: st
 
 /**
  * 自由回答题规则兜底判定（DeepSeek 通道失败时启用）：
- * - exactNumber：提取到数字即比对（说错数字是有效错误回答，判 incorrect）；
+ * - serialSubtraction：取患者最终说出的数与 spec.expected 比对（说错数字是有效错误回答，判 incorrect）；
+ *   相对计分由调用方先用 serialReferenceOf 把 expected 换成本步参考答案；
  * - verbatim：完整包含目标句判对；长度足够但不含判错；明显没说完判 unclear；
  * - datePart/place/naming：如上。
  */
@@ -158,8 +200,8 @@ export function judgeByRules(spec: FreeAnswerSpec, utterance: string, now: Date 
   const text = normalizeText(utterance);
   if (!text) return "unclear";
   switch (spec.kind) {
-    case "exactNumber": {
-      const value = extractFirstNumber(text);
+    case "serialSubtraction": {
+      const value = statedNumberOf(text);
       if (value === null) return "unclear";
       return value === spec.expected ? "correct" : "incorrect";
     }

@@ -34,13 +34,15 @@ describe("cognitive-flow：词表/期望值从 V2 条目解析", () => {
     expect(MINICOG_WORDS).toEqual(["苹果", "钥匙", "汽车"]);
   });
 
-  it("连减期望值解析自各题 1 分选项（93/86/79/72/65）", () => {
-    const expected = ["mmse_14", "mmse_15", "mmse_16", "mmse_17", "mmse_18"].map((id) => {
+  it("连减固定答案解析自各题 1 分选项（93/86/79/72/65），并逐题指向上一步（相对计分）", () => {
+    const specs = ["mmse_14", "mmse_15", "mmse_16", "mmse_17", "mmse_18"].map((id) => {
       const spec = FREE_ANSWER_ITEMS.get(id);
-      if (spec?.kind !== "exactNumber") throw new Error(`${id} 应为 exactNumber`);
-      return spec.expected;
+      if (spec?.kind !== "serialSubtraction") throw new Error(`${id} 应为 serialSubtraction`);
+      return spec;
     });
-    expect(expected).toEqual([93, 86, 79, 72, 65]);
+    expect(specs.map((spec) => spec.expected)).toEqual([93, 86, 79, 72, 65]);
+    expect(specs.map((spec) => spec.previousItemId)).toEqual([null, "mmse_14", "mmse_15", "mmse_16", "mmse_17"]);
+    expect(specs.every((spec) => spec.step === 7)).toBe(true);
   });
 
   it("mmse_24 目标句解析为「瑞雪兆丰年」", () => {

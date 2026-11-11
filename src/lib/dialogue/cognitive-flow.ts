@@ -8,6 +8,8 @@
  *            患者自由回答，由 LLM（规则兜底）把回答映射回既有标准选项——
  *            评分引擎与选项数据零改动（AGENTS.md 硬约束 2：LLM 只做语言理解）。
  *         3. 看图识物（2026-11-11）：MMSE 命名题屏幕出图、患者说出名称，同样按自由回答题判定。
+ *         4. 连减 7 相对计分（2026-11-11 用户拍板，国标 WS/T 484—2015 表 C.1 注 4）：
+ *            上一步答错时，本步以「上一步回答 − 7」为准（serialSubtraction）。
  *         词表/连减期望值/目标句均从 scales-v2.json 条目解析，加载时断言引用条目存在
  *         （仿 src/lib/assessment/patient-scale-packages.ts 的加载断言风格）。
  */
@@ -192,7 +194,14 @@ export const wordRecallGroupByTrigger: ReadonlyMap<string, WordRecallGroup> = ne
 export type FreeAnswerSpec =
   | { kind: "datePart"; part: "year" | "season" | "month" | "day" | "weekday" }
   | { kind: "place"; part: keyof MmseLocation }
-  | { kind: "exactNumber"; expected: number }
+  | {
+      kind: "serialSubtraction";
+      /** 01 表 1 分选项的固定答案（93/86/79/72/65）；判定时若上一步说出了数字，换成「上一步回答 − step」 */
+      expected: number;
+      /** 上一步条目 id；首步（100 − 7）为 null */
+      previousItemId: string | null;
+      step: number;
+    }
   | { kind: "verbatim"; target: string }
   | { kind: "wordCount"; words: readonly string[] }
   | {
@@ -290,6 +299,34 @@ export function isPatientScreenItem(itemId: string): boolean {
   return screenStimulusById.has(itemId);
 }
 
+// ---------- 连减 7（相对计分） ----------
+
+const SERIAL_SEVEN_ITEM_IDS = ["mmse_14", "mmse_15", "mmse_16", "mmse_17", "mmse_18"] as const;
+const SERIAL_SEVEN_START = 100;
+const SERIAL_SEVEN_STEP = 7;
+
+/**
+ * 国标 WS/T 484—2015 表 C.1 注 4（2026-11-11 用户拍板采纳）：若前一步算错，本步按「前一步回答 − 7」
+ * 算对即得分（例：93−7=88 不得分，接着 88−7=81 得分）。参考答案由规则确定，LLM 只核对患者说的数，
+ * 结果仍映射回 01 表既有 1/0 分选项（硬约束 2）。上一步没有可用回答时退回 01 表固定答案。
+ */
+const SERIAL_SEVEN_SPECS: readonly [string, FreeAnswerSpec][] = SERIAL_SEVEN_ITEM_IDS.map((id, index) => {
+  const expected = expectedNumberOf(itemOf("mmse", id));
+  // 加载断言：01 表固定答案必须是从 100 起逐步减 7 的链（01 表改了数字而相对计分没跟着改时立即报错）
+  if (expected !== SERIAL_SEVEN_START - SERIAL_SEVEN_STEP * (index + 1)) {
+    throw new Error(`连减 7 条目 ${id} 的 01 表答案 ${expected} 与「100 逐步减 7」不一致`);
+  }
+  return [
+    id,
+    {
+      kind: "serialSubtraction",
+      expected,
+      previousItemId: index === 0 ? null : SERIAL_SEVEN_ITEM_IDS[index - 1],
+      step: SERIAL_SEVEN_STEP,
+    },
+  ];
+});
+
 export const FREE_ANSWER_ITEMS: ReadonlyMap<string, FreeAnswerSpec> = new Map<string, FreeAnswerSpec>([
   // MMSE 时间定向（mmse_1~5）：参考答案由系统日期运行时生成
   ["mmse_1", { kind: "datePart", part: "year" }],
@@ -303,10 +340,8 @@ export const FREE_ANSWER_ITEMS: ReadonlyMap<string, FreeAnswerSpec> = new Map<st
   ["mmse_8", { kind: "place", part: "place" }],
   ["mmse_9", { kind: "place", part: "department" }],
   ["mmse_10", { kind: "place", part: "floor" }],
-  // MMSE 连减 7（mmse_14~18）：期望值从各题 1 分选项解析（93/86/79/72/65）
-  ...(["mmse_14", "mmse_15", "mmse_16", "mmse_17", "mmse_18"] as const).map(
-    (id): [string, FreeAnswerSpec] => [id, { kind: "exactNumber", expected: expectedNumberOf(itemOf("mmse", id)) }]
-  ),
+  // MMSE 连减 7（mmse_14~18）：固定答案从各题 1 分选项解析（93/86/79/72/65），按上一步回答相对计分
+  ...SERIAL_SEVEN_SPECS,
   // MMSE 看图识物（mmse_22/23）：屏幕出图，患者说出名称（配置见 SCREEN_STIMULI）
   ...SCREEN_STIMULI.map((stimulus): [string, FreeAnswerSpec] => [stimulus.itemId, stimulus.spec]),
   // MMSE 原文复述（mmse_24）：目标句从 1 分选项解析（瑞雪兆丰年）
