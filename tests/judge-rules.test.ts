@@ -1,6 +1,6 @@
 /**
  * INPUT:  src/lib/dialogue/judge-rules.ts（自由回答规则兜底判定）、judge.ts（判定编排）
- * OUTPUT: 规则兜底的单元测试（数字/日期/地点/原文复述/词表命中）+ judgeFreeAnswer 无密钥路径
+ * OUTPUT: 规则兜底的单元测试（数字/日期/地点/原文复述/看图识物/词表命中）+ judgeFreeAnswer 无密钥路径
  * POS:    无 DeepSeek 密钥时的确定性兜底必须与 LLM 通道同口径：
  *         拿不准一律 unclear（硬约束 3 禁止编造），绝不强行给分。
  */
@@ -82,6 +82,41 @@ describe("judgeByRules：地点定向（place，读 MMSE_LOCATION 配置）", ()
   });
 });
 
+describe("judgeByRules：看图识物（naming，MMSE 命名题）", () => {
+  const watch = FREE_ANSWER_ITEMS.get("mmse_22");
+  const pencil = FREE_ANSWER_ITEMS.get("mmse_23");
+  it("手表：标准名称与同义说法判对（单字「表」须整句就是它）", () => {
+    if (watch?.kind !== "naming") throw new Error("spec 形态不对");
+    expect(judgeByRules(watch, "手表")).toBe("correct");
+    expect(judgeByRules(watch, "这是一块手表吧。")).toBe("correct");
+    expect(judgeByRules(watch, "表")).toBe("correct");
+    expect(judgeByRules(watch, "这是一块表吧")).toBe("correct");
+    expect(judgeByRules(watch, "钟表")).toBe("correct");
+    expect(judgeByRules(watch, "电子表")).toBe("correct");
+  });
+  it("手表：说成别的东西/认不出判错，否定句与答非所问保守 unclear", () => {
+    if (watch?.kind !== "naming") throw new Error("spec 形态不对");
+    expect(judgeByRules(watch, "闹钟")).toBe("incorrect");
+    expect(judgeByRules(watch, "像个手环")).toBe("incorrect");
+    expect(judgeByRules(watch, "不认识")).toBe("incorrect");
+    expect(judgeByRules(watch, "不知道")).toBe("incorrect");
+    expect(judgeByRules(watch, "不是手表")).toBe("unclear");
+    expect(judgeByRules(watch, "这个表示什么意思")).toBe("unclear"); // "表示"不能误命中单字「表」
+    expect(judgeByRules(watch, "没听清")).toBe("unclear");
+  });
+  it("铅笔：只认含「铅笔」的说法，只说「笔」或说成其他笔判错", () => {
+    if (pencil?.kind !== "naming") throw new Error("spec 形态不对");
+    expect(judgeByRules(pencil, "铅笔")).toBe("correct");
+    expect(judgeByRules(pencil, "是一支铅笔")).toBe("correct");
+    expect(judgeByRules(pencil, "彩色铅笔")).toBe("correct");
+    expect(judgeByRules(pencil, "笔")).toBe("incorrect");
+    expect(judgeByRules(pencil, "钢笔吧")).toBe("incorrect");
+    expect(judgeByRules(pencil, "圆珠笔")).toBe("incorrect");
+    expect(judgeByRules(pencil, "说不上来")).toBe("incorrect");
+    expect(judgeByRules(pencil, "再说一遍")).toBe("unclear");
+  });
+});
+
 describe("matchWordsByRules：词复述兜底", () => {
   const words = ["皮球", "国旗", "树木"];
   it("命中部分/全部/明确不记得/无法判断", () => {
@@ -103,6 +138,19 @@ describe("judgeFreeAnswer：编排（无密钥走规则兜底，映射回既有�
     expect(correct).toMatchObject({ status: "matched", optionLabel: "回答93（1分）", score: 1, method: "rules" });
     const wrong = await judgeFreeAnswer({ ...base, utterance: "95" });
     expect(wrong).toMatchObject({ status: "matched", score: 0, method: "rules" });
+  });
+
+  it("看图识物：说出「表」→ 1 分选项；说成「笔」→ 0 分选项", async () => {
+    for (const [id, utterance, score] of [
+      ["mmse_22", "表", 1],
+      ["mmse_23", "一支笔", 0],
+    ] as const) {
+      const question = questionById.get(id);
+      const spec = FREE_ANSWER_ITEMS.get(id);
+      if (!question || !spec) throw new Error("缺题目/配置");
+      const outcome = await judgeFreeAnswer({ question, options: question.options ?? [], spec, utterance, patientCode: "P001" });
+      expect(outcome, id).toMatchObject({ status: "matched", score, method: "rules" });
+    }
   });
 
   it("minicog 词计数：复述两个词 → 「回忆2个词（2分）」选项", async () => {

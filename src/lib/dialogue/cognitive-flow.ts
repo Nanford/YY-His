@@ -1,12 +1,13 @@
 /**
  * INPUT:  src/lib/rules/v2 的 scalesV2（只读引用条目文本/选项，医学内容仍以 V2 源为唯一权威）
- * OUTPUT: INSTRUCTION_BROADCASTS / WORD_RECALL_GROUPS / FREE_ANSWER_ITEMS / MMSE_LOCATION
- *         及配套查询辅助（组目标判定、播报文案覆盖、词表/期望值解析）
+ * OUTPUT: INSTRUCTION_BROADCASTS / WORD_RECALL_GROUPS / FREE_ANSWER_ITEMS / MMSE_LOCATION / SCREEN_STIMULI
+ *         及配套查询辅助（组目标判定、播报文案覆盖、词表/期望值解析、看图题图片与可问性）
  * POS:    认知评估（minicog / MMSE）特殊流程的声明式配置（2026-08-13 用户拍板）：
  *         1. 三词记忆先由数字医生播报（不需作答），再采集复述；
  *         2. 复述/定向/计算/原文复述题不向患者展示选项（答案不能出现在按钮上），
  *            患者自由回答，由 LLM（规则兜底）把回答映射回既有标准选项——
  *            评分引擎与选项数据零改动（AGENTS.md 硬约束 2：LLM 只做语言理解）。
+ *         3. 看图识物（2026-11-11）：MMSE 命名题屏幕出图、患者说出名称，同样按自由回答题判定。
  *         词表/连减期望值/目标句均从 scales-v2.json 条目解析，加载时断言引用条目存在
  *         （仿 src/lib/assessment/patient-scale-packages.ts 的加载断言风格）。
  */
@@ -193,7 +194,16 @@ export type FreeAnswerSpec =
   | { kind: "place"; part: keyof MmseLocation }
   | { kind: "exactNumber"; expected: number }
   | { kind: "verbatim"; target: string }
-  | { kind: "wordCount"; words: readonly string[] };
+  | { kind: "wordCount"; words: readonly string[] }
+  | {
+      kind: "naming";
+      /** 标准名称（从 1 分选项解析，如「手表」） */
+      target: string;
+      /** 同样算对的说法（工程侧整理，待甲方医学确认） */
+      synonyms: readonly string[];
+      /** 明确说成别的东西（判错）；仅供规则兜底用，LLM 通道另按判定标准理解 */
+      nearMisses: readonly string[];
+    };
 
 export interface MmseLocation {
   province: string;
@@ -215,6 +225,71 @@ export const MMSE_LOCATION: MmseLocation = {
   floor: process.env.MMSE_PLACE_FLOOR ?? "三楼",
 };
 
+// ---------- 看图识物（屏幕出图、患者说出名称） ----------
+
+export interface ScreenStimulus {
+  itemId: string;
+  /** 患者屏幕上展示的图片（public 路径，自绘线稿，不含任何文字） */
+  imageSrc: string;
+  spec: Extract<FreeAnswerSpec, { kind: "naming" }>;
+}
+
+/**
+ * MMSE 命名题（mmse_22 手表 / mmse_23 铅笔，01 表条目类型「图片识别」）。
+ * 2026-11-11 用户拍板（会议纪要「认知评估系统功能优化讨论」：屏幕题不展示就没有价值）：
+ * 由医生代填改为患者端出题——屏幕展示图片，患者说出名称，按自由回答题判定后映射回既有 1/0 分选项，
+ * 评分引擎与医学 JSON 零改动（硬约束 2）。
+ * 判定口径：「手表」另认「表、腕表、钟表、电子表」；「铅笔」只认含「铅笔」的说法，只说「笔」或说成
+ * 其他笔判错（01 表选项写的是回答"铅笔"）。同义词范围为工程侧整理，待甲方医学确认。
+ */
+export const SCREEN_STIMULI: readonly ScreenStimulus[] = [
+  {
+    itemId: "mmse_22",
+    imageSrc: "/cognitive/naming-watch.svg",
+    spec: {
+      kind: "naming",
+      target: "手表",
+      synonyms: ["表", "腕表", "钟表", "电子表"],
+      nearMisses: ["闹钟", "钟", "手环", "手镯", "手链"],
+    },
+  },
+  {
+    itemId: "mmse_23",
+    imageSrc: "/cognitive/naming-pencil.svg",
+    spec: {
+      kind: "naming",
+      target: "铅笔",
+      synonyms: [],
+      nearMisses: ["笔", "筷子", "棍子"],
+    },
+  },
+];
+
+// 加载断言：标准名称必须与 01 表 1 分选项原文一致（01 表改了名称而图片、同义词没跟着改时立即报错）
+for (const stimulus of SCREEN_STIMULI) {
+  const sourceTarget = quotedTargetOf(itemOf("mmse", stimulus.itemId));
+  if (stimulus.spec.target !== sourceTarget) {
+    throw new Error(`看图识物 ${stimulus.itemId} 的 01 表标准名称为「${sourceTarget}」，与配置「${stimulus.spec.target}」不符`);
+  }
+}
+
+const screenStimulusById: ReadonlyMap<string, ScreenStimulus> = new Map(
+  SCREEN_STIMULI.map((stimulus) => [stimulus.itemId, stimulus])
+);
+
+/** 该题在患者屏幕上展示的图片；非看图题返回 null */
+export function screenImageOf(itemId: string): string | null {
+  return screenStimulusById.get(itemId)?.imageSrc ?? null;
+}
+
+/**
+ * 01 表条目类型不是「正式问题」、但已改为患者端出题的条目（投影层据此不标 observerAssisted）。
+ * 目前只有看图识物两题。
+ */
+export function isPatientScreenItem(itemId: string): boolean {
+  return screenStimulusById.has(itemId);
+}
+
 export const FREE_ANSWER_ITEMS: ReadonlyMap<string, FreeAnswerSpec> = new Map<string, FreeAnswerSpec>([
   // MMSE 时间定向（mmse_1~5）：参考答案由系统日期运行时生成
   ["mmse_1", { kind: "datePart", part: "year" }],
@@ -232,6 +307,8 @@ export const FREE_ANSWER_ITEMS: ReadonlyMap<string, FreeAnswerSpec> = new Map<st
   ...(["mmse_14", "mmse_15", "mmse_16", "mmse_17", "mmse_18"] as const).map(
     (id): [string, FreeAnswerSpec] => [id, { kind: "exactNumber", expected: expectedNumberOf(itemOf("mmse", id)) }]
   ),
+  // MMSE 看图识物（mmse_22/23）：屏幕出图，患者说出名称（配置见 SCREEN_STIMULI）
+  ...SCREEN_STIMULI.map((stimulus): [string, FreeAnswerSpec] => [stimulus.itemId, stimulus.spec]),
   // MMSE 原文复述（mmse_24）：目标句从 1 分选项解析（瑞雪兆丰年）
   ["mmse_24", { kind: "verbatim", target: quotedTargetOf(itemOf("mmse", "mmse_24")) }],
   // minicog 画钟后复述（minicog_3）：LLM 数出回忆词数 → 映射"回忆N个词"选项

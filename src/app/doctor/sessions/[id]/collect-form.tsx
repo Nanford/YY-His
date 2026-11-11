@@ -3,6 +3,7 @@
  * OUTPUT: 量表代填表单（提交至 saveAnswers / finalizeSession）
  * POS:    M2 无语音采集路径与语音链路的兜底补录界面；M9.6/M9.7 扩展数字/多选/图片/画钟确认。
  *         条目来自 V2 题库投影——非正式问题计分条目患者端不提问，由本表单代填。
+ *         2026-11-11 看图识物题（MMSE 命名）改为患者端出题，本表单展示同一张图片供核对与改判。
  */
 import { ArrowRight, ClipboardList, Save } from "lucide-react";
 import { MULTI_CHOICE_SEP, optionsOf, scales, type Scale, type ScaleQuestion } from "@/lib/rules";
@@ -63,6 +64,13 @@ function QuestionBlock({
             {question.answerType === "multiChoice" && <span className="ui-badge">可多选</span>}
             {question.answerType === "number" && <span className="ui-badge">数字题</span>}
           </div>
+          {/* 看图识物（MMSE 命名）：患者端展示的图片，医生代填/改判时对照 */}
+          {question.imageSrc && question.answerType !== "imageChoice" && (
+            <div className="w-fit overflow-hidden rounded-xl border border-[#dbe7f6] bg-white p-1.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={question.imageSrc} alt="患者端展示的图片" className="size-20" />
+            </div>
+          )}
         </div>
       </div>
 

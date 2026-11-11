@@ -2,8 +2,11 @@
  * INPUT:  src/lib/dialogue/cognitive-flow.ts（认知评估特殊流程配置）、src/lib/rules（投影）
  * OUTPUT: 配置完整性测试（2026-08-13 认知题改版）
  * POS:    锁定：词表/期望值/目标句从 scales-v2.json 正确解析；组配置与 free 题配置结构合法；
- *         投影层 responseMode/free 标记与可问性（组目标不单独提问、trigger 可问）。
+ *         投影层 responseMode/free 标记与可问性（组目标不单独提问、trigger 可问）；
+ *         看图识物（2026-11-11）：命名题向患者提问并带图，图片文件存在。
  */
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   FREE_ANSWER_ITEMS,
@@ -11,6 +14,7 @@ import {
   INSTRUCTION_BROADCASTS,
   MINICOG_WORDS,
   MMSE_WORDS,
+  SCREEN_STIMULI,
   WORD_RECALL_GROUPS,
   displayTextOverride,
   instructionBeforeItem,
@@ -122,16 +126,38 @@ describe("cognitive-flow：投影与可问性", () => {
     expect(isFreeResponseItem("frail_1")).toBe(false);
   });
 
-  it("MMSE 患者端可问清单：trigger 可问、组目标不单独提问、操作/图片题不问", () => {
+  it("MMSE 患者端可问清单：trigger 可问、组目标不单独提问、看图识物可问、操作题不问", () => {
     const ids = askableQuestions(["mmse"]).map((item) => item.question.id);
     expect(ids).toContain("mmse_11"); // 立即复述 trigger（虽为记忆指令仍提问）
     expect(ids).toContain("mmse_19"); // 延迟回忆 trigger
     for (const excluded of ["mmse_12", "mmse_13", "mmse_20", "mmse_21"]) {
       expect(ids).not.toContain(excluded);
     }
-    // 图片识别/操作指令仍为医生题，患者端不问
-    for (const clinical of ["mmse_22", "mmse_23", "mmse_25", "mmse_30"]) {
+    // 看图识物（图片识别）改为患者端出题（2026-11-11）
+    expect(ids).toContain("mmse_22");
+    expect(ids).toContain("mmse_23");
+    // 操作指令仍为医生题，患者端不问
+    for (const clinical of ["mmse_25", "mmse_28", "mmse_29", "mmse_30"]) {
       expect(ids).not.toContain(clinical);
     }
+  });
+
+  it("看图识物：投影为自由回答、非医生题、带屏幕图片，且图片文件存在", () => {
+    expect(SCREEN_STIMULI.map((stimulus) => [stimulus.itemId, stimulus.spec.target])).toEqual([
+      ["mmse_22", "手表"],
+      ["mmse_23", "铅笔"],
+    ]);
+    for (const stimulus of SCREEN_STIMULI) {
+      const question = questionById.get(stimulus.itemId);
+      expect(question?.responseMode, stimulus.itemId).toBe("free");
+      expect(question?.observerAssisted, stimulus.itemId).toBe(false);
+      expect(question?.imageSrc, stimulus.itemId).toBe(stimulus.imageSrc);
+      expect(existsSync(path.join(process.cwd(), "public", stimulus.imageSrc)), stimulus.imageSrc).toBe(true);
+      // 图片路径与 alt 都不能泄露答案（文件名用英文、不含中文名称）
+      expect(stimulus.imageSrc).not.toContain(stimulus.spec.target);
+    }
+    // 其他图片识别以外的医生题不受影响
+    expect(questionById.get("mmse_30")?.observerAssisted).toBe(true);
+    expect(questionById.get("mmse_30")?.imageSrc).toBeUndefined();
   });
 });

@@ -1459,6 +1459,24 @@
   flex: 0 1 auto;
 }
 
+/* 看图识物（MMSE 命名题，2026-11-11）：白底细边方框居中，图片边长随视口高度收放，
+   1366×768（可视约 650px）下与题干、语音按钮、作答提示同屏不出滚动条 */
+.care-shell .care-stimulus {
+  width: fit-content;
+  /* 只设水平居中：纵向间距交给父级 space-y，写 margin 简写会盖掉它，图片贴住下方提示条 */
+  margin-inline: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.care-shell .care-stimulus img {
+  display: block;
+  width: clamp(140px, 24vh, 240px);
+  height: clamp(140px, 24vh, 240px);
+}
+
 .care-shell .care-option-grid {
   --care-option-gap: 0.875rem;
   gap: var(--care-option-gap);

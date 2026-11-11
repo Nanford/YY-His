@@ -103,6 +103,7 @@ YY-Demo/
 ├── prisma/
 ├── public/interventions/     # YD 视频、SS/ZY 图、bristol-stool、文本类无文件
 ├── public/brand/             # 品牌 logo（tcm-care-logo.webp）；浏览器图标为 src/app/favicon.ico + apple-icon.png
+├── public/cognitive/         # 认知题屏幕图片（自绘线稿、不含文字）：看图识物 naming-watch/naming-pencil.svg
 ├── src/components/           # intervention-media + v2-pipeline + brand-logo + assessment-selection
 ├── src/lib/brand.ts          # 品牌文案常量（岐颐智护 / TCM-CARE / 中英文全称 / logo 路径）
 ├── src/lib/scoring-v2/       # V2 评分引擎（纯函数）
@@ -182,6 +183,8 @@ npm run pack-share     # 打绿色便携包 dist/his-demo-portable.zip（需先 
 - **2026-11-11 全站铺开第 2 批：问询页视觉精修（用户选 1A：只改视觉，画钟放大与橡皮擦不做）**：①问询面板与顶栏同一内容框（左缘对齐品牌标、右缘对齐「返回服务入口」），面板上下留白相等——舞台高度改为 `100dvh − 顶栏(含边线) − 上下留白 − 2px`（`--care-topbar-h` 77px，矮屏断点 65px；替代 globals.css 按 76px 顶栏写死的 124px）；②题干与作答区作为一组在题号栏下方**垂直居中**、共用同一内容列 `.care-interview-column`（56rem），作答区去掉贴底灰色带——此前短选项题贴顶、多选项题贴底、自由题上下分离三种构图并存，原 `data-short-choice` 特例随之删除；③单选大按钮网格 `.care-option-grid`：`grid-auto-rows: 1fr` 等高，两列奇数个时末项单独居中、与其他卡同宽，长文案不再把箭头挤小（`svg flex-shrink: 0`），字号由 globals 的 clamp(22px, 2.4vw, 32px) 收为 clamp(22px, 1.75vw, 28px)（1366 宽下原为 32px，两列长选项折成三四行）；语音为主时的 compact 选项此前 Tailwind 类被非层叠样式压住未生效，改由 `[data-compact]` 生效；④画钟题作答区由「吃满剩余高度」改为「只收缩不伸展」：空间够时画布 480px 原尺寸、整组居中，空间不够时沿原 flex 链等比收缩（实测 1920×1080 → 480、1366×768 → 375、1366×650 → 257，均为正方形、无页面滚动）。交互、状态流转、语音链路零改动；全量 E2E 8 条通过。
 - **2026-11-11 全站铺开第 3 批：报告页视觉精修（只改视觉，信息顺序与文案不变）**：①预览报告页 `patient-report.tsx` 去掉自带的 `max-w-[72rem]`，与顶栏同一内容框（1920 宽左右缘 308/1612、1366 宽 66/1300，对齐品牌标与「返回服务入口」）；②整页只保留一种分区标题：`section-head.tsx` 去掉图标方块与 `icon` 参数，改为平铺标题 + 细分割线 + 右侧说明（样式 `.care-report-section-head` / `.care-report-section-aside`，与「基本情况/既存问题/综合评估结果」的 h2 同字号同间距），「与上次评估对比」「个性化干预方案」「选择补充评估项目」由 `patient-panel` 卡片改为 `care-report-section`；③对比卡片宽屏（lg）两列等高，奇数个时末项占满整行；④补充评估收起条与「本次评估项目」「历史评估报告」折叠条同款（白底细边、同为 58px 高）。A4 下载报告页未改。e2e 依赖的「补充评估」按钮与「选择补充评估项目」标题文案保持不变。
 - **2026-11-11 全站铺开第 4 批：医生端视觉精修（只改视觉，信息与交互不变）**：①顶栏内容与页面内容同一框：宽屏下 `.doctor-topbar` 左右内边距跟随 `.app-page`（最大 1280px、内边距 32px），系统全称左缘对齐页面标题、「身份信息仅保存在本机」右缘对齐内容右缘（1920 宽 462/1678、1366 宽 252/1334）；顶栏高度改为 74px，与侧栏品牌区分隔线落在同一水平线；②各面板卡头统一 `--care-band` 浅蓝底（`.doctor-shell.care-shell .ui-panel-heading`，此前白底与三种浅蓝混用），患者管理列表卡头同色；③评估记录表的状态徽标不换行（此前状态列被挤成每行一个字）；④页头统一：评估会话页去掉外层卡片与标题图标，改为与其他页同款平铺页头；三处返回入口统一为带边框次按钮，右缘对齐内容框；⑤新建档案页左右两栏等宽，「基本情况」卡头改为与「人体测量」同款的标题 + 说明 + 徽标（此前图标与标题被 globals.css 未分层的 space-between 推到两端）；⑥发起评估的方式卡片共奇数个时末项占满整行。样式集中在 assessment-design.css 医生端一节。
+
+- **2026-11-11 会议纪要功能项 F1：MMSE 看图识物搬到患者端**（会议纪要「认知评估系统功能优化讨论」：屏幕题不展示就没有价值；用户同日提供的国标 WS/T 484—2015 表 C.1 第 6 项「命名：展示铅笔/手表」同口径）：mmse_22（手表）/mmse_23（铅笔）原为 01 表「图片识别」医生代填题，改为**患者端出题**——屏幕展示自绘蓝白线稿（`public/cognitive/naming-*.svg`，不含文字，文件名与 alt 均不含物品名，防读屏泄露答案），患者语音/文字说出名称，按**自由回答题**判定（`cognitive-flow.ts` 的 `SCREEN_STIMULI` + `FreeAnswerSpec` 新增 `naming`）后映射回 01 表既有 1/0 分选项，评分引擎与医学 JSON 零改动（硬约束 2）。投影层 `rules/index.ts` 对这两题不再标 `observerAssisted`（`isPatientScreenItem`）并下发 `imageSrc`；患者端图片在作答控件之上（`.care-stimulus`，边长 clamp(140px, 24vh, 240px)，1366×650 不出滚动条），医生端代填表单同题显示缩略图供核对改判。判定口径：手表另认「表/腕表/钟表/电子表」，单字「表」须剥掉口头框架后整句就是它（防「表示」「代表」误命中）；铅笔只认含「铅笔」的说法，只说「笔」或说成其他笔判错（01 表选项写的是回答"铅笔"）；说成别的东西或明确认不出判错，「不是手表」这类否定与答非所问交追问——**同义词范围为工程侧整理，待甲方医学确认**。DeepSeek 通道按同一口径拼判定标准（`judge.ts` 的 `criteriaOf`），无密钥时 `judge-rules.ts` 的 `judgeNaming` 兜底。MMSE 患者端可问题数 18 → 20；MMSE 仍含操作指令题（25~30），「需医护协助」标签不变。
 
 ## 高风险区域（改动前格外小心）
 

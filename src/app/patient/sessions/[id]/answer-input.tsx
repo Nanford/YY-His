@@ -8,6 +8,7 @@
  *         尊重患者在开始画面的选择。
  *         2026-11-11 视觉精修：根容器与题干同列（.care-interview-column）；单选大按钮网格
  *         .care-option-grid 等高、奇数个时末项居中（样式在 assessment-design.css）。
+ *         2026-11-11 看图识物：题目带配图（MMSE 命名题）时图片置于作答控件之上（.care-stimulus）。
  */
 "use client";
 
@@ -64,6 +65,8 @@ export function AnswerInput(props: AnswerInputProps) {
     answerType === "imageChoice" ||
     answerType === "drawing";
   const showVoiceTextFallback = !specialType || answerType === "number";
+  /** 看图识物题（MMSE 命名，2026-11-11）的屏幕图片；Bristol 参照图由 ImageChoicePanel 自行展示 */
+  const stimulusSrc = answerType === "imageChoice" ? undefined : props.prompt.imageSrc;
 
   const handleTranscript = (answer: VoiceAnswer) => {
     if (directVoice) {
@@ -125,6 +128,13 @@ export function AnswerInput(props: AnswerInputProps) {
   return (
     // 与题干同一内容列（.care-interview-column），题干左缘与选项左缘对齐
     <div className="care-interview-column mx-auto w-full space-y-4">
+      {/* 看图识物：图片在作答控件之上，先看图再作答；alt 不写物品名称，避免读屏泄露答案 */}
+      {stimulusSrc && (
+        <figure className="care-stimulus">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={stimulusSrc} alt="题目图片" />
+        </figure>
+      )}
       {voicePrimary && props.micStream && (
         <VoiceButton
           micStream={props.micStream}

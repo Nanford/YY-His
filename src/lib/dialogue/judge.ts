@@ -52,6 +52,11 @@ function criteriaOf(spec: FreeAnswerSpec, now: Date): string {
       return `正确答案是：${spec.expected}。患者说出的数字等于该值（含中文数字读法）即正确，其他数字或不作答即错误。`;
     case "verbatim":
       return `目标句是：「${spec.target}」。患者完整准确复述即正确（允许极轻微语气差异；漏词、错词、换词均算错误）。`;
+    case "naming": {
+      // 看图识物：同义说法算对；说成别的东西或只说笼统类别（如把铅笔说成"笔"）算错
+      const synonyms = spec.synonyms.length > 0 ? `（说成${spec.synonyms.map((name) => `「${name}」`).join("")}也算正确）` : "";
+      return `屏幕上展示的是一张${spec.target}的图片，患者需说出它的名称。正确答案是：「${spec.target}」${synonyms}。说成其他物品、只说笼统的类别、或表示认不出来，均算错误。`;
+    }
     case "wordCount":
       return ""; // wordCount 不走 criteria 通道
   }

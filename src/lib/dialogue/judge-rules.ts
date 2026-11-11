@@ -124,11 +124,35 @@ function mmseLocationValue(part: keyof MmseLocation): string {
   return MMSE_LOCATION[part];
 }
 
+/** 命名回答里的口头框架（"这是一块…吧"），剥掉后剩下的才是患者说出的名称 */
+const NAMING_FILLERS =
+  /(我觉得|我看|好像|应该|可能|大概|这个|那个|这是|那是|它是|就是|叫做|叫|是|一个|一块|一只|一支|一根|一把|个|块|只|支|根|把|吧|啊|呀|嘛|呢|的|了|哦|吗)/g;
+
+const CANNOT_NAME = /(不知道|不认识|不清楚|说不上来|说不出|叫不出|不晓得|想不起)/;
+
+/**
+ * 看图识物判定（MMSE 命名题）：
+ * - 说出标准名称或同义说法 → 对。两个字以上的说法子串命中即可（"这是手表吧"）；
+ *   单字说法（"表"）须剥掉口头框架后整句就是这个字，避免"表示""代表"之类误命中；
+ * - "不是手表"这类否定 → unclear（交追问，不硬判）；
+ * - 说成别的东西（nearMisses）或明确说认不出 → 错（MMSE：其他答案或不能回答计 0 分）；
+ * - 其余拿不准 → unclear。
+ */
+function judgeNaming(spec: Extract<FreeAnswerSpec, { kind: "naming" }>, text: string): RuleVerdict {
+  const accepted = [spec.target, ...spec.synonyms];
+  if (accepted.some((name) => text.includes(`不是${name}`))) return "unclear";
+  if (accepted.some((name) => name.length >= 2 && text.includes(name))) return "correct";
+  if (accepted.includes(text.replace(NAMING_FILLERS, ""))) return "correct";
+  if (spec.nearMisses.some((name) => text.includes(name))) return "incorrect";
+  if (CANNOT_NAME.test(text)) return "incorrect";
+  return "unclear";
+}
+
 /**
  * 自由回答题规则兜底判定（DeepSeek 通道失败时启用）：
  * - exactNumber：提取到数字即比对（说错数字是有效错误回答，判 incorrect）；
  * - verbatim：完整包含目标句判对；长度足够但不含判错；明显没说完判 unclear；
- * - datePart/place：如上。
+ * - datePart/place/naming：如上。
  */
 export function judgeByRules(spec: FreeAnswerSpec, utterance: string, now: Date = new Date()): RuleVerdict {
   const text = normalizeText(utterance);
@@ -148,6 +172,8 @@ export function judgeByRules(spec: FreeAnswerSpec, utterance: string, now: Date 
       return judgeDatePart(spec.part, utterance, now);
     case "place":
       return judgePlace(spec.part, utterance);
+    case "naming":
+      return judgeNaming(spec, text);
     case "wordCount":
       // 词计数走 matchWordsByRules（本函数不处理）
       return "unclear";

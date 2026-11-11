@@ -17,7 +17,7 @@ import {
   type InterventionV2,
   type ScoringCategoryV2,
 } from "./v2";
-import { isFreeResponseItem } from "@/lib/dialogue/cognitive-flow";
+import { isFreeResponseItem, isPatientScreenItem, screenImageOf } from "@/lib/dialogue/cognitive-flow";
 
 // ---------- 旧形状类型（对话/代填/页面层的消费契约） ----------
 
@@ -58,12 +58,13 @@ export interface ScaleQuestion {
   /** number 题的合法分值范围（来自 options 分值） */
   numberMin?: number;
   numberMax?: number;
-  /** imageChoice 参照图（public 路径） */
+  /** 题目配图（public 路径）：imageChoice 的参照图（Bristol），或看图识物题在患者屏幕上展示的图片 */
   imageSrc?: string;
   /** 需医生/系统侧处理的计分条目（系统读取/逻辑计算/操作测试/医护观察等）：
    *  患者端不提问，走医生端代填；缺失时按 deferClinical 口径豁免计分。
    *  例外：绘图操作（M9.6 患者可画，医生确认计分）仍向患者提问；
-   *  词复述组 trigger 题（2026-08-13 认知题改版）虽为记忆指令仍向患者提问。 */
+   *  词复述组 trigger 题（2026-08-13 认知题改版）虽为记忆指令仍向患者提问；
+   *  看图识物题（2026-11-11，MMSE 命名 mmse_22/23）屏幕出图、向患者提问。 */
   observerAssisted?: boolean;
   /** V2 条目类型原文（系统读取/逻辑计算/正式问题…），代填界面展示用 */
   entryType?: string;
@@ -193,8 +194,10 @@ function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
   const options = (item.options ?? []).map((o) => ({ label: o.label, score: compatScore(o.label, o.score) }));
   const answerType = detectAnswerType(item);
   const scored = (item.options ?? []).map((o) => o.score).filter((s): s is number => s !== null);
-  // 绘图操作向患者提问（画钟）；其余非正式问题仍走医生代填
-  const observerAssisted = item.entryType !== "正式问题" && item.entryType !== "绘图操作";
+  // 绘图操作向患者提问（画钟）、看图识物题屏幕出图向患者提问（见 cognitive-flow.SCREEN_STIMULI）；
+  // 其余非正式问题仍走医生代填
+  const observerAssisted =
+    item.entryType !== "正式问题" && item.entryType !== "绘图操作" && !isPatientScreenItem(item.id);
   const text = stripBranchAnnotations(QUESTION_TEXT_OVERRIDES.get(item.id) ?? item.text);
   return {
     id: item.id,
@@ -207,7 +210,7 @@ function toScaleQuestion(item: ScaleItemV2): ScaleQuestion {
     options,
     numberMin: scored.length > 0 ? Math.min(...scored) : undefined,
     numberMax: scored.length > 0 ? Math.max(...scored) : undefined,
-    imageSrc: answerType === "imageChoice" ? "/interventions/bristol-stool.webp" : undefined,
+    imageSrc: answerType === "imageChoice" ? "/interventions/bristol-stool.webp" : screenImageOf(item.id) ?? undefined,
     observerAssisted,
     entryType: item.entryType,
     responseMode: isFreeResponseItem(item.id) ? "free" : undefined,
