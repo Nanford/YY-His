@@ -75,10 +75,10 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await firstGroup.getByRole("button", { name: /全选本组/ }).click();
   await expect(firstGroup.locator("input:checked")).toHaveCount(4);
   await page.getByRole("button", { name: "清除已选", exact: true }).click();
-  await expect(page.getByRole("button", { name: "开始评估", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "确认并开始评估" })).toBeDisabled();
   await page.getByRole("button", { name: "全选", exact: true }).click();
   await expect(page.locator('input[name="scaleIds"]:checked')).toHaveCount(7);
-  await page.getByRole("link", { name: "评估方式", exact: true }).click();
+  await page.getByRole("link", { name: "返回方式选择" }).click();
 
   // 走自选组合 · 临时自定义选择：勾选 跌倒风险 + 衰弱评估（与原默认 frail+fall_3q 一致，
   // 可纯自助当场出报告的两项）。注意"跌倒风险详评"（morse）同名前缀，用完整可访问名精确匹配。

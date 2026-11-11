@@ -4,8 +4,18 @@
   --care-band: #f1f6fd;
   --care-selected: #e3efff;
   --care-hover: #d8e8fd;
-  --care-rule: #d6e3f3;
+  --care-rule: #e1e8f2;
   --care-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* 2026-11-11 选择页精修（用户参考图）：蓝白单色、淡渐变选中态、柔和投影、细线条图标 */
+  --care-ink: #14213d;
+  --care-ink-soft: #5f6b7d;
+  --care-rule-strong: #c9d8ee;
+  --care-band-fill: linear-gradient(180deg, #f7faff 0%, #f2f6fd 100%);
+  --care-band-edge: #e8eef7;
+  --care-selected-fill: linear-gradient(145deg, #e7effd 0%, #f2f7fe 100%);
+  --care-selected-edge: rgba(22, 104, 227, 0.14);
+  --care-shadow-soft: 0 1px 2px rgba(20, 50, 100, 0.04), 0 4px 14px rgba(20, 50, 100, 0.04);
+  --care-shadow-selected: 0 6px 20px rgba(22, 104, 227, 0.1);
   --canvas: var(--care-paper);
   background: var(--care-paper);
 }
@@ -25,10 +35,11 @@
 
 .assessment-page-heading h1,
 .care-report-title h1 {
-  color: var(--foreground);
+  color: var(--care-ink);
   font-size: clamp(1.875rem, 3.25vw, 2.875rem);
-  font-weight: 750;
+  font-weight: 800;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .patient-shell .care-report {
@@ -242,7 +253,7 @@
 
 .assessment-page-heading p {
   margin-block-start: 0.55rem;
-  color: var(--muted-foreground);
+  color: var(--care-ink-soft);
   font-size: clamp(1rem, 1.4vw, 1.25rem);
 }
 
@@ -267,21 +278,25 @@
   align-items: flex-start;
   gap: 0.9rem;
   min-height: 6.5rem;
-  padding: 1.15rem 1.4rem;
+  padding: 1.35rem 1.6rem;
   border: 1px solid var(--care-rule);
-  border-radius: 0.95rem;
-  background: var(--background);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
   cursor: pointer;
-  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease);
+  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease),
+    box-shadow 180ms var(--care-ease);
 }
 
 .assessment-package:hover {
-  background: var(--care-band);
+  border-color: var(--care-rule-strong);
 }
 
+/* 选中态：淡蓝渐变 + 蓝色柔光投影，替代整块实色填充 */
 .assessment-package:has(input:checked) {
-  border-color: transparent;
-  background: var(--care-selected);
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+  box-shadow: var(--care-shadow-selected);
 }
 
 .assessment-package:has(input:focus-visible),
@@ -293,7 +308,7 @@
 .assessment-package-title,
 .assessment-tile-title {
   display: block;
-  color: var(--foreground);
+  color: var(--care-ink);
   font-size: clamp(1.05rem, 1.5vw, 1.4rem);
   font-weight: 700;
   line-height: 1.35;
@@ -314,7 +329,7 @@
 }
 
 .assessment-toolbar h2 {
-  color: var(--foreground);
+  color: var(--care-ink);
   font-size: clamp(1.25rem, 2vw, 1.875rem);
   font-weight: 750;
 }
@@ -364,8 +379,8 @@
   align-items: center;
   gap: 0.6rem;
   min-height: 2.75rem;
-  color: var(--foreground);
-  font-weight: 650;
+  color: var(--care-ink-soft);
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -377,14 +392,15 @@
 .assessment-band {
   container-type: inline-size;
   min-width: 0;
-  border-radius: 0.875rem;
-  background: var(--care-band);
+  border: 1px solid var(--care-band-edge);
+  border-radius: 1.125rem;
+  background: var(--care-band-fill);
 }
 
 .assessment-band-body {
   display: grid;
   gap: 0.875rem;
-  padding: 0.875rem;
+  padding: 1rem;
 }
 
 .assessment-band-label {
@@ -396,18 +412,20 @@
 }
 
 .assessment-band-label h3 {
-  color: var(--foreground);
+  color: var(--care-ink);
   font-size: clamp(1.1rem, 1.65vw, 1.5rem);
   font-weight: 750;
   line-height: 1.25;
 }
 
+/* 细线条图标：CSS stroke-width 覆盖 lucide 默认的 2，观感更轻 */
 .assessment-band-icon,
 .assessment-tile-icon {
-  width: clamp(1.5rem, 2.4vw, 2.125rem);
-  height: clamp(1.5rem, 2.4vw, 2.125rem);
+  width: clamp(1.75rem, 2.6vw, 2.375rem);
+  height: clamp(1.75rem, 2.6vw, 2.375rem);
   color: var(--primary);
   flex-shrink: 0;
+  stroke-width: 1.6;
 }
 
 .assessment-band-count {
@@ -429,21 +447,28 @@
   flex-direction: column;
   justify-content: flex-start;
   gap: 0.8rem;
-  padding: clamp(0.75rem, 1.45vw, 1.3rem);
+  padding: clamp(0.85rem, 1.5vw, 1.35rem);
   border: 1px solid var(--care-rule);
-  border-radius: 0.85rem;
+  border-radius: 1rem;
   background: var(--care-paper);
   cursor: pointer;
-  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease);
-}
-
-.assessment-tile:has(input:checked) {
-  border-color: transparent;
-  background: var(--care-selected);
+  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease),
+    box-shadow 180ms var(--care-ease);
 }
 
 .assessment-tile:hover {
-  background: var(--care-hover);
+  border-color: var(--care-rule-strong);
+}
+
+/* 选中态：淡蓝渐变 + 顶部高光内描边，呈"磨砂玻璃"质感 */
+.assessment-tile:has(input:checked) {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--care-shadow-soft);
+}
+
+.assessment-tile:has(input:checked):hover {
+  border-color: rgba(22, 104, 227, 0.28);
 }
 
 .assessment-tile-top {
@@ -461,11 +486,12 @@
   display: inline-block;
   width: fit-content;
   margin-block-start: 0.45rem;
-  padding: 0.18rem 0.55rem;
-  border-radius: 0.45rem;
-  color: #784600;
-  background: #fff0d6;
+  padding: 0.2rem 0.65rem;
+  border-radius: 0.5rem;
+  color: #8a5300;
+  background: #fdecd3;
   font-size: 0.875rem;
+  font-weight: 600;
   line-height: 1.5;
 }
 
@@ -478,9 +504,30 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
-  padding: 1rem 0;
+  padding: 1.25rem 0;
   border-top: 1px solid var(--care-rule);
-  background: var(--care-paper);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* 主按钮：上亮下深的品牌蓝渐变 + 蓝色投影；按下轻微缩放给即时反馈 */
+.assessment-submit button[type="submit"] {
+  min-height: 3.5rem;
+  padding-inline: 1.75rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, #2a78ee 0%, #1662dc 100%);
+  box-shadow: 0 6px 16px rgba(22, 104, 227, 0.24);
+  font-size: 1.125rem;
+  transition: transform 120ms var(--care-ease), box-shadow 180ms var(--care-ease);
+}
+
+.assessment-submit button[type="submit"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.assessment-submit button[type="submit"]:disabled {
+  box-shadow: none;
 }
 
 @media (min-width: 900px) {
@@ -505,7 +552,7 @@
     align-content: center;
     align-items: flex-start;
     flex-direction: column;
-    padding-inline: 0.65rem 0.6rem;
+    padding-inline: 0.85rem 0.6rem;
     border-inline-end: 1px solid var(--care-rule);
   }
 

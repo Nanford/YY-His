@@ -3,11 +3,11 @@
  * OUTPUT: 患者端「常规综合评估」配置页（2026-08-08 设计图·方式一）
  * POS:    患者自助建档第二步·方式一：预设套餐（标准包/门诊简版/住院入院）+ 按一级分类分组的
  *         量表配置（可增减）。套餐定义见 src/lib/assessment/patient-scale-packages.ts。
- *         2026-11-11 起为 iOS 风格样板页（PC 16:9 左右分栏、蓝白单色；样式 src/app/ios-design.css，仅本页挂载）。
  */
 import Link from "next/link";
+import { PatientPageHeading } from "@/components/patient-page-heading";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft, ListTodo } from "lucide-react";
 import { startAssessment } from "@/lib/actions/patient";
 import { prisma } from "@/lib/db";
 import { firstQueryValue } from "@/lib/query";
@@ -19,7 +19,6 @@ import {
 } from "@/lib/assessment/patient-scale-packages";
 import { SCALE_LABELS, SCALE_SUBTITLES, needsClinicianAssist } from "@/lib/assessment/scale-selection";
 import RoutineForm, { type RoutinePackageOption } from "./routine-form";
-import "../../../ios-design.css";
 
 export const dynamic = "force-dynamic";
 
@@ -63,22 +62,31 @@ export default async function PatientRoutineScalesPage({
   }));
 
   return (
-    <main className="ios-page flex-1">
-      <RoutineForm
-        heading={
-          <>
-            <Link href={`/patient/select-scales?patientId=${patientId}`} className="ios-back">
-              <ChevronLeft size={26} strokeWidth={2.4} aria-hidden="true" />
-              评估方式
-            </Link>
-            <h1 className="ios-large-title">常规综合评估</h1>
-            <p className="ios-lede">选择一个套餐，可按需增减项目。</p>
-          </>
-        }
-        packages={packageOptions}
-        error={error}
-        action={startAssessment.bind(null, patientId)}
-      />
+    <main className="patient-main assessment-page flex-1">
+      <Link
+        href={`/patient/select-scales?patientId=${patientId}`}
+        className="ui-button ui-button-quiet -ml-2 mb-6"
+      >
+        <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
+        返回方式选择
+      </Link>
+
+      <section>
+        <PatientPageHeading
+          plain
+          icon={<ListTodo className="size-6" />}
+          title="常规综合评估"
+          description="请选择评估套餐，确认后开始评估。"
+        />
+
+        <div>
+          <RoutineForm
+            packages={packageOptions}
+            error={error}
+            action={startAssessment.bind(null, patientId)}
+          />
+        </div>
+      </section>
     </main>
   );
 }

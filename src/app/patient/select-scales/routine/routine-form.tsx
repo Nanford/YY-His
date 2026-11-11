@@ -2,18 +2,14 @@
  * INPUT:  预设套餐（含按一级分类分组的量表）、患者 id、startAssessment action
  * OUTPUT: 患者端「常规综合评估」配置表单（客户端交互组件）
  * POS:    先选预设套餐，再按分类调整量表；提交 name="scaleIds" 多选。
- *         2026-11-11 起为 iOS 风格样板（ios-selection 组件）：PC 16:9 左右分栏——左栏标题、
- *         套餐单选与开始按钮，右栏两列量表分组；量表说明常显为副标题，去掉「显示项目说明」开关；
- *         全选/清除按组合并为一个按钮。
  */
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { CircleAlert } from "lucide-react";
-import { updateAssessmentSelection } from "@/components/assessment-selection";
 import {
-  IosChoiceList, IosListSection, IosPrimaryHeader, IosSelectAllButton, IosSubmitSummary, IosToggleRow,
-} from "@/components/ios-selection";
+  AssessmentBulkActions, AssessmentSubmitBar, ScaleDetailsToggle, ScaleGroup, ScaleOption, updateAssessmentSelection,
+} from "@/components/assessment-selection";
 
 export interface RoutineScaleItem {
   id: string;
@@ -40,14 +36,12 @@ export interface RoutinePackageOption {
 }
 
 interface Props {
-  /** 左栏顶部的返回链接与页面标题（由服务端页面提供） */
-  heading: ReactNode;
   packages: readonly RoutinePackageOption[];
   error: string | null;
   action: (formData: FormData) => Promise<void>;
 }
 
-export default function RoutineForm({ heading, packages, error, action }: Props) {
+export default function RoutineForm({ packages, error, action }: Props) {
   // 默认选中推荐套餐（recommended，2026-09-14 起为门诊简版），无推荐标记时回退第一个
   const [selectedKey, setSelectedKey] = useState(
     packages.find((pkg) => pkg.recommended)?.key ?? packages[0]?.key ?? ""
@@ -55,10 +49,9 @@ export default function RoutineForm({ heading, packages, error, action }: Props)
   const selected = packages.find((pkg) => pkg.key === selectedKey) ?? packages[0];
   // 勾选状态：切换套餐时重置为该套餐全选（checked 集合以量表 id 计）
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set(selected?.scaleIds ?? []));
+  const [showDetails, setShowDetails] = useState(false);
 
-  const choosePackage = (key: string) => {
-    const pkg = packages.find((item) => item.key === key);
-    if (!pkg) return;
+  const choosePackage = (pkg: RoutinePackageOption) => {
     setSelectedKey(pkg.key);
     setChecked(new Set(pkg.scaleIds));
   };
@@ -68,55 +61,60 @@ export default function RoutineForm({ heading, packages, error, action }: Props)
   if (!selected) return null;
 
   return (
-    <form action={action} className="ios-split">
+    <form action={action} className="assessment-form">
       <input type="hidden" name="mode" value="routine" />
-
-      <aside className="ios-sidebar">
-        {heading}
-        <IosPrimaryHeader title="评估套餐" />
-        <IosChoiceList
-          name="routinePackage"
-          legend="选择套餐"
-          value={selectedKey}
-          onChange={choosePackage}
-          options={packages.map((pkg) => ({
-            value: pkg.key,
-            title: pkg.name,
-            meta: `${pkg.scaleIds.length} 项 · 约 ${pkg.minutes} 分钟`,
-            badge: pkg.recommended ? "推荐" : undefined,
-          }))}
-        />
-        <div className="ios-sidebar-footer">
-          {error === "scales" && (
-            <div className="ios-alert" role="alert">
-              <CircleAlert size={22} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <span>请至少保留一项评估内容。</span>
-            </div>
-          )}
-          <IosSubmitSummary count={checked.size} label="开始评估" />
+      {error === "scales" && (
+        <div className="ui-alert ui-alert-danger text-base sm:text-lg" role="alert">
+          <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>请至少保留一项评估内容。</span>
         </div>
-      </aside>
+      )}
 
-      <div className="ios-detail">
-        <IosPrimaryHeader
-          title="本次评估项目"
-          action={<IosSelectAllButton ids={selected.scaleIds} selected={checked} onChange={toggleScales} />}
-        />
-        <div className="ios-detail-groups">
-          {selected.groups.map((group) => (
-            <IosListSection key={group.category} title={group.category} count={group.scales.length}
-              action={<IosSelectAllButton ids={group.scales.map((scale) => scale.id)} selected={checked}
-                onChange={toggleScales} group={group.category} />}>
-              {group.scales.map((scale) => (
-                <IosToggleRow key={scale.id} scaleId={scale.id} title={scale.label} subtitle={scale.subtitle}
-                  note={scale.needsAssist ? "部分题目需医护协助" : undefined}
-                  name="scaleIds" value={scale.id} checked={checked.has(scale.id)}
-                  onChange={(e) => toggleScales([scale.id], e.target.checked)} />
-              ))}
-            </IosListSection>
+      <fieldset>
+        <legend className="sr-only">选择套餐</legend>
+        <div className="assessment-packages">
+          {packages.map((pkg) => (
+            <label key={pkg.key} className="assessment-package">
+              <input
+                type="radio"
+                name="routinePackage"
+                value={pkg.key}
+                checked={selectedKey === pkg.key}
+                onChange={() => choosePackage(pkg)}
+                className="mt-1 size-5 shrink-0 accent-primary"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="assessment-package-title">{pkg.name}</span>
+                {pkg.recommended && <span className="sr-only">推荐</span>}
+                <span className="mt-1.5 block text-sm text-muted-foreground">{pkg.scaleIds.length} 项 · 约 {pkg.minutes} 分钟</span>
+                {showDetails && <span className="mt-2 block text-sm text-muted-foreground">{pkg.description} 适用场景：{pkg.scene}</span>}
+              </span>
+            </label>
           ))}
         </div>
-      </div>
+      </fieldset>
+
+      <section className="assessment-groups">
+        <div className="assessment-toolbar">
+          <h2>本次评估项目</h2>
+          <div className="assessment-toolbar-actions">
+            <AssessmentBulkActions ids={selected.scaleIds} selected={checked} onChange={toggleScales} />
+            <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+          </div>
+        </div>
+        {selected.groups.map((group) => (
+          <ScaleGroup key={group.category} title={group.category} count={group.scales.length}
+            actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)} selected={checked}
+              onChange={toggleScales} group={group.category} />}>
+            {group.scales.map((scale) => (
+              <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle} needsAssist={scale.needsAssist}
+                name="scaleIds" value={scale.id} checked={checked.has(scale.id)} showDetails={showDetails}
+                onChange={(e) => toggleScales([scale.id], e.target.checked)} />
+            ))}
+          </ScaleGroup>
+        ))}
+      </section>
+      <AssessmentSubmitBar count={checked.size} label="确认并开始评估" />
     </form>
   );
 }
