@@ -3,7 +3,8 @@
  *         视觉模型看图通道（src/lib/providers/vision.ts，可注入便于测试）
  * OUTPUT: validateDrawing —— 画作数据校验；judgeDrawing —— 画图题看图判定并映射回标准选项；
  *         parseClockObservation / clockVerdict —— 画钟观察结果的校验与确定性判定（纯函数）；
- *         parsePentagonObservation / pentagonVerdict —— 五边形临摹（MMSE mmse_30）的同类纯函数
+ *         parsePentagonObservation / pentagonVerdict —— 五边形临摹（MMSE mmse_30）的同类纯函数；
+ *         parseArbitration —— 临界复核输出的校验（纯函数）
  * POS:    画图题（2026-11-10 用户拍板）的判定编排，分两段：
  *         ① 视觉模型只做"观察"——如实报告图里有什么（轮廓、每个数字的实际方位、指针数），不评对错；
  *         ② 对错由本文件的确定性规则根据观察结果判定，再映射回 01 表既有选项（正确项=最高分选项、
@@ -11,9 +12,14 @@
  *         为什么不让模型直接判对错：2026-11-10 实测让模型直接判时，会把"12 个数字全挤在右半边"
  *         的画钟说成"12 在上、3 在右…分布均匀"并判正确——模型按"钟表应有的样子"脑补。
  *         改为逐个数字报告实际方位、由规则判定，脑补空间小得多，且每一步都可追溯。
- *         拿不准、临界、未配置视觉模型、调用失败 → unclear，调用方落「待医生确认计分」（原 M9.6 口径），
- *         不强行给结论（硬约束 3）。明确结论直接计分进报告、医生事后可改判（用户拍板 2A）。
+ *         明确结论直接计分进报告、医生事后可改判（用户拍板 2A）。
  *         2026-11-11：MMSE 五边形临摹（mmse_30）接入同一套两段式判定；画钟维持原口径（见 clockVerdict）。
+ *         2026-11-11 用户拍板（方案 A，画图不再等医生确认）：规则判为临界/模型把握不足时，追加一次
+ *         「临界复核」——带上判定标准与拿不准的地方，请更强的复核模型（默认 qwen3.8-max，见 vision.ts）
+ *         再看一遍，直接给出合格/不合格并计分，
+ *         理由标「临界复核」供医生事后核对改判。这是硬约束 2/3 在画图题上的例外：明确的情况仍由规则判，
+ *         只有规则拿不准的才由模型定。复核通道失败/输出不合法、首轮未配置视觉模型或调用失败
+ *         → 仍落「待医生确认计分」（原 M9.6 口径；没有模型就无从打分）。
  */
 import type { QuestionOption } from "@/lib/rules";
 import { requestVisionJson, type VisionJsonRequest } from "@/lib/providers/vision";
@@ -36,6 +42,57 @@ export type DrawingJudge = (imageDataUrl: string) => Promise<DrawingVerdict | nu
 
 /** 看图通道（可注入，测试用桩函数） */
 type VisionRequester = (request: VisionJsonRequest) => Promise<Record<string, unknown> | null>;
+
+// ---------- 临界复核（各题共用） ----------
+
+/** 临界复核的输出格式说明（拼在各题复核提示词末尾） */
+const ARBITRATION_OUTPUT_LINES = [
+  "只输出一个 JSON 对象，不要输出其他文字：",
+  "{",
+  '  "pass": 合格写 true，不合格写 false,',
+  '  "confidence": 你对这个结论的把握（0到1）,',
+  '  "reason": "简短中文理由，指出决定结论的地方"',
+  "}",
+] as const;
+
+/** 临界复核结论（逐字段校验后的可信形状） */
+export interface ArbitrationResult {
+  pass: boolean;
+  confidence: number;
+  reason: string;
+}
+
+/** 校验临界复核的模型输出；形状不符返回 null（视为复核失败，保留首轮的拿不准） */
+export function parseArbitration(raw: Record<string, unknown> | null): ArbitrationResult | null {
+  if (!raw) return null;
+  const { pass, confidence, reason } = raw;
+  if (typeof pass !== "boolean") return null;
+  if (typeof confidence !== "number" || confidence < 0 || confidence > 1) return null;
+  return { pass, confidence, reason: typeof reason === "string" ? reason.trim() : "" };
+}
+
+/**
+ * 首轮规则判为临界时做临界复核（2026-11-11 用户拍板方案 A），明确的结论原样返回。
+ * 复核结论不再设置信度门槛：用户口径是画图不再等医生，模型给出的合格/不合格即计分，
+ * 置信度随结论落库供医生核对。复核失败（通道/输出不合法）→ 返回首轮的 unclear，交医生。
+ * @param firstConfidence 首轮观察的置信度：把握不足时请模型逐项完整核对，否则只看拿不准的那一处
+ */
+async function settleBorderline(
+  verdict: DrawingVerdict,
+  firstConfidence: number,
+  requestArbitration: (focus: string) => Promise<Record<string, unknown> | null>
+): Promise<DrawingVerdict> {
+  if (verdict.verdict !== "unclear") return verdict;
+  const focus =
+    firstConfidence < MIN_CONFIDENCE ? "第一轮看图把握不足，请按标准逐项完整核对" : verdict.reason;
+  const result = parseArbitration(await requestArbitration(focus));
+  if (!result) return verdict;
+  return {
+    verdict: result.pass ? "correct" : "incorrect",
+    confidence: result.confidence,
+    reason: `临界复核${result.pass ? "合格" : "不合格"}：${result.reason || "（模型未给理由）"}（首轮拿不准：${verdict.reason}）`,
+  };
+}
 
 // ---------- 画钟（minicog_2） ----------
 
@@ -148,7 +205,7 @@ function sectorDistance(a: Sector, b: Sector): number {
  * 判定（方位偏差按八方位的格数计）：
  *   错误 —— 无闭合轮廓 / 1～12 不齐或有重复、多余数字 / 指针不足两根 /
  *           12、3、6、9 任一偏离正方位两格及以上 / 其余数字有两个及以上偏离两格及以上；
- *   临界（交医生）—— 12、3、6、9 偏一格（如 12 在"右上"）/ 其余数字仅一个偏离两格及以上 / 模型把握不足；
+ *   临界（交临界复核）—— 12、3、6、9 偏一格（如 12 在"右上"）/ 其余数字仅一个偏离两格及以上 / 模型把握不足；
  *   正确 —— 以上全部通过（其余数字偏一格属手绘正常误差，如 1 写在"上"、2 写在"右"）。
  */
 export function clockVerdict(observation: ClockObservation): DrawingVerdict {
@@ -186,7 +243,28 @@ export function clockVerdict(observation: ClockObservation): DrawingVerdict {
   return { verdict: "correct", confidence, reason: "钟面轮廓闭合，1～12 齐全且方位正确，画有指针" };
 }
 
-/** 画钟判定器：视觉模型观察 → 校验 → 确定性判定 */
+/*
+ * 画钟临界复核的判定标准：与 clockVerdict 同一口径（不评指针时间），把规则里"临界"的那条线
+ * （正常手绘误差 vs 位置不对）交给模型对着原图再判一次。
+ */
+const CLOCK_ARBITRATION_PROMPT = [
+  "你是画图题的复核员。图片是一位老人在触摸屏上手绘的钟表。第一轮看图在个别地方拿不准，",
+  "请你按下面的标准，对照图中实际画的内容，给出合格或不合格的结论。",
+  "",
+  "合格必须同时满足：",
+  "1. 有大致闭合的钟面轮廓；",
+  "2. 1 到 12 都写了，没有漏写、重复或多余的数字；",
+  "3. 数字按顺时针排列，12、3、6、9 分别大致在钟面的正上、正右、正下、正左，其余数字在各自应在的位置附近；",
+  "4. 至少画了两根从钟面中心附近伸出的指针（不评价指针指向几点）。",
+  "线条抖动、不够圆、字迹歪斜、数字间距略不均匀属正常手绘误差，不算不合格；",
+  "数字整体挤在一侧、逆时针排列、整体转了一个角度，都属于不合格。",
+  "",
+  "必须按图中实际看到的判断，绝不能按正常钟表应有的样子推断。",
+  "",
+  ...ARBITRATION_OUTPUT_LINES,
+].join("\n");
+
+/** 画钟判定器：视觉模型观察 → 校验 → 确定性判定；规则拿不准时临界复核 */
 export function createClockJudge(request: VisionRequester = requestVisionJson): DrawingJudge {
   return async (imageDataUrl) => {
     const observation = parseClockObservation(
@@ -196,7 +274,15 @@ export function createClockJudge(request: VisionRequester = requestVisionJson): 
         imageDataUrls: [imageDataUrl],
       })
     );
-    return observation ? clockVerdict(observation) : null;
+    if (!observation) return null;
+    return settleBorderline(clockVerdict(observation), observation.confidence, (focus) =>
+      request({
+        systemPrompt: CLOCK_ARBITRATION_PROMPT,
+        userText: `${CLOCK_USER_TEXT}\n复核重点：${focus}`,
+        imageDataUrls: [imageDataUrl],
+        purpose: "arbitration",
+      })
+    );
   };
 }
 
@@ -282,10 +368,11 @@ const OVERLAP_CORNERS = 4;
  * 标准（来源：国标 WS/T 484—2015 表 C.1 注 8「只有绘出两个五边形的图案，交叉处形成 1 个小四边形，
  * 才算对」，与 01 表 mmse_30 选项「正确复制两个相交的五边形」一致）：
  *   错误 —— 图形不是两个 / 有图形没闭合 / 角数明显不对（两个都不是 5 个角，或有一个差 2 个及以上）/ 两个图形不交叠；
- *   临界（交医生）—— 模型把握不足 / 交叠时只有一个图形差 1 个角 / 交叠区域看不清或看成不是四个角；
+ *   临界（交临界复核）—— 模型把握不足 / 交叠时只有一个图形差 1 个角 / 交叠区域看不清或看成不是四个角；
  *   正确 —— 两个闭合的五边形交叠，交叠处是四边形。
  * 从严的理由（2026-11-11 合成图实测，见观察提示词处注释）：模型出错集中在把画对的看错——交叠处被另一个图形
- * 挡住的角漏数（报成 5、4）、交叠区角数说不准；这类"差一点"一律交医生，宁可多交医生也不把画对的判成 0 分。
+ * 挡住的角漏数（报成 5、4）、交叠区角数说不准；这类"差一点"不由规则直接判，交临界复核再看一遍，
+ * 避免规则把画对的直接判成 0 分。
  */
 export function pentagonVerdict(observation: PentagonObservation): DrawingVerdict {
   const { confidence, shapes } = observation;
@@ -304,7 +391,7 @@ export function pentagonVerdict(observation: PentagonObservation): DrawingVerdic
   }
   if (!observation.overlapping) return incorrect("两个图形没有交叠");
   if (cornerGaps.some((gap) => gap === 1)) {
-    return unclear(`${cornerText}，与五边形只差一个角，模型可能数错（交叠处的角容易被挡住），请医生核对`);
+    return unclear(`${cornerText}，与五边形只差一个角，可能是交叠处被挡住的角漏数了`);
   }
   if (observation.overlapCorners === null) return unclear("两个五边形有交叠，但交叠区域的形状看不清");
   if (observation.overlapCorners !== OVERLAP_CORNERS) {
@@ -313,7 +400,28 @@ export function pentagonVerdict(observation: PentagonObservation): DrawingVerdic
   return { verdict: "correct", confidence, reason: "两个闭合的五边形相交，交叉处形成四边形" };
 }
 
-/** 五边形临摹判定器：只发患者画作（不发示例图），观察 → 校验 → 确定性判定 */
+/*
+ * 五边形临摹的临界复核标准：复核要判对错，只能把国标注 8 的标准原文告诉模型（观察阶段刻意不提"五边形"）。
+ * 示例图不发：2026-11-11 实测（参照图渲染成 PNG 先发、画作后发，qwen3-vl-plus，4 张临界图）附了示例图
+ * 结论一张没变——照参照图画对的临摹仍被看成"五边形 + 矩形"判不合格；真正起作用的是换复核模型
+ * （qwen3.8-max，见 vision.ts 的 DEFAULT_ARBITRATION_MODEL）。不发也免得给模型"看着像就合格"的捷径。
+ */
+const PENTAGON_ARBITRATION_PROMPT = [
+  "你是画图题的复核员。图片是一位老人在触摸屏上照着示例图临摹的线条图形。第一轮看图在个别地方拿不准，",
+  "请你按下面的标准，对照图中实际画的内容，给出合格或不合格的结论。",
+  "",
+  "合格必须同时满足（来源：国家卫生行业标准 WS/T 484—2015 表 C.1 注 8）：",
+  "1. 画了两个各自闭合的图形，每个都是五边形（有五个角）；",
+  "2. 两个图形互相交叉，交叉处形成一个四边形（有四个角的小区域）。",
+  "",
+  "数角时沿着每个图形自己的线条完整走一圈：伸进另一个图形里面的那段线条和那里的角同样属于它自己，必须数上。",
+  "线条抖动、边不够直、起笔和收笔之间的小缺口属正常手绘误差。",
+  "必须按图中实际看到的判断，不能因为整体看着差不多就判合格。",
+  "",
+  ...ARBITRATION_OUTPUT_LINES,
+].join("\n");
+
+/** 五边形临摹判定器：只发患者画作（不发示例图），观察 → 校验 → 确定性判定；规则拿不准时临界复核 */
 export function createPentagonJudge(request: VisionRequester = requestVisionJson): DrawingJudge {
   return async (imageDataUrl) => {
     const observation = parsePentagonObservation(
@@ -323,7 +431,15 @@ export function createPentagonJudge(request: VisionRequester = requestVisionJson
         imageDataUrls: [imageDataUrl],
       })
     );
-    return observation ? pentagonVerdict(observation) : null;
+    if (!observation) return null;
+    return settleBorderline(pentagonVerdict(observation), observation.confidence, (focus) =>
+      request({
+        systemPrompt: PENTAGON_ARBITRATION_PROMPT,
+        userText: `${PENTAGON_USER_TEXT}\n复核重点：${focus}`,
+        imageDataUrls: [imageDataUrl],
+        purpose: "arbitration",
+      })
+    );
   };
 }
 
@@ -357,7 +473,8 @@ const PENDING_REASON = "患者已提交画作，待医生确认计分";
 /**
  * 画图题看图判定。
  * @param judge 该题的判定器，默认按题目 id 取已接入的判定器；测试注入桩函数
- * @returns matched = 已得出对/错并映射到标准选项；unclear = 交医生确认
+ * @returns matched = 已得出对/错（含临界复核给出的）并映射到标准选项；
+ *          unclear = 视觉通道不可用或临界复核失败，交医生确认
  */
 export async function judgeDrawing(
   questionId: string,
@@ -374,7 +491,8 @@ export async function judgeDrawing(
     return { status: "unclear", method: "none", reason: `${PENDING_REASON}（视觉模型不可用）` };
   }
   if (verdict.verdict === "unclear") {
-    return { status: "unclear", method: "llm", reason: `看图无法确定，待医生确认计分：${verdict.reason}` };
+    // 走到这里说明首轮拿不准、临界复核也没拿到合法结论（通道失败/输出不合法）
+    return { status: "unclear", method: "llm", reason: `看图无法确定（临界复核未得出结论），待医生确认计分：${verdict.reason}` };
   }
   const option = verdict.verdict === "correct" ? polar.correct : polar.incorrect;
   return {

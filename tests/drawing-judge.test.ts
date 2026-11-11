@@ -1,9 +1,10 @@
 /**
  * INPUT:  src/lib/dialogue/drawing-judge.ts（画图题判定编排）、src/lib/providers/vision.ts（视觉模型通道）
  * OUTPUT: 画图题看图判定的单测（画钟、五边形临摹；全部用桩函数/桩 fetch，不出网）
- * POS:    锁定三条红线：① 对错由确定性规则根据模型的观察结果判定，结论只映射到 01 表既有选项，
- *         分值取选项分值（硬约束 2）；② 拿不准/临界/不可用/输出不合法一律交医生确认，不强行给结论
- *         （硬约束 3）；③ 出网请求只含图片与提示词，不带任何患者标识（硬约束 1）。
+ * POS:    锁定三条红线：① 明确的对错由确定性规则根据模型的观察结果判定，结论只映射到 01 表既有选项，
+ *         分值取选项分值（硬约束 2）；② 规则判为临界时追加临界复核、由模型给出合格/不合格并计分
+ *         （2026-11-11 用户拍板：画图不再等医生确认），视觉通道不可用/输出不合法/复核失败才交医生，
+ *         不编造结论（硬约束 3）；③ 出网请求只含图片与提示词，不带任何患者标识（硬约束 1）。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -11,6 +12,7 @@ import {
   createClockJudge,
   createPentagonJudge,
   judgeDrawing,
+  parseArbitration,
   parseClockObservation,
   parsePentagonObservation,
   pentagonVerdict,
@@ -18,6 +20,7 @@ import {
   type ClockObservation,
   type PentagonObservation,
 } from "@/lib/dialogue/drawing-judge";
+import type { VisionJsonRequest } from "@/lib/providers/vision";
 import { extractJsonObject, requestVisionJson, visionAvailable } from "@/lib/providers/vision";
 import { questionById } from "@/lib/rules";
 
@@ -145,7 +148,7 @@ describe("clockVerdict：画钟确定性判定", () => {
     expect(clockVerdict(rotated).verdict).toBe("incorrect");
   });
 
-  it("临界情况交医生：基准数字偏一格、单个数字明显错位、模型把握不足", () => {
+  it("临界情况规则不下结论（交临界复核）：基准数字偏一格、单个数字明显错位、模型把握不足", () => {
     const base = rawClock().sectors as object;
     expect(clockVerdict(observe({ sectors: { ...base, "12": "右上" } })).verdict).toBe("unclear");
     expect(clockVerdict(observe({ sectors: { ...base, "5": "左下" } })).verdict).toBe("unclear");
@@ -165,13 +168,76 @@ describe("createClockJudge：观察 → 判定", () => {
     expect(await createClockJudge(async () => ({ foo: 1 }))(DRAWING)).toBeNull();
   });
 
-  it("只发患者画作一张图，提示词要求按实际位置报告", async () => {
+  it("只发患者画作一张图，提示词要求按实际位置报告；结论明确时不做临界复核", async () => {
     const request = vi.fn(async () => rawClock());
     const verdict = await createClockJudge(request)(DRAWING);
     expect(verdict?.verdict).toBe("correct");
+    expect(request).toHaveBeenCalledTimes(1);
     const sent = (request.mock.calls[0] as unknown as [{ imageDataUrls: string[]; systemPrompt: string }])[0];
     expect(sent.imageDataUrls).toEqual([DRAWING]);
     expect(sent.systemPrompt).toContain("绝不能按正常钟表应有的样子推断");
+  });
+
+  it("规则临界 → 临界复核定分：复核带上拿不准的地方，合格/不合格直接作为结论（2026-11-11 用户拍板方案 A）", async () => {
+    const borderline = rawClock({ sectors: { ...(rawClock().sectors as object), "12": "右上" } });
+    const passed = sequencedRequester(borderline, { pass: true, confidence: 0.8, reason: "12 略偏右，属手绘误差" });
+    const verdict = await createClockJudge(passed)(DRAWING);
+    expect(verdict).toMatchObject({ verdict: "correct", confidence: 0.8 });
+    expect(verdict?.reason).toContain("临界复核合格");
+    expect(verdict?.reason).toContain("数字 12 在「右上」");
+    expect(passed).toHaveBeenCalledTimes(2);
+    expect(sentRequest(passed, 0).purpose).toBeUndefined(); // 首轮观察走观察模型
+    const arbitration = sentRequest(passed, 1);
+    expect(arbitration.purpose).toBe("arbitration"); // 复核走复核模型
+    expect(arbitration.imageDataUrls).toEqual([DRAWING]);
+    expect(arbitration.systemPrompt).toContain("复核员");
+    expect(arbitration.userText).toContain("复核重点：位置临界：数字 12 在「右上」");
+
+    const failed = sequencedRequester(borderline, { pass: false, confidence: 0.6, reason: "12 明显偏到右侧" });
+    expect(await createClockJudge(failed)(DRAWING)).toMatchObject({ verdict: "incorrect", confidence: 0.6 });
+  });
+
+  it("首轮把握不足时，复核要求逐项完整核对", async () => {
+    const request = sequencedRequester(rawClock({ confidence: 0.5 }), { pass: true, confidence: 0.9, reason: "齐全" });
+    expect((await createClockJudge(request)(DRAWING))?.verdict).toBe("correct");
+    expect(sentRequest(request, 1).userText).toContain("请按标准逐项完整核对");
+  });
+
+  it("临界复核通道失败或输出不合法 → 保留首轮的拿不准（交医生）", async () => {
+    const borderline = rawClock({ sectors: { ...(rawClock().sectors as object), "5": "左下" } });
+    expect((await createClockJudge(sequencedRequester(borderline, null))(DRAWING))?.verdict).toBe("unclear");
+    expect((await createClockJudge(sequencedRequester(borderline, { pass: "是" }))(DRAWING))?.verdict).toBe("unclear");
+  });
+});
+
+/** 按调用顺序依次返回给定输出的看图桩函数（首轮观察、临界复核） */
+function sequencedRequester(...outputs: (Record<string, unknown> | null)[]) {
+  let index = 0;
+  return vi.fn(async (request: VisionJsonRequest) => {
+    void request;
+    return outputs[index++] ?? null;
+  });
+}
+
+function sentRequest(requester: ReturnType<typeof sequencedRequester>, callIndex: number): VisionJsonRequest {
+  return requester.mock.calls[callIndex][0];
+}
+
+describe("parseArbitration：临界复核输出校验", () => {
+  it("合法输出解析；理由缺失记为空串", () => {
+    expect(parseArbitration({ pass: true, confidence: 0.7, reason: " 合格 " })).toEqual({
+      pass: true,
+      confidence: 0.7,
+      reason: "合格",
+    });
+    expect(parseArbitration({ pass: false, confidence: 0.4 })?.reason).toBe("");
+  });
+
+  it("形状不合法返回 null", () => {
+    expect(parseArbitration(null)).toBeNull();
+    expect(parseArbitration({ pass: "true", confidence: 0.7 })).toBeNull();
+    expect(parseArbitration({ pass: true, confidence: 1.5 })).toBeNull();
+    expect(parseArbitration({ pass: true })).toBeNull();
   });
 });
 
@@ -239,7 +305,7 @@ describe("pentagonVerdict：五边形临摹确定性判定（国标 WS/T 484 表
     ).toBe("incorrect");
   });
 
-  it("差一点的情况从严交医生：只差一个角、交叠区域看不清或不是四边形、模型把握不足（2026-11-11 实测模型易把画对的看错）", () => {
+  it("差一点的情况规则不下结论（交临界复核）：只差一个角、交叠区域看不清或不是四边形、模型把握不足（2026-11-11 实测模型易把画对的看错）", () => {
     const shapesOf = (...corners: number[]) => corners.map((count) => ({ corners: count, closed: true }));
     expect(pentagonVerdict(observePentagons({ shapes: shapesOf(5, 4) })).verdict).toBe("unclear"); // 交叠处的角被挡住漏数
     expect(pentagonVerdict(observePentagons({ shapes: shapesOf(6, 5) })).verdict).toBe("unclear");
@@ -263,6 +329,32 @@ describe("createPentagonJudge：观察 → 判定", () => {
     const sent = (request.mock.calls[0] as unknown as [{ imageDataUrls: string[]; systemPrompt: string }])[0];
     expect(sent.imageDataUrls).toEqual([DRAWING]);
     expect(sent.systemPrompt).toContain("绝不能按示例应有的样子推断");
+  });
+
+  it("规则临界（只差一个角）→ 临界复核按国标注 8 定分，复核仍只发患者画作", async () => {
+    const borderline = rawPentagons({
+      shapes: [
+        { corners: 5, closed: true },
+        { corners: 4, closed: true },
+      ],
+    });
+    const passed = sequencedRequester(borderline, { pass: true, confidence: 0.75, reason: "两个五边形相交，交叉处为四边形" });
+    const verdict = await createPentagonJudge(passed)(DRAWING);
+    expect(verdict).toMatchObject({ verdict: "correct", confidence: 0.75 });
+    expect(verdict?.reason).toContain("首轮拿不准：两个图形的角数为 5、4");
+    const arbitration = sentRequest(passed, 1);
+    expect(arbitration.purpose).toBe("arbitration");
+    expect(arbitration.imageDataUrls).toEqual([DRAWING]);
+    expect(arbitration.systemPrompt).toContain("WS/T 484—2015 表 C.1 注 8");
+
+    const failed = sequencedRequester(rawPentagons({ overlapCorners: 3 }), { pass: false, confidence: 0.7, reason: "交叉处是三角形" });
+    expect(await createPentagonJudge(failed)(DRAWING)).toMatchObject({ verdict: "incorrect" });
+  });
+
+  it("明确画错时不做临界复核", async () => {
+    const request = sequencedRequester(rawPentagons({ overlapping: false, overlapCorners: null }));
+    expect((await createPentagonJudge(request)(DRAWING))?.verdict).toBe("incorrect");
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -344,6 +436,7 @@ describe("requestVisionJson：出网请求", () => {
     process.env.DASHSCOPE_API_KEY = " test-key";
     delete process.env.VISION_API_KEY;
     delete process.env.VISION_MODEL;
+    delete process.env.VISION_ARBITRATION_MODEL;
     delete process.env.VISION_API_BASE;
     delete process.env.VISION_EXTRA_BODY;
   });
@@ -405,6 +498,28 @@ describe("requestVisionJson：出网请求", () => {
     expect((JSON.parse(String(init.body)) as { thinking?: unknown }).thinking).toEqual({ type: "disabled" });
   });
 
+  it("临界复核走复核模型：百炼默认 qwen3.8-max，可单独配置；换厂商未配置时沿用观察模型", async () => {
+    const fetchMock = vi.fn(async () => okResponse());
+    vi.stubGlobal("fetch", fetchMock);
+    const modelOfCall = (index: number) =>
+      (JSON.parse(String((fetchMock.mock.calls[index] as unknown as [string, RequestInit])[1].body)) as { model: string }).model;
+
+    await requestVisionJson({ ...request, purpose: "arbitration" });
+    expect(modelOfCall(0)).toBe("qwen3.8-max");
+
+    process.env.VISION_ARBITRATION_MODEL = " qwen-custom ";
+    await requestVisionJson({ ...request, purpose: "arbitration" });
+    expect(modelOfCall(1)).toBe("qwen-custom");
+    await requestVisionJson(request); // 首轮观察不受复核模型配置影响
+    expect(modelOfCall(2)).toBe("qwen3-vl-plus");
+
+    delete process.env.VISION_ARBITRATION_MODEL;
+    process.env.VISION_API_BASE = "https://example.test/v1";
+    process.env.VISION_MODEL = "other-vision";
+    await requestVisionJson({ ...request, purpose: "arbitration" });
+    expect(modelOfCall(3)).toBe("other-vision");
+  });
+
   it("HTTP 失败、网络异常、输出不是 JSON 都返回 null（回落医生确认）", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.stubGlobal("fetch", vi.fn(async () => new Response("unauthorized", { status: 401 })));
@@ -421,5 +536,35 @@ describe("requestVisionJson：出网请求", () => {
       vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "看不清" } }] }), { status: 200 }))
     );
     expect(await requestVisionJson(request)).toBeNull();
+  });
+
+  it("限流/服务端错误/网络中断自动重试 1 次；鉴权失败与超时不重试", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const flaky = vi
+      .fn<() => Promise<Response>>()
+      .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+      .mockResolvedValueOnce(okResponse());
+    vi.stubGlobal("fetch", flaky);
+    expect(await requestVisionJson(request)).toEqual({ hasOutline: true });
+    expect(flaky).toHaveBeenCalledTimes(2);
+
+    const offline = vi.fn(async () => {
+      throw new TypeError("fetch failed");
+    });
+    vi.stubGlobal("fetch", offline);
+    expect(await requestVisionJson(request)).toBeNull();
+    expect(offline).toHaveBeenCalledTimes(2);
+
+    const unauthorized = vi.fn(async () => new Response("unauthorized", { status: 401 }));
+    vi.stubGlobal("fetch", unauthorized);
+    expect(await requestVisionJson(request)).toBeNull();
+    expect(unauthorized).toHaveBeenCalledTimes(1);
+
+    const timedOut = vi.fn(async () => {
+      throw new DOMException("signal timed out", "TimeoutError");
+    });
+    vi.stubGlobal("fetch", timedOut);
+    expect(await requestVisionJson(request)).toBeNull();
+    expect(timedOut).toHaveBeenCalledTimes(1);
   });
 });
