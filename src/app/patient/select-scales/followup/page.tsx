@@ -96,7 +96,7 @@ export default async function PatientFollowupScalesPage({
 
         <div>
           {reportedSessions.length === 0 ? (
-            <div className="rounded-2xl border border-blue-100 bg-[#f8fbff] px-6 py-12 text-center">
+            <div className="care-band px-6 py-12 text-center">
               <p className="text-lg font-extrabold text-[#173766]">还没有已完成的评估记录</p>
               <p className="mt-2 text-base leading-7 text-[#62779a]">
                 随访对比需要以上一次评估结果为基准。请先完成一次常规综合评估。
@@ -173,8 +173,8 @@ function FollowupContent({
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.65fr)_minmax(0,1.35fr)]">
       <aside className="space-y-3">
-        <div className="rounded-2xl border border-border bg-accent/45 p-4">
-          <h2 className="font-bold">上次评估</h2>
+        <div className="care-band p-5">
+          <h2 className="font-bold text-[var(--care-ink)]">上次评估</h2>
           <p className="mt-2 text-2xl font-bold text-primary tabular-nums">{latest.startedAt.toLocaleDateString("zh-CN")}</p>
           <p className="mt-1 text-sm text-muted-foreground">{latestScaleIds.length} 个评估项目</p>
         </div>

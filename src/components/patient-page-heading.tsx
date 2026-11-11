@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
 export function PatientPageHeading({ icon, title, description, plain = false }: {
-  icon: ReactNode;
+  /** plain 模式不显示图标，可省略 */
+  icon?: ReactNode;
   title: string;
   description: string;
   plain?: boolean;

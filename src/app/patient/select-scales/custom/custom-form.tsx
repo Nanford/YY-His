@@ -168,23 +168,19 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                     type="button"
                     onClick={() => togglePackage(pkg)}
                     aria-pressed={allIn}
-                    className={[
-                      "group flex min-h-32 flex-col items-start gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-2 focus-visible:outline-ring",
-                      allIn
-                        ? "border-blue-500 bg-blue-50/60"
-                        : "border-blue-100 bg-white hover:border-blue-300",
-                    ].join(" ")}
+                    // 选中态样式由 aria-pressed 驱动（.care-toggle-card，见 assessment-design.css）
+                    className="care-toggle-card group"
                   >
                     <span className="flex w-full items-center justify-between gap-2">
-                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary">
-                        <Icon size={22} aria-hidden="true" />
+                      <span className="care-icon-chip" aria-hidden="true">
+                        <Icon />
                       </span>
                       <span className="grid size-6 shrink-0 place-items-center rounded-md border border-input text-transparent group-aria-pressed:border-primary group-aria-pressed:bg-primary group-aria-pressed:text-white" aria-hidden="true">
                         <Check className="size-4" />
                       </span>
                     </span>
                     <span className="block min-w-0">
-                      <span className="block font-bold text-foreground">{pkg.name}</span>
+                      <span className="care-card-title">{pkg.name}</span>
                       <span className="block text-sm text-muted-foreground">{pkg.scales.length} 项</span>
                       {showDetails && <span className="mt-1 block text-sm text-muted-foreground">{pkg.description}</span>}
                     </span>
@@ -216,7 +212,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
         </div>
 
         {/* 右栏：已选评估项目（sticky 保持） */}
-        <section className="space-y-4 self-start rounded-2xl border border-border bg-muted/45 p-4 lg:sticky lg:top-6">
+        <section className="care-band space-y-4 self-start p-5 lg:sticky lg:top-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-[#173766]">已选评估项目</h2>
             {selected.size > 0 && (

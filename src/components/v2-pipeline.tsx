@@ -1,7 +1,7 @@
 /**
  * INPUT:  无（流程定义来自 V2/Demo_v2更新说明.docx 总体流程）
  * OUTPUT: 患者入口的六步流程卡片
- * POS:    流程概览只作展示，建档从页面主操作进入。
+ * POS:    流程概览只作展示，建档从页面主操作进入。2026-11-11 宽屏改一行六步横排。
  */
 import { ClipboardCheck, ClipboardList, FileText, HeartHandshake, MessageCircle, UserRoundPlus } from "lucide-react";
 
@@ -16,16 +16,17 @@ const steps = [
 
 export function V2DemoPipeline() {
   return (
-    <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+    // 宽屏一行六步，步骤间以细连线串联（.care-steps，见 assessment-design.css）
+    <ol className="care-steps">
       {steps.map(({ title, icon: Icon }, index) => (
-        <li key={title} className="flex min-h-32 flex-col justify-between gap-3 rounded-2xl border border-border bg-card p-4 sm:min-h-36 sm:p-5">
+        <li key={title} className="care-card care-step">
           <span className="flex items-center justify-between gap-2" aria-hidden="true">
-            <span className="grid size-10 place-items-center rounded-xl bg-accent text-primary">
-              <Icon className="size-5" />
+            <span className="care-icon-chip">
+              <Icon />
             </span>
-            <span className="font-mono text-lg font-bold text-primary/70">{String(index + 1).padStart(2, "0")}</span>
+            <span className="care-step-index">{String(index + 1).padStart(2, "0")}</span>
           </span>
-          <strong className="text-base text-foreground sm:text-xl">{title}</strong>
+          <strong className="care-card-title">{title}</strong>
         </li>
       ))}
     </ol>

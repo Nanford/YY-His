@@ -200,9 +200,9 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         {/* 左栏：病历与诊断输入 */}
-        <section className="space-y-4 rounded-2xl border border-border bg-muted/35 p-4 sm:p-5">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
-            <ClipboardList size={22} strokeWidth={1.9} className="text-blue-600" aria-hidden="true" />
+        <section className="care-band space-y-4 p-5 sm:p-6">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-[var(--care-ink)]">
+            <ClipboardList size={22} strokeWidth={1.6} className="text-primary" aria-hidden="true" />
             导入病历
           </h2>
           <label className="block">
@@ -274,13 +274,15 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
         {/* 右栏：系统推荐评估项目 */}
         <section className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">推荐评估项目</h2>
+            <h2 className="text-lg font-bold text-[var(--care-ink)]">推荐评估项目</h2>
             {analyzed && <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />}
           </div>
 
           {!analyzed && (
-            <div className="grid min-h-56 place-content-center justify-items-center gap-3 rounded-2xl border border-dashed border-input bg-card p-6 text-center text-muted-foreground">
-              <FileSearch className="size-8 text-primary" aria-hidden="true" />
+            <div className="grid min-h-56 place-content-center justify-items-center gap-3 rounded-2xl border border-dashed border-[var(--care-rule-strong)] bg-[var(--care-paper)] p-6 text-center text-muted-foreground">
+              <span className="care-icon-chip" aria-hidden="true">
+                <FileSearch />
+              </span>
               <p>完成病历解析后，可在此勾选推荐项目。</p>
             </div>
           )}

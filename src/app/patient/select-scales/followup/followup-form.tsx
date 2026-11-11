@@ -72,7 +72,7 @@ export default function FollowupForm({
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold">本次复评</h2>
+          <h2 className="text-lg font-bold text-[var(--care-ink)]">本次复评</h2>
           <div className="assessment-toolbar-actions">
             <AssessmentBulkActions ids={[...focusIds, ...extraIds]} selected={checked} onChange={toggle} />
             <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />

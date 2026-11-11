@@ -20,13 +20,21 @@
   background: var(--care-paper);
 }
 
-.care-shell .patient-topbar {
-  padding-inline: clamp(1rem, 4vw, 3.5rem);
+/* 统一内容框：顶栏与患者端各页共用同一宽度与左右留白，品牌标与页面标题左缘对齐。
+   问询页（.patient-main-interview）保留自己的大屏布局，不纳入。 */
+.care-shell {
+  --care-frame: 1440px;
+  --care-gutter: clamp(1rem, 4.8vw, 4.25rem);
 }
 
-.patient-shell .assessment-page {
-  width: min(100%, 1440px);
-  padding: 1rem clamp(1rem, 4.8vw, 4.25rem) 2rem;
+.care-shell .patient-topbar {
+  width: min(100%, var(--care-frame));
+  padding-inline: var(--care-gutter);
+}
+
+.patient-shell .patient-main:not(.patient-main-interview) {
+  width: min(100%, var(--care-frame));
+  padding: 1rem var(--care-gutter) 2.5rem;
 }
 
 .assessment-page-heading {
@@ -577,7 +585,7 @@
     padding-block: 10px;
   }
 
-  .patient-shell .assessment-page {
+  .patient-shell .patient-main.assessment-page {
     padding-block: 0.5rem 1rem;
   }
 
@@ -672,6 +680,354 @@
   .assessment-toolbar-actions .assessment-details-toggle {
     padding-inline-start: 0.6rem;
   }
+}
+
+/* ===== 通用卡片语言（2026-11-11 全站铺开，与选择页同一套令牌） ===== */
+
+/* 白底细边柔影卡片；可点击的卡片悬停时边线加深、投影转为淡蓝 */
+.care-card {
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
+}
+
+.care-card-link {
+  display: flex;
+  cursor: pointer;
+  transition: border-color 180ms var(--care-ease), box-shadow 180ms var(--care-ease),
+    transform 180ms var(--care-ease);
+}
+
+.care-card-link:hover {
+  border-color: var(--care-rule-strong);
+  box-shadow: var(--care-shadow-selected);
+}
+
+.care-card-link:active {
+  transform: scale(0.99);
+}
+
+.care-card-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* 淡蓝分组带（与选择页分组带同款，但不建立容器查询上下文，供表单等通用场景） */
+.care-band {
+  border: 1px solid var(--care-band-edge);
+  border-radius: 1.125rem;
+  background: var(--care-band-fill);
+}
+
+/* 图标底座：淡蓝渐变方块 + 细线条图标 */
+.care-icon-chip {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid var(--care-selected-edge);
+  border-radius: 0.875rem;
+  background: var(--care-selected-fill);
+  color: var(--primary);
+}
+
+.care-icon-chip svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 1.6;
+}
+
+.care-card-title {
+  display: block;
+  color: var(--care-ink);
+  font-size: clamp(1.1rem, 1.4vw, 1.375rem);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.care-card-text {
+  display: block;
+  margin-block-start: 0.35rem;
+  color: var(--care-ink-soft);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* 可切换的卡片按钮（自选组合页预设套餐）：与量表方块同款未选/选中态 */
+.care-toggle-card {
+  display: flex;
+  min-height: 8rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  border: 1px solid var(--care-rule);
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
+  text-align: start;
+  cursor: pointer;
+  transition: background 180ms var(--care-ease), border-color 180ms var(--care-ease);
+}
+
+.care-toggle-card:hover {
+  border-color: var(--care-rule-strong);
+}
+
+.care-toggle-card[aria-pressed="true"] {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), var(--care-shadow-soft);
+}
+
+.care-toggle-card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* 与选择页底栏一致的主按钮（非吸底场景使用） */
+.care-primary-button {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding-inline: 1.75rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, #2a78ee 0%, #1662dc 100%);
+  box-shadow: 0 6px 16px rgba(22, 104, 227, 0.24);
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  transition: transform 120ms var(--care-ease), box-shadow 180ms var(--care-ease);
+}
+
+.care-primary-button:hover {
+  box-shadow: 0 8px 22px rgba(22, 104, 227, 0.32);
+}
+
+.care-primary-button:active {
+  transform: scale(0.98);
+}
+
+.care-primary-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* 页面底部操作行：细分隔线 + 右对齐主按钮，与选择页底栏同节奏 */
+.care-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-block-start: 1.25rem;
+  border-top: 1px solid var(--care-rule);
+}
+
+/* ===== 首页（服务入口） ===== */
+.care-home {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 2.5rem var(--care-gutter);
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgba(22, 104, 227, 0.08), transparent 70%),
+    radial-gradient(40rem 24rem at 0% 110%, rgba(22, 104, 227, 0.06), transparent 70%),
+    #f8fbff;
+}
+
+.care-home-panel {
+  display: grid;
+  width: min(100%, 72rem);
+  overflow: hidden;
+  border: 1px solid var(--care-band-edge);
+  border-radius: 1.75rem;
+  background: var(--care-paper);
+  box-shadow: 0 2px 6px rgba(20, 50, 100, 0.04), 0 24px 60px rgba(20, 50, 100, 0.08);
+}
+
+@media (min-width: 900px) {
+  .care-home-panel {
+    min-height: 30rem;
+    grid-template-columns: 1.1fr 1fr;
+  }
+}
+
+/* 左侧主视觉：淡蓝渐变 + 细线心电图，替代原深藏青色块 */
+.care-home-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  padding: clamp(2rem, 4vw, 3.5rem);
+  background: linear-gradient(150deg, #eef4fe 0%, #e3edfd 55%, #d9e7fc 100%);
+  color: var(--care-ink);
+}
+
+.care-home-hero .care-icon-chip {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: var(--care-paper);
+  box-shadow: var(--care-shadow-soft);
+}
+
+.care-home-hero .care-icon-chip svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.care-home-hero h1 {
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.care-home-hero p {
+  margin-block-start: 0.75rem;
+  color: var(--care-ink-soft);
+  font-size: 1.0625rem;
+}
+
+.care-home-art {
+  position: absolute;
+  z-index: -1;
+  right: -4rem;
+  bottom: -2.5rem;
+  width: min(100%, 34rem);
+  color: var(--primary);
+  pointer-events: none;
+}
+
+.care-home-nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: clamp(1.5rem, 3.5vw, 3rem);
+}
+
+.care-home-entry {
+  align-items: center;
+  gap: 1rem;
+  min-height: 6rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.care-home-entry .care-card-title {
+  flex: 1;
+}
+
+.care-home-entry > svg:last-child {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary);
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-home-entry:hover > svg:last-child {
+  transform: translateX(3px);
+}
+
+/* 主入口：选中态同款淡蓝渐变，作为默认推荐路径 */
+.care-home-entry[data-primary] {
+  border-color: var(--care-selected-edge);
+  background: var(--care-selected-fill);
+}
+
+/* ===== 患者端各页 ===== */
+.care-entry-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .care-entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .care-entry-grid[data-cols="4"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.care-entry-card {
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 11rem;
+  padding: 1.5rem 1.6rem;
+}
+
+.care-entry-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.care-entry-card-top > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary);
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-entry-card:hover .care-entry-card-top > svg {
+  transform: translateX(3px);
+}
+
+/* 标题紧跟图标行，说明文字折行时各卡标题仍在同一水平线 */
+.care-entry-card-foot {
+  margin-block-start: 0.5rem;
+}
+
+/* 六步流程：一行横排 + 步骤间细连线 */
+.care-steps {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+  .care-steps {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .care-step:not(:last-child)::after {
+    position: absolute;
+    top: 2.75rem;
+    right: -1rem;
+    width: 1rem;
+    height: 1px;
+    background: var(--care-rule-strong);
+    content: "";
+  }
+}
+
+.care-step {
+  position: relative;
+  display: flex;
+  min-height: 11rem;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.care-step-index {
+  color: var(--primary);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
 }
 
 .doctor-shell.care-shell .doctor-sidebar {

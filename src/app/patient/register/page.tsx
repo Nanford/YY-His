@@ -13,7 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PatientPageHeading } from "@/components/patient-page-heading";
 import { SectionDisclosure } from "@/components/section-disclosure";
-import { ArrowLeft, ArrowRight, CircleAlert, Mars, User, Venus } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, Mars, Venus } from "lucide-react";
 import { registerPatient } from "@/lib/actions/patient";
 import { prisma } from "@/lib/db";
 import {
@@ -82,20 +82,17 @@ export default async function PatientRegisterPage({
   });
 
   return (
-    <main className="patient-main max-w-[68rem] flex-1">
+    <main className="patient-main flex-1">
       <Link href="/patient" className="ui-button ui-button-quiet -ml-2 mb-6">
         <ArrowLeft size={19} strokeWidth={2} aria-hidden="true" />
         返回评估首页
       </Link>
 
-      <section className="patient-panel overflow-hidden">
-        <PatientPageHeading
-          icon={<User className="size-6" />}
-          title="新建健康档案"
-          description="请填写姓名、性别和年龄。"
-        />
+      {/* 2026-11-11：去掉外层面板，标题与选择页同款；必填项放淡蓝分组带，选填资料在右栏 */}
+      <section>
+        <PatientPageHeading plain title="新建健康档案" description="请填写姓名、性别和年龄，其余资料可跳过。" />
 
-        <div className="px-5 py-6 sm:px-9 sm:py-8">
+        <div>
           {error === "required" && (
             <div className="ui-alert ui-alert-danger mb-6 text-base sm:text-lg" role="alert">
               <CircleAlert size={23} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
@@ -127,10 +124,10 @@ export default async function PatientRegisterPage({
                     <Link
                       key={p.id}
                       href={`/patient/select-scales?patientId=${p.id}`}
-                      className="rounded-2xl border border-blue-100 bg-white px-5 py-4 transition hover:border-blue-300 hover:shadow-[0_6px_14px_rgba(23,105,232,0.10)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                      className="care-card care-card-link flex-col px-5 py-4"
                     >
-                      <span className="block text-lg font-extrabold text-[#173766]">{p.name}</span>
-                      <span className="mt-1 block text-base text-[#7f94b3]">
+                      <span className="care-card-title">{p.name}</span>
+                      <span className="care-card-text">
                         {p.gender} · {p.age} 岁
                       </span>
                     </Link>
@@ -141,7 +138,7 @@ export default async function PatientRegisterPage({
           )}
 
           <form action={registerPatient} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-            <div className="grid gap-4 rounded-2xl bg-muted/45 p-4 sm:grid-cols-2 sm:p-5">
+            <div className="care-band grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
               <label className="block space-y-2">
                 <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
                   您的姓名 <span className="text-[#c23b4a]">*</span>
@@ -168,7 +165,7 @@ export default async function PatientRegisterPage({
               </fieldset>
 
               <label className="block space-y-2">
-                <span className="text-lg font-extrabold text-[#173766]">
+                <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
                   年龄 <span className="text-[#c23b4a]">*</span>
                 </span>
                 <NoWheelNumberInput
@@ -184,7 +181,7 @@ export default async function PatientRegisterPage({
 
             </div>
             <div className="grid gap-3">
-              <h2 className="text-base font-bold text-foreground">补充资料</h2>
+              <h2 className="text-lg font-bold text-[var(--care-ink)]">补充资料</h2>
               <SectionDisclosure title="生活与照护情况" summary="选填" defaultOpen={error === "profile"}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <OptionalSelect label="文化程度" name="education" options={EDUCATION_LEVELS} />
@@ -228,8 +225,8 @@ export default async function PatientRegisterPage({
               </SectionDisclosure>
             </div>
 
-            <div className="flex justify-end border-t border-border pt-4 lg:col-span-2">
-              <Button type="submit" className="min-h-14 w-full gap-3 px-5 text-lg font-bold sm:w-auto">
+            <div className="care-action-row lg:col-span-2">
+              <Button type="submit" className="care-primary-button w-full sm:w-auto">
                 下一步：选择评估内容
                 <ArrowRight size={25} strokeWidth={2.1} aria-hidden="true" />
               </Button>
