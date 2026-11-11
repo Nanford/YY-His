@@ -14,9 +14,12 @@
  *         同一信息顺序的 A4「下载报告」在 ./report 子路由。
  *         评估概览使用本次量表与需关注结论的实际数量。
  *         2026-11-11 报告末尾加品牌页脚（logo + 岐颐智护 · 中文全称）；页眉不再重复品牌，因为紧邻的患者端顶栏已显示。
+ *         2026-11-11 视觉精修：去掉自带的 72rem 宽度，与顶栏同一内容框（左右缘对齐品牌标与返回入口）；
+ *         「与上次评估对比」「个性化干预方案」由卡片面板改为与其他分区同款的平铺分区（标题 + 细分割线），
+ *         整页只有一种分区语言；对比卡片在宽屏两列等高排布。
  */
 import Link from "next/link";
-import { TriangleAlert, CalendarClock, Check, ClipboardCheck, Download, HeartHandshake, History } from "lucide-react";
+import { TriangleAlert, CalendarClock, Check, ClipboardCheck, Download } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { SectionDisclosure } from "@/components/section-disclosure";
@@ -114,7 +117,7 @@ export function PatientReport({
   const problems = listExistingProblems(tags);
 
   return (
-    <main className="patient-main care-report max-w-[72rem] flex-1">
+    <main className="patient-main care-report flex-1">
       <header className="care-report-header">
         <div className="care-report-title flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -294,15 +297,19 @@ function HistorySection({ historyReports }: { historyReports: HistoryReportEntry
  */
 function ComparisonSection({ comparisons }: { comparisons: readonly ScaleComparison[] }) {
   return (
-    <section className="patient-panel px-5 py-5 sm:px-8 sm:py-6">
+    <section className="care-report-section">
       <SectionHead
-        icon={<History size={16} strokeWidth={1.8} aria-hidden="true" />}
         title="与上次评估对比"
         aside="复评项目与上次报告相比的标签与总分变化，箭头只表示变化方向。"
       />
-      <div className="mt-6 space-y-4">
-        {comparisons.map((comparison) => (
-          <ComparisonCard key={comparison.scaleId} comparison={comparison} />
+      {/* 内容框加宽后两列排布、同行等高；奇数个时末项占满整行，避免右侧留空 */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {comparisons.map((comparison, index) => (
+          <ComparisonCard
+            key={comparison.scaleId}
+            comparison={comparison}
+            className={index === comparisons.length - 1 && comparisons.length % 2 === 1 ? "lg:col-span-2" : undefined}
+          />
         ))}
       </div>
     </section>
@@ -310,13 +317,13 @@ function ComparisonSection({ comparisons }: { comparisons: readonly ScaleCompari
 }
 
 /** 单个复评量表的对比卡片 */
-function ComparisonCard({ comparison }: { comparison: ScaleComparison }) {
+function ComparisonCard({ comparison, className }: { comparison: ScaleComparison; className?: string }) {
   const scaleName = scales.find((s) => s.id === comparison.scaleId)?.name ?? comparison.scaleId;
   const { previousScore, currentScore } = comparison;
   const delta = previousScore !== null && currentScore !== null ? currentScore - previousScore : null;
   const tagLabel = (change: TagChange) => `${change.tag}${LEVEL_LABEL[change.level] ?? ""}`;
   return (
-    <article className="ui-panel-subtle px-5 py-4">
+    <article className={["ui-panel-subtle h-full px-5 py-4", className ?? ""].join(" ")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xl font-bold text-[var(--ink)]">{scaleName}</h3>
         <span className="text-base text-[var(--ink-muted)]">
@@ -392,9 +399,8 @@ function PlanSection({
   confirmedAt: Date | null;
 }) {
   return (
-    <section className="patient-panel px-6 py-7 md:px-8">
+    <section className="care-report-section">
       <SectionHead
-        icon={<HeartHandshake size={16} strokeWidth={1.8} aria-hidden="true" />}
         title="个性化干预方案"
         aside={
           // 2026-08-11 口径：患者端不再呈现"初步方案·医生确认中"中间态，仅在医生确认后标注
@@ -409,12 +415,12 @@ function PlanSection({
       />
 
       {plan.length === 0 ? (
-        <div className="ui-alert mt-6">
+        <div className="ui-alert">
           <Check size={21} strokeWidth={2} aria-hidden="true" />
           <p>本次评估暂无需要执行的干预项目。</p>
         </div>
       ) : (
-        <div className="mt-6 space-y-6">
+        <div className="space-y-5">
           {CATEGORY_ORDER.map((category) => {
             const items = plan.filter((item) => item.categoryLabel === category);
             if (items.length === 0) return null;

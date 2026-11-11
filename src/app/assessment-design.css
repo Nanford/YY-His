@@ -100,6 +100,44 @@
   content: "";
 }
 
+/*
+ * 带右侧说明的分区标题（SectionHead）：与上面的平铺 h2 同字号同间距，
+ * 细分割线夹在标题与说明之间，整页分区标题只有一种外观。
+ */
+.care-report-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.care-report-section-head > h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.125rem;
+  font-weight: 750;
+}
+
+/* 分割线用容器伪元素 + order 排在标题与说明之间；min-width 保证说明换行前线不消失 */
+.care-report-section-head::after {
+  flex: 1;
+  order: 1;
+  min-width: 2rem;
+  height: 1px;
+  background: var(--care-rule);
+  content: "";
+}
+
+.care-report-section-aside {
+  order: 2;
+  max-width: 28rem;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  text-align: end;
+}
+
 .care-report-facts {
   overflow: hidden;
   border: 1px solid var(--care-rule);

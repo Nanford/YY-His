@@ -2,6 +2,8 @@
  * INPUT: 当前会话、尚未完成的量表、是否在提交出错时展开
  * OUTPUT: 患者报告的补充评估入口与量表卡片
  * POS: 只提交尚未完成的项目，既往报告与复评权限由服务端校验。
+ *      2026-11-11 视觉精修：收起态与「本次评估项目」「历史评估报告」折叠条同款（白底细边、同高同内边距），
+ *      展开态改为与报告其他分区同款的平铺分区（SectionHead 标题 + 细分割线），不再自成卡片面板。
  */
 "use client";
 
@@ -25,9 +27,10 @@ export function SupplementarySection({ sessionId, remainingScales, defaultOpen =
 
   if (!open) {
     return (
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-accent/45 p-4 sm:p-5">
-        <span className="text-sm text-muted-foreground">{remainingScales.length} 个项目可补充</span>
-        <Button type="button" onClick={() => setOpen(true)} className="min-h-11 gap-2 px-4 font-bold">
+      // 与 SectionDisclosure 收起条同一外形：min-h-14、px-4/sm:px-5，左标题右操作，三条折叠入口等高对齐
+      <section className="flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2 sm:px-5">
+        <span className="font-semibold text-foreground">{remainingScales.length} 个项目可补充</span>
+        <Button type="button" onClick={() => setOpen(true)} className="min-h-10 gap-2 px-4 font-bold">
           <ClipboardPlus aria-hidden="true" /> 补充评估
         </Button>
       </section>
@@ -35,9 +38,8 @@ export function SupplementarySection({ sessionId, remainingScales, defaultOpen =
   }
 
   return (
-    <section className="patient-panel space-y-4 px-4 py-5 sm:px-6">
+    <section className="care-report-section space-y-4">
       <SectionHead
-        icon={<ClipboardPlus size={16} aria-hidden="true" />}
         title="选择补充评估项目"
         aside={
           <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="min-h-10 gap-1 px-2">
