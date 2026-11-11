@@ -1039,93 +1039,191 @@
   font-weight: 750;
 }
 
-/* 六步流程（2026-11-11 用户反馈：卡片一字排开像"一横过去"，要以序号为主、居中对称）：
-   上排为带序号的圆形节点，由一条贯穿首尾节点圆心的细线串联；
-   下排为等宽等高的步骤卡，图标与名称居中；整体在页面中水平居中。 */
-.care-stepper {
-  --stepper-gap: 1.25rem;
-  --stepper-node: 3.25rem;
-  position: relative;
+/* 六步流程（2026-11-11 第三版，参考用户给的工作台样稿但去掉多余文字）：
+   "采集 / 决策"两阶段各一条淡蓝分组带、各三张等宽等高步骤卡，中间以箭头相连，左右对称；
+   下方蓝色启动区作为全页唯一视觉重点。 */
+.care-flow {
   display: grid;
-  width: min(100%, 72rem);
-  margin-inline: auto;
-  gap: 2rem var(--stepper-gap);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.care-flow-phases {
+  display: grid;
+  gap: 1rem;
 }
 
 @media (min-width: 900px) {
-  .care-stepper {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  /* 连线：从第一个节点圆心到最后一个节点圆心（各列宽相等，圆心在列中线） */
-  .care-stepper::before {
-    position: absolute;
-    z-index: 0;
-    top: calc(var(--stepper-node) / 2);
-    left: calc((100% - 5 * var(--stepper-gap)) / 12);
-    right: calc((100% - 5 * var(--stepper-gap)) / 12);
-    height: 2px;
-    border-radius: 1px;
-    background: linear-gradient(90deg, var(--care-rule-strong), #9fc0f0 50%, var(--care-rule-strong));
-    content: "";
+  .care-flow-phases {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
   }
 }
 
-.care-stepper-item {
-  position: relative;
-  z-index: 1;
+.care-flow-phase {
   display: grid;
-  justify-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
+  padding: 1.25rem;
 }
 
-.care-stepper-node {
-  display: grid;
-  width: var(--stepper-node);
-  height: var(--stepper-node);
-  place-items: center;
-  border: 2px solid var(--primary);
+.care-flow-phase-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--care-ink);
+  font-size: 1.0625rem;
+  font-weight: 750;
+}
+
+.care-flow-phase-label::before {
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 999px;
-  background: var(--care-paper);
-  box-shadow: 0 0 0 6px var(--care-paper), var(--care-shadow-selected);
+  background: var(--primary);
+  content: "";
+}
+
+.care-flow-phase-label span {
+  color: var(--care-ink-soft);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.care-flow-steps {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.care-flow-step {
+  position: relative;
+  display: grid;
+  /* 高屏适度放大，避免 1920×1080 下卡片相对页面偏小 */
+  min-height: clamp(11rem, 19vh, 13rem);
+  align-content: center;
+  justify-items: center;
+  gap: 0.9rem;
+  padding: 2.25rem 0.75rem 1.5rem;
+  text-align: center;
+}
+
+/* 序号徽标固定在卡片左上角，六张卡位置一致 */
+.care-flow-step-index {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
   color: var(--primary);
-  font-size: 1.25rem;
+  font-size: 0.875rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
-.care-stepper-card {
-  display: grid;
-  width: 100%;
-  min-height: 10.5rem;
-  align-content: center;
-  justify-items: center;
-  gap: 1rem;
-  padding: 1.5rem 0.75rem;
-  text-align: center;
-}
-
-.care-stepper-card .care-icon-chip {
+.care-flow-step .care-icon-chip {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 1rem;
 }
 
-.care-stepper-card .care-icon-chip svg {
+.care-flow-step .care-icon-chip svg {
   width: 1.75rem;
   height: 1.75rem;
 }
 
-.care-stepper-card .care-card-title {
-  font-size: clamp(1.05rem, 1.25vw, 1.25rem);
+.care-flow-step .care-card-title {
+  font-size: clamp(1rem, 1.2vw, 1.2rem);
 }
 
-/* 流程页操作区：主按钮居中，与步骤组对称 */
-.care-stepper-actions {
+.care-flow-bridge {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .care-flow-bridge {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    /* 居中项的上外边距只下移一半：补上"阶段标签行高 + 间距"，箭头正对卡片中线而非分组带中线 */
+    margin-block-start: calc(1.0625rem * 1.5 + 1rem);
+    place-items: center;
+    border: 1px solid var(--care-rule);
+    border-radius: 999px;
+    background: var(--care-paper);
+    box-shadow: var(--care-shadow-soft);
+    color: var(--primary);
+  }
+
+  .care-flow-bridge svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+/* 启动区：品牌蓝渐变，标题居左、白色主按钮居右 */
+.care-flow-start {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding: clamp(1.5rem, 2.6vw, 2.25rem) clamp(1.5rem, 3vw, 2.75rem);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(28rem 14rem at 100% 0%, rgba(255, 255, 255, 0.22), transparent 70%),
+    linear-gradient(120deg, #1662dc 0%, #2a78ee 55%, #5a9bf5 100%);
+  box-shadow: 0 12px 30px rgba(22, 104, 227, 0.22);
+  color: #fff;
+}
+
+.care-flow-start h1 {
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.care-flow-start-button {
+  display: inline-flex;
+  min-width: 12rem;
+  min-height: 3.75rem;
+  align-items: center;
   justify-content: center;
-  margin-block-start: clamp(2.5rem, 5vh, 3.5rem);
+  gap: 0.6rem;
+  padding-inline: 2rem;
+  border-radius: 0.875rem;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(10, 40, 100, 0.18);
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: 800;
+  transition: transform 120ms var(--care-ease), box-shadow 180ms var(--care-ease);
+}
+
+.care-flow-start-button svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-flow-start-button:hover {
+  box-shadow: 0 10px 24px rgba(10, 40, 100, 0.24);
+}
+
+.care-flow-start-button:hover svg {
+  transform: translateX(3px);
+}
+
+.care-flow-start-button:active {
+  transform: scale(0.98);
+}
+
+.care-flow-start-button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
 }
 
 .doctor-shell.care-shell .doctor-sidebar {
