@@ -33,20 +33,33 @@ export default async function PatientHomePage() {
   return (
     <main className="patient-main flex-1">
       <PatientPageHeading plain title="健康评估" description="新建档案开始评估，或继续本机上的评估。" />
-      <div className="care-entry-grid">
-        {/* 整张卡片即入口链接，点击面积更大 */}
-        <Link href="/patient/register" className="care-card care-card-link care-entry-card">
-          <span className="care-entry-card-top">
+      <div className={mySession ? "care-entry-grid" : "grid"}>
+        {/* 整张卡片即入口链接；无进行中评估时只有这一个入口，改横向长卡占满整行 */}
+        {mySession ? (
+          <Link href="/patient/register" className="care-card care-card-link care-entry-card">
+            <span className="care-entry-card-top">
+              <span className="care-icon-chip" aria-hidden="true">
+                <UserRoundPlus />
+              </span>
+              <ArrowRight aria-hidden="true" />
+            </span>
+            <span className="care-entry-card-foot">
+              <span className="care-card-title">新建健康档案</span>
+              <span className="care-card-text">填写基本信息，选择本次评估项目。</span>
+            </span>
+          </Link>
+        ) : (
+          <Link href="/patient/register" className="care-card care-card-link care-entry-card" data-wide>
             <span className="care-icon-chip" aria-hidden="true">
               <UserRoundPlus />
             </span>
+            <span className="care-entry-card-foot">
+              <span className="care-card-title">新建健康档案</span>
+              <span className="care-card-text">填写基本信息，选择本次评估项目。</span>
+            </span>
             <ArrowRight aria-hidden="true" />
-          </span>
-          <span className="care-entry-card-foot">
-            <span className="care-card-title">新建健康档案</span>
-            <span className="care-card-text">填写基本信息，选择本次评估项目。</span>
-          </span>
-        </Link>
+          </Link>
+        )}
 
         {mySession && (
           <section className="care-card care-entry-card flex">

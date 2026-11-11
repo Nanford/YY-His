@@ -137,8 +137,10 @@ export default async function PatientRegisterPage({
             </div>
           )}
 
-          <form action={registerPatient} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-            <div className="care-band grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+          {/* 左右两栏等宽、同为面板、标题同高：左必填，右选填 */}
+          <form action={registerPatient} className="grid items-stretch gap-6 lg:grid-cols-2">
+            <div className="care-band grid content-start gap-4 p-5 sm:grid-cols-2 sm:p-6">
+              <h2 className="care-panel-title sm:col-span-2">基本信息</h2>
               <label className="block space-y-2">
                 <span className="flex items-center gap-2 text-lg font-extrabold text-[#173766]">
                   您的姓名 <span className="text-[#c23b4a]">*</span>
@@ -146,7 +148,7 @@ export default async function PatientRegisterPage({
                 <input name="name" type="text" required placeholder="请输入姓名" className={inputCls} />
               </label>
 
-              <fieldset className="space-y-2 sm:col-span-2 sm:row-start-2">
+              <fieldset className="space-y-2 sm:col-span-2 sm:row-start-3">
                 <legend className="text-lg font-extrabold text-[#173766]">
                   性别 <span className="text-[#c23b4a]">*</span>
                 </legend>
@@ -180,8 +182,8 @@ export default async function PatientRegisterPage({
               </label>
 
             </div>
-            <div className="grid gap-3">
-              <h2 className="text-lg font-bold text-[var(--care-ink)]">补充资料</h2>
+            <div className="care-band grid content-start gap-3 p-5 sm:p-6">
+              <h2 className="care-panel-title">补充资料</h2>
               <SectionDisclosure title="生活与照护情况" summary="选填" defaultOpen={error === "profile"}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <OptionalSelect label="文化程度" name="education" options={EDUCATION_LEVELS} />

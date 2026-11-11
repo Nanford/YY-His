@@ -983,51 +983,149 @@
   transform: translateX(3px);
 }
 
-/* 标题紧跟图标行，说明文字折行时各卡标题仍在同一水平线 */
+/* 标题区贴卡片底部、说明固定两行高：说明文字折行与否，各卡标题都在同一水平线，上下留白对称 */
 .care-entry-card-foot {
-  margin-block-start: 0.5rem;
+  margin-block-start: auto;
 }
 
-/* 六步流程：一行横排 + 步骤间细连线 */
-.care-steps {
+.care-entry-card .care-card-text {
+  min-height: calc(2 * 1.6em);
+}
+
+/* 只有一个入口时改横向长卡：图标居左、箭头居右，占满整行不留半边空白 */
+.care-entry-card[data-wide] {
+  flex-direction: row;
+  align-items: center;
+  min-height: 8rem;
+  gap: 1.5rem;
+  padding-inline: 2rem;
+}
+
+.care-entry-card[data-wide] .care-entry-card-foot {
+  flex: 1;
+  margin-block-start: 0;
+}
+
+.care-entry-card[data-wide] .care-card-text {
+  min-height: 0;
+}
+
+.care-entry-card[data-wide] > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--primary);
+  transition: transform 180ms var(--care-ease);
+}
+
+.care-entry-card[data-wide]:hover > svg {
+  transform: translateX(3px);
+}
+
+.care-entry-card[data-wide] .care-icon-chip {
+  width: 3.75rem;
+  height: 3.75rem;
+  border-radius: 1rem;
+}
+
+.care-entry-card[data-wide] .care-icon-chip svg {
+  width: 1.875rem;
+  height: 1.875rem;
+}
+
+/* 分栏面板标题：左右两栏同高同字号，顶边对齐 */
+.care-panel-title {
+  color: var(--care-ink);
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+/* 六步流程（2026-11-11 用户反馈：卡片一字排开像"一横过去"，要以序号为主、居中对称）：
+   上排为带序号的圆形节点，由一条贯穿首尾节点圆心的细线串联；
+   下排为等宽等高的步骤卡，图标与名称居中；整体在页面中水平居中。 */
+.care-stepper {
+  --stepper-gap: 1.25rem;
+  --stepper-node: 3.25rem;
+  position: relative;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  gap: 2rem var(--stepper-gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 @media (min-width: 900px) {
-  .care-steps {
+  .care-stepper {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .care-step:not(:last-child)::after {
+  /* 连线：从第一个节点圆心到最后一个节点圆心（各列宽相等，圆心在列中线） */
+  .care-stepper::before {
     position: absolute;
-    top: 2.75rem;
-    right: -1rem;
-    width: 1rem;
-    height: 1px;
-    background: var(--care-rule-strong);
+    z-index: 0;
+    top: calc(var(--stepper-node) / 2);
+    left: calc((100% - 5 * var(--stepper-gap)) / 12);
+    right: calc((100% - 5 * var(--stepper-gap)) / 12);
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(90deg, var(--care-rule-strong), #9fc0f0 50%, var(--care-rule-strong));
     content: "";
   }
 }
 
-.care-step {
+.care-stepper-item {
   position: relative;
-  display: flex;
-  min-height: 11rem;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
 }
 
-.care-step-index {
+.care-stepper-node {
+  display: grid;
+  width: var(--stepper-node);
+  height: var(--stepper-node);
+  place-items: center;
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  background: var(--care-paper);
+  box-shadow: 0 0 0 6px var(--care-paper), var(--care-shadow-selected);
   color: var(--primary);
-  font-size: 0.9375rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  opacity: 0.7;
+}
+
+.care-stepper-card {
+  display: grid;
+  width: 100%;
+  min-height: 10.5rem;
+  align-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0.75rem;
+  text-align: center;
+}
+
+.care-stepper-card .care-icon-chip {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+}
+
+.care-stepper-card .care-icon-chip svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.care-stepper-card .care-card-title {
+  font-size: clamp(1.05rem, 1.25vw, 1.25rem);
+}
+
+/* 流程页操作区：主按钮居中，与步骤组对称 */
+.care-stepper-actions {
+  display: flex;
+  justify-content: center;
+  margin-block-start: clamp(2.5rem, 5vh, 3.5rem);
 }
 
 .doctor-shell.care-shell .doctor-sidebar {

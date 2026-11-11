@@ -13,11 +13,11 @@ import { V2DemoPipeline } from "@/components/v2-pipeline";
 
 export default function PatientFlowPage() {
   return (
-    <main className="patient-main flex flex-1 flex-col justify-center">
+    <main className="patient-main flex flex-1 flex-col justify-center pb-[8vh]!">
       <section className="w-full" aria-label="评估流程">
         <V2DemoPipeline />
-        <div className="mt-8 flex justify-end">
-          <Link href="/patient/register" className="care-primary-button min-w-48 text-xl">
+        <div className="care-stepper-actions">
+          <Link href="/patient/register" className="care-primary-button min-w-56 text-xl">
             开始
             <ArrowRight className="size-6" aria-hidden="true" />
           </Link>
