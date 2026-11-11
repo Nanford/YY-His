@@ -2,6 +2,7 @@
  * INPUT:  量表分组、选择状态和提交操作
  * OUTPUT: 量表目录卡片、说明开关与提交栏
  * POS:    患者端四种评估方式共用，原生表单控件负责提交。
+ *         2026-11-11 用户拍板：各分组不再提供「全选本组 / 清除本组」，只保留页面级「全选 / 清除已选」。
  */
 import type { ChangeEventHandler, ReactNode } from "react";
 import {
@@ -41,34 +42,30 @@ export function updateAssessmentSelection(current: ReadonlySet<string>, ids: rea
   return next;
 }
 
-export function AssessmentBulkActions({ ids, selected, onChange, group, selectLabel, clearLabel }: {
+export function AssessmentBulkActions({ ids, selected, onChange, selectLabel, clearLabel }: {
   ids: readonly string[];
   selected: Pick<ReadonlySet<string>, "has">;
   onChange: (ids: readonly string[], checked: boolean) => void;
-  group?: string;
   selectLabel?: string;
   clearLabel?: string;
 }) {
-  const select = selectLabel ?? (group ? "全选本组" : "全选");
-  const clear = clearLabel ?? (group ? "清除本组" : "清除已选");
+  const select = selectLabel ?? "全选";
+  const clear = clearLabel ?? "清除已选";
   return (
-    <div className={group ? "assessment-bulk assessment-bulk-group" : "assessment-bulk"}>
+    <div className="assessment-bulk">
       <button type="button" className="assessment-bulk-button"
         disabled={ids.every((id) => selected.has(id))}
-        aria-label={group ? `${select}（${group}）` : undefined}
         onClick={() => onChange(ids, true)}>{select}</button>
       <button type="button" className="assessment-bulk-button"
         disabled={!ids.some((id) => selected.has(id))}
-        aria-label={group ? `${clear}（${group}）` : undefined}
         onClick={() => onChange(ids, false)}>{clear}</button>
     </div>
   );
 }
 
-export function ScaleGroup({ title, count, actions, children }: {
+export function ScaleGroup({ title, count, children }: {
   title: string;
   count: number;
-  actions?: ReactNode;
   children: ReactNode;
 }) {
   const Icon = categoryIcons[title] ?? LayoutGrid;
@@ -79,7 +76,6 @@ export function ScaleGroup({ title, count, actions, children }: {
           <Icon className="assessment-band-icon" aria-hidden="true" />
           <h3>{title}</h3>
           <span className="assessment-band-count">{count} 项</span>
-          {actions}
         </div>
         <div className="assessment-tiles">{children}</div>
       </div>

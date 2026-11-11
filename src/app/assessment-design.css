@@ -372,16 +372,6 @@
   outline-offset: 2px;
 }
 
-.assessment-bulk-group {
-  gap: 0.15rem;
-}
-
-.assessment-bulk-group .assessment-bulk-button {
-  min-height: 2.25rem;
-  padding-inline: 0.3rem;
-  font-size: 0.875rem;
-}
-
 .assessment-details-toggle {
   display: inline-flex;
   align-items: center;
@@ -667,9 +657,6 @@
   .assessment-band-body {
     gap: 0.65rem;
     padding: 0.65rem;
-  }
-  .assessment-band-label .assessment-bulk-group {
-    margin-inline-start: auto;
   }
   .assessment-tiles {
     gap: 0.5rem;

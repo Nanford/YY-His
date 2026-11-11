@@ -103,9 +103,7 @@ export default function RoutineForm({ packages, error, action }: Props) {
           </div>
         </div>
         {selected.groups.map((group) => (
-          <ScaleGroup key={group.category} title={group.category} count={group.scales.length}
-            actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)} selected={checked}
-              onChange={toggleScales} group={group.category} />}>
+          <ScaleGroup key={group.category} title={group.category} count={group.scales.length}>
             {group.scales.map((scale) => (
               <ScaleOption key={scale.id} title={scale.label} description={scale.subtitle} needsAssist={scale.needsAssist}
                 name="scaleIds" value={scale.id} checked={checked.has(scale.id)} showDetails={showDetails}

@@ -275,7 +275,14 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
         <section className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-[var(--care-ink)]">推荐评估项目</h2>
-            {analyzed && <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />}
+            {/* 页面级全选/清除覆盖「优先推荐 + 可补充项目」（2026-11-11 起分组内不再单设全选/清除） */}
+            {analyzed && (
+              <div className="assessment-toolbar-actions">
+                <AssessmentBulkActions ids={[...recommended, ...supplements].map((scale) => scale.id)}
+                  selected={checked} onChange={toggle} />
+                <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
+              </div>
+            )}
           </div>
 
           {!analyzed && (
@@ -309,20 +316,14 @@ export default function EmrForm({ patientId, catalog, supplementIds, error, acti
               )}
 
               {/* 推荐重点（默认全选，可手动增减） */}
-              <ScaleGroup title="优先推荐" count={recommended.length}
-                actions={<AssessmentBulkActions ids={recommended.map((scale) => scale.id)}
-                  selected={checked} onChange={toggle} group="优先推荐" />}>
+              <ScaleGroup title="优先推荐" count={recommended.length}>
                 {recommended.map(renderScaleCheck)}
               </ScaleGroup>
 
               {/* 可补充池（按需勾选） */}
               {supplements.length > 0 && (
                 <SectionDisclosure title="可补充项目" summary={`${supplements.length} 项`}>
-                  <div className="space-y-3">
-                    <AssessmentBulkActions ids={supplements.map((scale) => scale.id)}
-                      selected={checked} onChange={toggle} group="可补充项目" />
-                    <div className="grid gap-2 sm:grid-cols-2">{supplements.map(renderScaleCheck)}</div>
-                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">{supplements.map(renderScaleCheck)}</div>
                 </SectionDisclosure>
               )}
             </>

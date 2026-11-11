@@ -64,16 +64,13 @@ test("患者全程自助建档并完成评估，仍需医生审核方案才能�
   await expect(page.getByText("常规综合评估", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("自选组合评估", { exact: false })).toBeVisible();
 
-  // 本组清除不影响其他组，整页清空后不可提交，重新全选可恢复。
+  // 2026-11-11 起分组内不再有全选/清除按钮；整页清空后不可提交，重新全选可恢复。
   await page.getByRole("link", { name: /常规综合评估/ }).click();
   const firstGroup = page.getByRole("region", { name: "老年综合征" });
   const secondGroup = page.getByRole("region", { name: "精神心理" });
   await expect(firstGroup.locator("input:checked")).toHaveCount(4);
-  await firstGroup.getByRole("button", { name: /清除本组/ }).click();
-  await expect(firstGroup.locator("input:checked")).toHaveCount(0);
   await expect(secondGroup.locator("input:checked")).toHaveCount(3);
-  await firstGroup.getByRole("button", { name: /全选本组/ }).click();
-  await expect(firstGroup.locator("input:checked")).toHaveCount(4);
+  await expect(firstGroup.getByRole("button")).toHaveCount(0);
   await page.getByRole("button", { name: "清除已选", exact: true }).click();
   await expect(page.getByRole("button", { name: "确认并开始评估" })).toBeDisabled();
   await page.getByRole("button", { name: "全选", exact: true }).click();

@@ -78,13 +78,11 @@ export default function FollowupForm({
             <ScaleDetailsToggle checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />
           </div>
         </div>
-        <ScaleGroup title="建议复评" count={focusScales.length}
-          actions={<AssessmentBulkActions ids={focusIds} selected={checked} onChange={toggle} group="建议复评" />}>
+        <ScaleGroup title="建议复评" count={focusScales.length}>
           {focusScales.map(renderCheck)}
         </ScaleGroup>
         {extraScales.length > 0 && (
-          <ScaleGroup title="按需补充" count={extraScales.length}
-            actions={<AssessmentBulkActions ids={extraIds} selected={checked} onChange={toggle} group="按需补充" />}>
+          <ScaleGroup title="按需补充" count={extraScales.length}>
             {extraScales.map(renderCheck)}
           </ScaleGroup>
         )}

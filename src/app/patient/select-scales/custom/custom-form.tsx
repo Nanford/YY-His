@@ -197,9 +197,7 @@ export default function CustomForm({ packages, customGroups, askableCounts, erro
                 selected={selected} onChange={toggleCustomScales}
               />
               {customGroups.map((group) => (
-                <ScaleGroup key={group.category} title={group.category} count={group.scales.length}
-                  actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)}
-                    selected={selected} onChange={toggleCustomScales} group={group.category} />}>
+                <ScaleGroup key={group.category} title={group.category} count={group.scales.length}>
                   {group.scales.map((scale) => (
                     <ScaleOption key={scale.id} scaleId={scale.id} title={scale.label} description={scale.subtitle}
                       checked={selected.has(scale.id)} showDetails={showDetails}

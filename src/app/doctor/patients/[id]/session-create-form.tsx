@@ -180,9 +180,7 @@ export default function SessionCreateForm({ packages, groups, followup, patientI
               <div className="space-y-3">
                 <AssessmentBulkActions ids={allIds} selected={customSelected} onChange={toggleCustom} />
                 {groups.map((group) => (
-                  <ScaleGroupCard key={group.category} title={group.category} count={group.scales.length}
-                    actions={<AssessmentBulkActions ids={group.scales.map((scale) => scale.id)}
-                      selected={customSelected} onChange={toggleCustom} group={group.category} />}>
+                  <ScaleGroupCard key={group.category} title={group.category} count={group.scales.length}>
                     {group.scales.map((scale) => (
                       <ScaleOption key={scale.id} scaleId={scale.id} name={`scale.${scale.id}`}
                         title={scale.name} description={`${scale.questionCount} 题`} showDetails={showDetails}
