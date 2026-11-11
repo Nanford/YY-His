@@ -1,0 +1,501 @@
+/*
+ * INPUT:  页面根节点 .ios-page（目前仅患者端「常规综合评估」页挂载）
+ * OUTPUT: iOS 风格样式层：分组背景、大标题、分段控件、圆角分组列表、开关、毛玻璃底栏
+ * POS:    2026-11-11 UI 改版样板页的独立样式，不改全局令牌（globals.css）与其他页面；
+ *         样板确认后再决定是否把令牌上收到全局、推广到其他患者端页面。
+ *         适老化取舍：在 iOS 原生尺寸基础上整体放大一档（行高 ≥72px、正文 19px、开关 56×34）。
+ */
+
+/* 令牌挂在 patient-shell 上，使布局顶栏（页面外层）也能读到同一套颜色 */
+.patient-shell:has(.ios-page) {
+  --ios-bg: #f2f2f7;
+  --ios-card: #ffffff;
+  --ios-label: #1c1c1e;
+  /* Apple 网页次级文字色；系统 #8a8a8e 对老年用户对比度不足（约 3.5:1），此色约 5:1 */
+  --ios-secondary: #6e6e73;
+  --ios-separator: rgba(60, 60, 67, 0.16);
+  --ios-fill: rgba(118, 118, 128, 0.12);
+  --ios-pressed: #e5e5ea;
+  --ios-blue: #007aff;
+  --ios-green: #34c759;
+  /* 系统橙 #ff9500 作文字对比度不足，正文提示用加深的橙 */
+  --ios-orange-text: #b25000;
+  --ios-red-text: #d70015;
+  --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--ios-bg);
+}
+
+/* 顶栏改为与页面同底色的半透明材质，内容从下方滚过（替代白底 + 硬分割线） */
+.patient-shell:has(.ios-page) > header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom-color: var(--ios-separator);
+  background: rgba(242, 242, 247, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.ios-page {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  /* 底部留出固定底栏的高度，最后一组不被遮住 */
+  padding: 8px 20px 140px;
+  color: var(--ios-label);
+  font-family: var(--ios-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 导航与标题 ---------- */
+
+.ios-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 2px;
+  margin-left: -8px;
+  padding: 0 8px;
+  color: var(--ios-blue);
+  font-size: 19px;
+  border-radius: 10px;
+  transition: opacity 200ms ease;
+}
+
+.ios-back:active {
+  opacity: 0.4;
+  transition-duration: 0ms;
+}
+
+.ios-large-title {
+  margin: 8px 0 6px;
+  font-size: clamp(34px, 4vw, 44px);
+  font-weight: 700;
+  line-height: 1.1;
+  /* 大字号收紧字距 */
+  letter-spacing: -0.022em;
+}
+
+.ios-lede {
+  margin: 0;
+  color: var(--ios-secondary);
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+/* ---------- 分组标题 ---------- */
+
+.ios-section-header {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 0 12px 2px 20px;
+}
+
+.ios-section-header :is(h2, h3) {
+  margin: 0;
+  color: var(--ios-secondary);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ios-section-header .ios-section-count {
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 一级分组（「评估套餐」「本次评估项目」）用更醒目的标题 */
+.ios-section-header-primary {
+  margin-top: 36px;
+  padding-inline: 4px 12px;
+}
+
+/* 一级标题紧跟的第一个分组不再额外留白 */
+.ios-section-header-primary + section > .ios-section-header {
+  margin-top: 0;
+}
+
+.ios-section-header-primary h2 {
+  color: var(--ios-label);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+
+.ios-text-button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  color: var(--ios-blue);
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+  transition: opacity 200ms ease;
+}
+
+.ios-text-button:active {
+  opacity: 0.4;
+  transition-duration: 0ms;
+}
+
+.ios-text-button:focus-visible,
+.ios-back:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ios-blue) 45%, transparent);
+  outline-offset: 2px;
+}
+
+/* ---------- 分段控件（评估套餐） ---------- */
+
+.ios-segmented {
+  position: relative;
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--ios-fill);
+}
+
+.ios-segment {
+  position: relative;
+  display: grid;
+  min-height: 72px;
+  align-content: center;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity 200ms ease;
+}
+
+/* 原生单选框保留在原位（可聚焦、可读屏、随表单提交），视觉隐藏 */
+.ios-segment input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ios-segment:has(input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--ios-blue) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.ios-segment:active:not(:has(input:checked)) {
+  opacity: 0.55;
+  transition-duration: 0ms;
+}
+
+/* 选中滑块：由 motion 的 layoutId 在三段之间弹簧滑动 */
+.ios-segment-thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 11px;
+  background: var(--ios-card);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+}
+
+.ios-segment-title,
+.ios-segment-meta {
+  position: relative;
+  z-index: 1;
+}
+
+.ios-segment-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ios-segment-meta {
+  color: var(--ios-secondary);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ios-segment-badge {
+  margin-left: 6px;
+  color: var(--ios-blue);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- 圆角分组列表 ---------- */
+
+.ios-list {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--ios-card);
+}
+
+.ios-row {
+  position: relative;
+  display: grid;
+  min-height: 76px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  cursor: pointer;
+  /* 松手后底色缓慢褪去；按下瞬间见 :active（反馈在按下时即出现） */
+  transition: background-color 300ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ios-row:active {
+  background: var(--ios-pressed);
+  transition-duration: 0ms;
+}
+
+/* 内缩分割线：从文字起点开始，不贯穿图标列 */
+.ios-row + .ios-row::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(20px + 44px + 16px);
+  height: 1px;
+  background: var(--ios-separator);
+  content: "";
+}
+
+.ios-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 11px;
+  color: #fff;
+}
+
+.ios-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ios-row-title {
+  display: block;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.ios-row-subtitle {
+  display: block;
+  margin-top: 2px;
+  color: var(--ios-secondary);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.ios-row-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--ios-orange-text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.ios-row-note::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+/* ---------- 开关（原生 checkbox，role=switch） ---------- */
+
+.ios-switch {
+  position: relative;
+  width: 56px;
+  height: 34px;
+  flex-shrink: 0;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.2);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: background-color 250ms ease;
+}
+
+.ios-switch::before {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 3px 1px rgba(0, 0, 0, 0.06);
+  content: "";
+  /* 近似临界阻尼弹簧：快起步、无回弹 */
+  transition: transform 320ms cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+
+.ios-switch:checked {
+  background: var(--ios-green);
+}
+
+.ios-switch:checked::before {
+  transform: translateX(22px);
+}
+
+.ios-switch:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ios-blue) 45%, transparent);
+  outline-offset: 2px;
+}
+
+/* ---------- 提示条 ---------- */
+
+.ios-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  color: var(--ios-red-text);
+  background: #fff0f0;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* ---------- 毛玻璃底栏 ---------- */
+
+.ios-bottom-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  border-top: 1px solid var(--ios-separator);
+  background: rgba(249, 249, 249, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.ios-bottom-bar-inner {
+  display: flex;
+  width: min(100%, 920px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+  font-family: var(--ios-font);
+}
+
+.ios-bottom-count {
+  margin: 0;
+  color: var(--ios-secondary);
+  font-size: 17px;
+}
+
+.ios-bottom-count strong {
+  margin: 0 4px;
+  color: var(--ios-label);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ios-pill-button {
+  display: inline-flex;
+  min-width: 180px;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--ios-blue);
+  font: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.ios-pill-button:active:not(:disabled) {
+  opacity: 0.85;
+  transform: scale(0.97);
+  transition-duration: 80ms;
+}
+
+.ios-pill-button:disabled {
+  color: rgba(60, 60, 67, 0.3);
+  background: rgba(120, 120, 128, 0.16);
+  cursor: not-allowed;
+}
+
+.ios-pill-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ios-blue) 45%, transparent);
+  outline-offset: 3px;
+}
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 640px) {
+  .ios-page {
+    padding-inline: 16px;
+  }
+
+  /* 套餐名较长，手机宽度下三段改为纵向排列 */
+  .ios-segmented {
+    grid-auto-flow: row;
+  }
+
+  .ios-row {
+    gap: 12px;
+    padding-inline: 16px;
+  }
+
+  .ios-row + .ios-row::before {
+    left: calc(16px + 44px + 12px);
+  }
+
+  .ios-bottom-bar-inner {
+    padding-inline: 16px;
+  }
+
+  .ios-pill-button {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+/* ---------- 无障碍偏好 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ios-switch,
+  .ios-switch::before,
+  .ios-row,
+  .ios-pill-button {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .patient-shell:has(.ios-page) > header {
+    background: var(--ios-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .ios-bottom-bar {
+    background: #f9f9f9;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
