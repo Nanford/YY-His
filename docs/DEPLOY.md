@@ -92,7 +92,9 @@ AVATAR_MODE=fallback
 
 # —— 阿里云百炼视觉模型：画钟/五边形临摹看图判定（缺失则画图题落"待医生确认"）——
 DASHSCOPE_API_KEY=你的dashscope_key
-# 可选：VISION_MODEL 默认 qwen3-vl-plus（2026-11-11 对比后拍板维持）；换厂商见 .env.example 的 VISION_* 说明
+# 可选：VISION_MODEL 默认 qwen3-vl-plus（首轮看图，2026-11-11 对比后拍板维持）；
+# 可选：VISION_ARBITRATION_MODEL 默认 qwen3.8-max（画图题拿不准时的临界复核，同一个 DASHSCOPE_API_KEY）；
+# 换厂商见 .env.example 的 VISION_* 说明
 EOF
 chmod 600 /opt/his/.env.local
 ```
@@ -284,7 +286,7 @@ tar czf /opt/his-backups/storage-$(date +%F).tgz -C /opt/his storage
 | **降级可用** | 密钥缺失/网络异常时语音链路自动降级为字幕 + 按钮/文字，流程仍完整——可先无密钥上线验流程。视觉模型同理：缺 `DASHSCOPE_API_KEY` 或调用失败时，画图题落「待医生确认」、报告标「部分计分」。 |
 | **数字人** | `AVATAR_MODE=fallback`（内置 3D 形象）；火山虚拟数字人商务开通后再切 `sdk`。 |
 | **出网白名单** | 若服务器有出站限制，放通到 DeepSeek、火山（openspeech/tts/asr）、阿里云百炼（`dashscope.aliyuncs.com`）的 HTTPS。 |
-| **计费调用** | 视觉模型按次计费：每次画图交卷调用一次（约 3～5 秒）。 |
+| **计费调用** | 视觉模型按次计费：每次画图交卷先调用一次 `qwen3-vl-plus` 看图（约 3～5 秒）；规则拿不准时再调用一次 `qwen3.8-max` 临界复核（约 2～3 秒）；限流/服务端错误/网络中断会自动重试 1 次。 |
 
 ---
 
@@ -298,7 +300,7 @@ tar czf /opt/his-backups/storage-$(date +%F).tgz -C /opt/his storage
 - [ ] 浏览器打开 `https://his.hootoolai.com`，锁图标正常（证书有效）
 - [ ] `/patient/register` 建档 → 语音评估能出报告；`/doctor` 能看列表
 - [ ] 麦克风授权弹窗正常出现（证明安全上下文 OK）
-- [ ] 勾选 Mini-Cog 画一个规整的钟：医生端该会话的追溯记录里，这道「画图交卷」题有判定结果与「原因」，而不是「待医生确认」（用画钟验证；MMSE 五边形按从严口径，画对也常交医生，属正常）
+- [ ] 勾选 Mini-Cog 画一个规整的钟：医生端该会话的追溯记录里，这道「画图交卷」题有判定结果与「原因」，而不是「待医生确认」（2026-11-11 起规则拿不准的由模型临界复核定分，原因里标「临界复核」；画钟、五边形正常情况下都不应再出现「待医生确认」）
 - [ ] 备份 cron 已配置
 
 ---
@@ -313,7 +315,7 @@ tar czf /opt/his-backups/storage-$(date +%F).tgz -C /opt/his storage
 | `P2021 The table 'main.Patient' does not exist`（页面 500） | 迁移没成功、库是空的（App 空跑时自动建了空 dev.db）；`cd /opt/his` 后 `sudo systemctl stop his` → `DATABASE_URL=file:./prisma/dev.db npx prisma migrate deploy` → `sudo systemctl start his`。 |
 | `Failed to find Server Action "xxx"` | 浏览器开着旧构建的页面提交到新构建；硬刷新（Ctrl+F5）即可，非 bug。 |
 | `git pull` 显示 Already up to date，但线上还是旧版 | 服务器还在 `feature/patient-interview-voice-redesign` 旧分支；`git fetch origin && git checkout main && git pull origin main`，再走第 9 节第 5 步。 |
-| 画钟/五边形交卷后总是「待医生确认」 | `.env.local` 缺 `DASHSCOPE_API_KEY`（改完要 `sudo systemctl restart his`），或出网到 `dashscope.aliyuncs.com` 不通；`journalctl -u his -n 100` 看调用报错。注意：画作本身拿不准时交医生属正常判定，不是故障。 |
+| 画钟/五边形交卷后总是「待医生确认」 | `.env.local` 缺 `DASHSCOPE_API_KEY`（改完要 `sudo systemctl restart his`），或出网到 `dashscope.aliyuncs.com` 不通；`journalctl -u his -n 100` 看调用报错。2026-11-11 起拿不准的画作由临界复核定分，正常不再交医生；若只有拿不准的那部分交医生、原因写「临界复核未得出结论」，查日志里 `qwen3.8-max` 的报错（如账号未开通该模型返回 4xx，可用 `VISION_ARBITRATION_MODEL` 换成账号下可用的模型）。 |
 | Caddy/Nginx `:443 address already in use` | 端口被占；`ss -tlnp | grep :443` 查谁占，Caddy 用 `disable --now caddy` 让出。 |
 | `caddy.service is not active, cannot reload` | 服务没起来（多因 Caddyfile 错或端口占用）；本方案已改用 Nginx。 |
 
