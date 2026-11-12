@@ -7,6 +7,7 @@
  *         得分醒目展示并注明评分方式。「AI评分」只标大模型给出的分（DeepSeek 归一化/判定、视觉模型看图与临界复核，
  *         aiJudgment.method = "llm"）；没配密钥时的关键词规则兜底标「规则判定」，不算 AI。
  *         纯展示派生，不参与评分：分值仍是答案落库时按选项取的值（硬约束 2）。
+ *         YY-Demo 采集语义：isScored = false 的条目（便秘病程开放题）落库是占位 0 分，显示「不计分」。
  */
 import { MULTI_CHOICE_SEP, displayOptionLabel, type ScaleQuestion } from "@/lib/rules";
 
@@ -50,7 +51,7 @@ export interface ScoringCriterion {
   matched: boolean;
 }
 
-type ScoringQuestion = Pick<ScaleQuestion, "answerType" | "options">;
+type ScoringQuestion = Pick<ScaleQuestion, "answerType" | "options" | "isScored">;
 
 /** aiJudgment 在 Prisma 里是 Json，历史数据也可能是 JSON 字符串；形状不符一律视为没有判定记录 */
 export function readAiJudgment(value: unknown): AiJudgmentRecord | null {
@@ -100,6 +101,10 @@ export function describeAnswerScoring(input: {
   aiJudgment: AiJudgmentRecord | null;
   question: ScoringQuestion | undefined;
 }): AnswerScoring {
+  // 不在判定配置里的条目只保存原始回答（dialogue/service.ts 的 unscoredRawOutcome 写占位 0 分），不能显示成 0 分
+  if (input.question?.isScored === false) {
+    return { kind: "unscored", note: "本题不在判定配置的计分条目内，只记录患者原始回答" };
+  }
   // 多选题落库分值是占位 0（判定按所选项组合，见 scoring-v2），显示 0 分会误导
   if (input.question?.answerType === "multiChoice") {
     return { kind: "unscored", note: "多选题只记录所选项，按组合判定结果，不单独计分" };

@@ -11,7 +11,7 @@ import {
   scoringCriteriaOf,
   scoringMethodOf,
 } from "@/lib/assessment/answer-scoring";
-import { questionById, scales } from "@/lib/rules";
+import { collectionItemById, questionById, scales } from "@/lib/rules";
 
 const clock = questionById.get("minicog_2");
 const AI = { method: "llm", reason: "看图判定：钟面轮廓闭合，1～12 齐全且方位正确，画有指针", confidence: 0.92 };
@@ -87,6 +87,20 @@ describe("describeAnswerScoring", () => {
     const multi = scales.flatMap((scale) => scale.questions).find((question) => question.answerType === "multiChoice");
     if (!multi) throw new Error("题库应至少有一道多选题");
     expect(describeAnswerScoring({ source: "multi", score: 0, aiJudgment: null, question: multi }).kind).toBe("unscored");
+  });
+
+  it("不计分条目（便秘病程开放题）不显示占位 0 分，追溯页能兜底查到题干与量表名", () => {
+    expect(questionById.has("constipation_symptom_1")).toBe(false);
+    const item = collectionItemById.get("constipation_symptom_1");
+    expect(item?.question.isScored).toBe(false);
+    expect(item?.scaleName).toBeTruthy();
+    const scoring = describeAnswerScoring({
+      source: "voice",
+      score: 0,
+      aiJudgment: { method: "rules", reason: "非计分开放题仅保存患者原始回答", confidence: 1 },
+      question: item?.question,
+    });
+    expect(scoring.kind).toBe("unscored");
   });
 });
 

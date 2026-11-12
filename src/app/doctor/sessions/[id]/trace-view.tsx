@@ -5,9 +5,10 @@
  *         画图题（画钟、五边形临摹）的画作在此按 data URL 预览，来源统一标「画图交卷」。
  *         2026-11-12 用户拍板：「作答得分」与「评分标准」分开展示，得分醒目、注明 AI评分/规则判定等评分方式，
  *         折叠行也显示得分；展示口径见 src/lib/assessment/answer-scoring.ts。
+ *         题目查找：计分题走 questionById，不计分条目用 collectionItemById 兜底（YY-Demo 采集语义）。
  */
 import { Check } from "lucide-react";
-import { questionById, scaleByQuestionId, type ScaleQuestion } from "@/lib/rules";
+import { collectionItemById, questionById, scaleByQuestionId, type ScaleQuestion } from "@/lib/rules";
 import {
   SCORING_METHOD_LABEL,
   describeAnswerScoring,
@@ -343,8 +344,10 @@ export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewP
         ) : (
           <div className="space-y-3">
             {answers.map((answer) => {
-              const question = questionById.get(answer.questionId);
-              const scale = scaleByQuestionId.get(answer.questionId);
+              // questionById 只有计分题；不计分条目（便秘病程开放题）从全量采集条目兜底，否则题干与量表名都查不到
+              const collectionItem = collectionItemById.get(answer.questionId);
+              const question = questionById.get(answer.questionId) ?? collectionItem?.question;
+              const scaleName = scaleByQuestionId.get(answer.questionId)?.name ?? collectionItem?.scaleName;
               const sourceMeta = SOURCE_META[answer.source];
               const statusMeta = STATUS_META[answer.status];
               const relatedTurns = turnsByQuestion.get(answer.questionId) ?? [];
@@ -362,7 +365,7 @@ export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewP
                       {question?.no ?? answer.questionId}
                     </span>
                     <span className="min-w-0 flex-1 text-sm font-semibold leading-6 text-foreground">
-                      <span className="block text-xs font-normal text-muted-foreground">{scale?.name ?? "历史量表"}</span>
+                      <span className="block text-xs font-normal text-muted-foreground">{scaleName ?? "历史量表"}</span>
                       {question?.standardText ?? "按题目编号核对历史记录"}
                     </span>
                     <ScoreChip scoring={scoring} />

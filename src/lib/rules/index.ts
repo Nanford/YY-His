@@ -9,6 +9,7 @@
 import {
   judgmentsV2,
   scalesV2,
+  scaleV2ById,
   interventionsV2,
   interventionV2ByCode,
   scoringCategoriesV2,
@@ -507,6 +508,16 @@ export const questionById: ReadonlyMap<string, ScaleQuestion> = new Map(
 /** 题目 id → 所属量表 */
 export const scaleByQuestionId: ReadonlyMap<string, Scale> = new Map(
   scales.flatMap((s) => s.questions.map((q) => [q.id, s] as const))
+);
+
+/**
+ * 全量采集条目 id → 条目与所属量表名，含不计分条目（如便秘病程开放题 constipation_symptom_1/2）。
+ * questionById 只覆盖计分题；医生端追溯页用它兜底查题干，并按 isScored 显示「不计分」。
+ */
+export const collectionItemById: ReadonlyMap<string, { question: ScaleQuestion; scaleName: string }> = new Map(
+  [...collectionItemsByScale].flatMap(([scaleId, items]) =>
+    items.map((question) => [question.id, { question, scaleName: scaleV2ById.get(scaleId)?.name ?? scaleId }] as const)
+  )
 );
 
 /** 取题目的可选项（V2 投影后选项均在题目上；likertOptions 分支仅为类型兼容保留） */
