@@ -71,6 +71,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `data/interventions-v2.json` | 60 干预项正文与素材 |
 | `docs/source/*` | V1/V2.0 历史源（退役不删） |
 
+> 2026-11-12 用户拍板：仓库只放工程代码与规则源。需求修改稿 `修改.docx`、`v2.1修改思路.pptx` 及无用的 `fix-patient-new.png`（截图）、`design-qa.md` 已移出仓库（本地文件保留、`.gitignore` 屏蔽根目录同类资料）；代码注释里「来源：修改.docx / v2.1修改思路.pptx」的出处引用照旧有效，原文可从 git 历史取回（`git show 56b7f28:修改.docx > 修改.docx`）。
+
 **变更路径**：改 `V2/` 源 → `npm run convert-rules-v2` → 同步 judgments 手工段与测试。禁止手改医学 JSON。
 
 ### 运行时规模（V2）
