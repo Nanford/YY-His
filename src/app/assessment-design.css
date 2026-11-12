@@ -1528,9 +1528,14 @@
   margin: 0;
 }
 
-/* 光标：画笔是十字准星；橡皮是 28px 圆圈，与擦除范围等大（answer-input.tsx 的 ERASER_SCREEN_DIAMETER） */
+/* 光标：画笔是铅笔图标（深蓝笔身 + 白色描边，热点在左下角笔尖）；橡皮是 28px 圆圈，与擦除范围等大
+   （answer-input.tsx 的 ERASER_SCREEN_DIAMETER）。2026-11-12 用户反馈：系统十字准星在白色画板上
+   又细又淡、几乎看不见，改为自绘图标；图标加载不了时回退十字准星 */
 .care-shell .drawing-canvas[data-tool="pen"] {
-  cursor: crosshair;
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M2 30l3-10L22 3a2.8 2.8 0 0 1 4 0l3 3a2.8 2.8 0 0 1 0 4L12 27z' fill='%231e3a5f' stroke='%23ffffff' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M19 7l6 6' stroke='%23ffffff' stroke-width='1.6'/%3E%3Cpath d='M2 30l1.7-5.6 3.9 3.9z' fill='%23ffffff'/%3E%3C/svg%3E")
+      2 30,
+    crosshair;
 }
 
 .care-shell .drawing-canvas[data-tool="eraser"] {
