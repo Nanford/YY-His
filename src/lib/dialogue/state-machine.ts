@@ -32,6 +32,16 @@ export function patientOptionsOf(question: ScaleQuestion): QuestionOption[] {
   return question.options ?? [];
 }
 
+/**
+ * 判定/计分用的标准选项（01 表全量，含医护判定题的"正确/错误"）。只在服务端使用，不下发患者端。
+ * 画图题的 judgmentMode 是 clinician，patientOptionsOf 对它返回空数组；看图判定要把结论映射回
+ * 标准选项，必须取这里的全量选项——2026-11-12 修复：此前误传患者端可见选项（空），
+ * judgeDrawing 找不到正确项/0 分项，不调用视觉模型就落「待医生确认计分」。
+ */
+export function scoringOptionsOf(item: AskableQuestion): QuestionOption[] {
+  return item.question.options ?? [];
+}
+
 function collectionItem(scaleId: string, question: ScaleQuestion): AskableQuestion {
   const scale = scaleById.get(scaleId);
   if (!scale) throw new Error(`会话包含未知量表：${scaleId}`);

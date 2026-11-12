@@ -22,6 +22,7 @@ import {
 } from "@/lib/dialogue/drawing-judge";
 import type { VisionJsonRequest } from "@/lib/providers/vision";
 import { extractJsonObject, requestVisionJson, visionAvailable } from "@/lib/providers/vision";
+import { askableQuestions, scoringOptionsOf } from "@/lib/dialogue/state-machine";
 import { questionById } from "@/lib/rules";
 
 const DRAWING = "data:image/png;base64,AAAA";
@@ -405,6 +406,29 @@ describe("judgeDrawing：映射回标准选项", () => {
       reason: "不相交",
     }));
     expect(incorrect).toMatchObject({ status: "matched", optionLabel: "复制错误或未完成（0分）", score: 0 });
+  });
+
+  // 2026-11-12 回归：画图题属医护判定题，患者端可见选项为空；交卷判定若误用可见选项，
+  // 不调用视觉模型就落「待医生确认计分」。锁定 service.ts 交卷链路取的 scoringOptionsOf 能映射到分值。
+  it.each([
+    ["minicog", "minicog_2", 2],
+    ["mmse", "mmse_30", 1],
+  ])("患者端时间线里的 %s 画图题：可见选项为空，判定选项仍能映射到分值", async (scaleId, questionId, score) => {
+    const item = askableQuestions([scaleId]).find((candidate) => candidate.question.id === questionId);
+    if (!item) throw new Error(`${questionId} 应在患者端时间线里`);
+    expect(item.options).toEqual([]);
+
+    const judge = vi.fn(async () => ({ verdict: "correct" as const, confidence: 0.9, reason: "画对了" }));
+    const correct = await judgeDrawing(questionId, scoringOptionsOf(item), DRAWING, judge);
+    expect(judge).toHaveBeenCalledTimes(1);
+    expect(correct).toMatchObject({ status: "matched", score, method: "llm" });
+
+    const incorrect = await judgeDrawing(questionId, scoringOptionsOf(item), DRAWING, async () => ({
+      verdict: "incorrect",
+      confidence: 0.9,
+      reason: "画错了",
+    }));
+    expect(incorrect).toMatchObject({ status: "matched", score: 0 });
   });
 
   it("未接入判定器的画图题保持医生确认口径", async () => {

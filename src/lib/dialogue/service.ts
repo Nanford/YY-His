@@ -40,6 +40,7 @@ import {
   nextStep,
   progressOf,
   resolveReply,
+  scoringOptionsOf,
   type AnswerStatus,
   type AskableQuestion,
   type AskAttempt,
@@ -764,7 +765,8 @@ async function drawingOutcome(
 ): Promise<NormalizationOutcome> {
   const invalidReason = validateDrawing(drawingDataUrl);
   if (invalidReason || !drawingDataUrl) throw new DialogueConflictError(invalidReason ?? "画作数据无效");
-  return judgeDrawing(item.question.id, item.options, drawingDataUrl);
+  // 用标准选项而非 item.options：画图题属医护判定题，患者端可见选项为空（见 scoringOptionsOf）
+  return judgeDrawing(item.question.id, scoringOptionsOf(item), drawingDataUrl);
 }
 
 /**
