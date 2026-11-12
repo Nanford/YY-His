@@ -15,6 +15,7 @@ import type { PlanDecision } from "@/lib/assessment/plan-review";
 import { firstQueryValue } from "@/lib/query";
 import { reopenSession } from "@/lib/actions/doctor";
 import { readAnswerEditHistory } from "@/lib/assessment/audit";
+import { readAiJudgment } from "@/lib/assessment/answer-scoring";
 import { inspectDoctorAudioFile } from "@/app/api/doctor/sessions/[id]/turns/[turnId]/audio/route";
 import { CollectForm } from "./collect-form";
 import { ResultView } from "./result-view";
@@ -119,6 +120,7 @@ export default async function SessionPage({
       source: traceSource(answer.source),
       status: traceStatus(answer.status),
       editHistory: readAnswerEditHistory(answer.editHistory),
+      aiJudgment: readAiJudgment(answer.aiJudgment),
       updatedAt: answer.updatedAt,
     }))
     .sort((a, b) => (questionOrder.get(a.questionId) ?? 999) - (questionOrder.get(b.questionId) ?? 999));
