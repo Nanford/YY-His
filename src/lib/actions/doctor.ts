@@ -17,6 +17,7 @@ import type { AssessmentTag } from "@/lib/assessment/report-types";
 import { appendAnswerEditHistory, type AnswerSnapshot } from "@/lib/assessment/audit";
 import { applyPlanReview, type PlanReviewInput } from "@/lib/assessment/plan-review";
 import { acquireFinalizingLock, scoreAndSnapshot } from "@/lib/assessment/finalize";
+import { rejudgeDrawingAnswer, rejudgeNoticeOf } from "@/lib/assessment/drawing-rejudge";
 import {
   buildV2ProfileExtensions,
   generatePatientCode,
@@ -268,6 +269,22 @@ export async function reopenSession(sessionId: string): Promise<void> {
   });
   revalidatePath(`/doctor/sessions/${sessionId}`);
   redirect(`/doctor/sessions/${sessionId}`);
+}
+
+/**
+ * 画图题「AI 重新评分」（2026-11-12 用户拍板选项 A：画图题一律 AI 评分）：追溯页「待评分」画作的按钮入口。
+ * 判定、落库与重算结论见 src/lib/assessment/drawing-rejudge.ts；回跳时带上题号与结果码，页面在该题处展开并提示。
+ */
+export async function rejudgeDrawing(sessionId: string, questionId: string): Promise<void> {
+  assertRecordId(sessionId, "会话编号");
+  if (!questionById.has(questionId)) throw new Error("题目编号无效");
+  const outcome = await rejudgeDrawingAnswer(sessionId, questionId);
+  revalidatePath(`/doctor/sessions/${sessionId}`);
+  // 患者端报告读同一份当前评估结果，重算后一并刷新
+  revalidatePath(`/patient/sessions/${sessionId}`);
+  const query = `rejudged=${encodeURIComponent(questionId)}&rejudge=${rejudgeNoticeOf(outcome)}`;
+  revalidatePath(`/patient/sessions/${sessionId}/report`);
+  redirect(`/doctor/sessions/${sessionId}?${query}#trace-${encodeURIComponent(questionId)}`);
 }
 
 /** 医生审核候选方案：勾选保留项 → 形成最终干预方案（需求文档"第四步"医生确认环节） */

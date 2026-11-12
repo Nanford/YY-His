@@ -16,7 +16,8 @@ import { firstQueryValue } from "@/lib/query";
 import { reopenSession } from "@/lib/actions/doctor";
 import { readAnswerEditHistory } from "@/lib/assessment/audit";
 import { readAiJudgment } from "@/lib/assessment/answer-scoring";
-import { inspectDoctorAudioFile } from "@/app/api/doctor/sessions/[id]/turns/[turnId]/audio/route";
+import { parseRejudgeNotice } from "@/lib/assessment/drawing-rejudge";
+import { inspectDoctorAudioFile } from "@/lib/assessment/doctor-audio";
 import { CollectForm } from "./collect-form";
 import { ResultView } from "./result-view";
 import { FinalPlan, PlanReview } from "./plan-review";
@@ -268,7 +269,14 @@ export default async function SessionPage({
           )}
 
           {traceAnswers.length > 0 && (
-            <TraceView sessionId={session.id} answers={traceAnswers} dialogueTurns={traceTurns} />
+            <TraceView
+              sessionId={session.id}
+              answers={traceAnswers}
+              dialogueTurns={traceTurns}
+              rejudgedQuestionId={firstQueryValue(query.rejudged)}
+              rejudgeNotice={parseRejudgeNotice(firstQueryValue(query.rejudge))}
+              rejudgeBusy={session.status === "finalizing"}
+            />
           )}
         </div>
       </div>

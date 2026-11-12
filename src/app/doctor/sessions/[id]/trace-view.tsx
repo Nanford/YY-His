@@ -6,8 +6,12 @@
  *         2026-11-12 用户拍板：「作答得分」与「评分标准」分开展示，得分醒目、注明 AI评分/规则判定等评分方式，
  *         折叠行也显示得分；展示口径见 src/lib/assessment/answer-scoring.ts。
  *         题目查找：计分题走 questionById，不计分条目用 collectionItemById 兜底（YY-Demo 采集语义）。
+ *         未计分的存档画作可发起 AI 重新评分；回跳时展开该题，展示报告与方案更新结果。
  */
 import { Check } from "lucide-react";
+import { rejudgeDrawing } from "@/lib/actions/doctor";
+import { drawingRejudgeEligible, type RejudgeNoticeKind } from "@/lib/assessment/drawing-rejudge";
+import { DrawingRejudgeButton } from "./drawing-rejudge-button";
 import { collectionItemById, questionById, scaleByQuestionId, type ScaleQuestion } from "@/lib/rules";
 import {
   SCORING_METHOD_LABEL,
@@ -67,7 +71,19 @@ export interface TraceViewProps {
   sessionId: string;
   answers: readonly TraceAnswerDto[];
   dialogueTurns?: readonly TraceDialogueTurnDto[];
+  rejudgedQuestionId?: string;
+  rejudgeNotice?: RejudgeNoticeKind | null;
+  rejudgeBusy?: boolean;
 }
+
+const REJUDGE_NOTICES: Record<RejudgeNoticeKind, string> = {
+  scored: "AI 评分已完成，得分已保存，将计入本次评估报告。",
+  scored_rescored: "AI 评分已完成，评估报告与候选干预方案已更新，请核对后审核。",
+  scored_plan_kept: "AI 评分已完成，评估报告已更新；已确认的干预方案保持不变。如需调整方案，请重新打开并修正答案。",
+  unclear: "AI 暂未得出评分结论，画作仍为待评分，可稍后重试。",
+  stale: "本题记录已变化或不支持重新评分，已显示当前答案。",
+  busy: "评估报告正在生成，请稍后重新评分。",
+};
 
 const SOURCE_META: Record<TraceAnswerSource, { label: string; cls: string }> = {
   voice: { label: "语音作答", cls: "border-blue-200 bg-blue-50 text-blue-700" },
@@ -310,7 +326,7 @@ function ScoringCriteria({ question, optionLabel }: { question: ScaleQuestion | 
 }
 
 /** 逐题追溯展示，不接收也不渲染任何患者直接身份信息。 */
-export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewProps) {
+export function TraceView({ sessionId, answers, dialogueTurns = [], rejudgedQuestionId, rejudgeNotice, rejudgeBusy = false }: TraceViewProps) {
   const turnsByQuestion = new Map<string, TraceDialogueTurnDto[]>();
   for (const turn of dialogueTurns) {
     if (!turn.questionId) continue;
@@ -349,7 +365,12 @@ export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewP
               const question = questionById.get(answer.questionId) ?? collectionItem?.question;
               const scaleName = scaleByQuestionId.get(answer.questionId)?.name ?? collectionItem?.scaleName;
               const sourceMeta = SOURCE_META[answer.source];
-              const statusMeta = STATUS_META[answer.status];
+              const pendingDrawing = answer.source === "drawing" && answer.score === null &&
+                (answer.status === "pending" || answer.status === "manual");
+              const statusMeta = pendingDrawing
+                ? { ...STATUS_META.pending, label: "待评分" }
+                : STATUS_META[answer.status];
+              const notice = answer.questionId === rejudgedQuestionId ? rejudgeNotice : null;
               const relatedTurns = turnsByQuestion.get(answer.questionId) ?? [];
               const scoring = describeAnswerScoring({
                 source: answer.source,
@@ -359,7 +380,7 @@ export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewP
               });
 
               return (
-                <details key={answer.questionId} className="group overflow-hidden rounded-xl border border-border open:border-primary/35">
+                <details key={answer.questionId} id={`trace-${answer.questionId}`} open={Boolean(notice)} className="group scroll-mt-20 overflow-hidden rounded-xl border border-border open:border-primary/35">
                   <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3.5 transition hover:bg-slate-50">
                     <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
                       {question?.no ?? answer.questionId}
@@ -380,11 +401,18 @@ export function TraceView({ sessionId, answers, dialogueTurns = [] }: TraceViewP
                   </summary>
 
                   <div className="space-y-5 border-t border-slate-100 bg-slate-50/60 p-4">
+                    {notice && <p role="status" className={`ui-alert ${notice.startsWith("scored") ? "" : "ui-alert-warning"}`}>{REJUDGE_NOTICES[notice]}</p>}
                     <p className="text-xs text-muted-foreground">最近更新 {formatDate(answer.updatedAt)}</p>
 
                     <div className="grid gap-3 md:grid-cols-3">
                       <div className="space-y-3">
                         <ScoreCard scoring={scoring} />
+                        {!rejudgeBusy && drawingRejudgeEligible(answer) && (
+                          <form action={rejudgeDrawing.bind(null, sessionId, answer.questionId)} className="space-y-2">
+                            <DrawingRejudgeButton />
+                            <p className="text-xs leading-5 text-muted-foreground">使用存档画作重新识别并计分。</p>
+                          </form>
+                        )}
                         <ScoringCriteria question={question} optionLabel={answer.optionLabel} />
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white p-3 md:col-span-2">

@@ -757,7 +757,8 @@ function multiOutcome(item: AskableQuestion, labels: string[] | undefined): Norm
  * 画图题交卷（M9.6 画钟；2026-11-10 起接视觉模型看图判定）：
  * 模型给出对/错 → 映射到标准选项直接计分（医生事后可改判）；
  * 规则拿不准 → 临界复核由模型定分（2026-11-11 用户拍板：画图不再等医生确认，见 drawing-judge.ts）；
- * 未配置/调用失败/复核失败 → unclear，落 pending 等医生确认计分（原口径兜底）。
+ * 首轮/复核失败 → 换模型兜底（2026-11-12 复核链）；未配置或全部失败 → unclear，落 pending「待评分」，
+ * 医生可在追溯页「AI 重新评分」（src/lib/assessment/drawing-rejudge.ts）。
  */
 async function drawingOutcome(
   item: AskableQuestion,
@@ -948,7 +949,7 @@ export async function submitPatientAnswer(
           : input.mode === "drawing"
             ? outcome.status === "matched"
               ? `[画图交卷] 视觉模型判定：${outcome.optionLabel}`
-              : "[画图交卷] 待医生确认计分"
+              : "[画图交卷] AI 看图未得出结论，待重新评分"
             : input.mode === "acknowledge"
               ? "[完成确认] 已完成操作，待医护判定"
               : utterance;
@@ -965,7 +966,7 @@ export async function submitPatientAnswer(
     bumpCount(context.snapshot.patientReplyCount, input.questionId);
 
     // 2. 按状态机决定答案落库动作
-    // 画图交卷不走追问：视觉模型已判定 → 直接确认计分；否则 pending 等医生确认计分（M9.6）
+    // 画图交卷不走追问：视觉模型已判定 → 直接确认计分；否则 pending「待评分」，医生端可 AI 重新评分
     const resolution =
       input.mode === "drawing"
         ? outcome.status === "matched"

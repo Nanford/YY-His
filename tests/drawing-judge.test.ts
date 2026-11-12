@@ -224,6 +224,40 @@ function sentRequest(requester: ReturnType<typeof sequencedRequester>, callIndex
   return requester.mock.calls[callIndex][0];
 }
 
+describe.each([
+  ["画钟", createClockJudge, () => rawClock({ confidence: 0.4 })],
+  ["五边形", createPentagonJudge, () => rawPentagons({ confidence: 0.4 })],
+] as const)("%s：失败复核链", (_name, createJudge, borderline) => {
+  it.each([null, { malformed: true }])("首轮失败 %j 后完整复核并映射结论", async (first) => {
+    const request = sequencedRequester(first, { pass: true, confidence: 0.5, reason: "符合标准" });
+    expect(await createJudge(request)(DRAWING)).toMatchObject({ verdict: "correct", confidence: 0.5 });
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(sentRequest(request, 1).purpose).toBe("arbitration");
+    expect(sentRequest(request, 1).userText).toContain("逐项完整核对");
+  });
+
+  it.each([true, false])("复核模型无有效结论时备用模型定分：pass=%s", async (pass) => {
+    const request = sequencedRequester(borderline(), { pass: "不合法" }, { pass, confidence: 0.8, reason: "备用复核" });
+    const verdict = await createJudge(request)(DRAWING);
+    expect(verdict?.verdict).toBe(pass ? "correct" : "incorrect");
+    expect(verdict?.reason).toContain("备用模型");
+    expect(request.mock.calls.map(([sent]) => sent.purpose)).toEqual([undefined, "arbitration", "observation"]);
+    // 换模型仍使用同一套标准和画作，只更换通道目的。
+    expect(sentRequest(request, 2)).toEqual({ ...sentRequest(request, 1), purpose: "observation" });
+  });
+
+  it("整条链共用 60 秒截止时刻，全部失败不编分", async () => {
+    const started = Date.now();
+    const request = sequencedRequester(null, null, null);
+    expect(await createJudge(request)(DRAWING)).toBeNull();
+    expect(request).toHaveBeenCalledTimes(3);
+    const deadline = sentRequest(request, 0).deadline!;
+    expect(deadline).toBeGreaterThanOrEqual(started + 60_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 60_000);
+    for (const [sent] of request.mock.calls) expect(sent.deadline).toBe(deadline);
+  });
+});
+
 describe("parseArbitration：临界复核输出校验", () => {
   it("合法输出解析；理由缺失记为空串", () => {
     expect(parseArbitration({ pass: true, confidence: 0.7, reason: " 合格 " })).toEqual({
@@ -590,5 +624,30 @@ describe("requestVisionJson：出网请求", () => {
     vi.stubGlobal("fetch", timedOut);
     expect(await requestVisionJson(request)).toBeNull();
     expect(timedOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("剩余不足 5 秒不发请求；重试缩短超时且不会越过整题预算", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(100_000);
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const fetchMock = vi.fn(async () => okResponse());
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await requestVisionJson({ ...request, deadline: 104_999 })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockImplementationOnce(async () => {
+      now.mockReturnValue(135_000);
+      return new Response("busy", { status: 503 });
+    });
+    expect(await requestVisionJson({ ...request, deadline: 160_000 })).toEqual({ hasOutline: true });
+    expect(timeout.mock.calls.map(([ms]) => ms)).toEqual([30_000, 25_000]);
+
+    fetchMock.mockClear();
+    fetchMock.mockImplementationOnce(async () => {
+      now.mockReturnValue(156_000);
+      return new Response("busy", { status: 429 });
+    });
+    expect(await requestVisionJson({ ...request, deadline: 160_000 })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

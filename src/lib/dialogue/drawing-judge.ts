@@ -2,6 +2,7 @@
  * INPUT:  画图题条目 id 与其标准选项（src/lib/rules 的 QuestionOption）、患者画作 data URL、
  *         视觉模型看图通道（src/lib/providers/vision.ts，可注入便于测试）
  * OUTPUT: validateDrawing —— 画作数据校验；judgeDrawing —— 画图题看图判定并映射回标准选项；
+ *         hasDrawingJudge —— 该题是否已接入看图判定；
  *         parseClockObservation / clockVerdict —— 画钟观察结果的校验与确定性判定（纯函数）；
  *         parsePentagonObservation / pentagonVerdict —— 五边形临摹（MMSE mmse_30）的同类纯函数；
  *         parseArbitration —— 临界复核输出的校验（纯函数）
@@ -18,8 +19,12 @@
  *         「临界复核」——带上判定标准与拿不准的地方，请更强的复核模型（默认 qwen3.8-max，见 vision.ts）
  *         再看一遍，直接给出合格/不合格并计分，
  *         理由标「临界复核」供医生事后核对改判。这是硬约束 2/3 在画图题上的例外：明确的情况仍由规则判，
- *         只有规则拿不准的才由模型定。复核通道失败/输出不合法、首轮未配置视觉模型或调用失败
- *         → 仍落「待医生确认计分」（原 M9.6 口径；没有模型就无从打分）。
+ *         只有规则拿不准的才由模型定。
+ *         2026-11-12 用户拍板（选项 A，画图题一律 AI 评分）：复核走「复核链」——复核模型失败或输出不合法时
+ *         换首轮观察模型按同一标准再复核一次；首轮观察本身失败（调用失败/输出不合法）时不再直接交医生，
+ *         改由复核链对照判定标准完整判一次。整条链共用 JUDGE_BUDGET_MS 截止时刻，患者最多等的时长与改动前相同。
+ *         视觉模型未配置、或复核链全部失败 → 仍落「待评分」（没有模型结论不编分，硬约束 3），
+ *         医生可在追溯页点「AI 重新评分」用存档画作重跑（src/lib/assessment/drawing-rejudge.ts）。
  */
 import type { QuestionOption } from "@/lib/rules";
 import { requestVisionJson, type VisionJsonRequest } from "@/lib/providers/vision";
@@ -29,6 +34,11 @@ import type { NormalizationOutcome } from "./normalize-rules";
 const MAX_DRAWING_DATA_URL_LENGTH = 800_000;
 /** 模型自报置信度低于此值视为拿不准。画图题没有追问环节，门槛比文本判定（0.6）更严 */
 const MIN_CONFIDENCE = 0.7;
+/**
+ * 一道画图题整条判定链（首轮观察、瞬时重试、复核与备用模型）共用 60 秒预算，
+ * 防止多次 30 秒调用串行累加，延长患者交卷等待时间。
+ */
+const JUDGE_BUDGET_MS = 60_000;
 
 /** 看图判定结论 */
 export interface DrawingVerdict {
@@ -71,27 +81,66 @@ export function parseArbitration(raw: Record<string, unknown> | null): Arbitrati
   return { pass, confidence, reason: typeof reason === "string" ? reason.trim() : "" };
 }
 
+/** 按复核重点发一次复核请求；purpose 选模型（arbitration = 复核模型，observation = 首轮观察模型） */
+type ArbitrationRequester = (
+  focus: string,
+  purpose: "arbitration" | "observation"
+) => Promise<Record<string, unknown> | null>;
+
+/**
+ * 复核链（2026-11-12 方案 A）：优先调用复核模型，失败或输出不合法时换首轮模型按同一标准复核。
+ * 备用模型的判定准确率与主复核模型不同，因此理由标注「备用模型」，保留供医生核对改判的依据。
+ * @returns 两个模型都没给出合法结论时返回 null
+ */
+async function arbitrate(
+  focus: string,
+  requestArbitration: ArbitrationRequester
+): Promise<{ result: ArbitrationResult; backup: boolean } | null> {
+  for (const purpose of ["arbitration", "observation"] as const) {
+    const result = parseArbitration(await requestArbitration(focus, purpose));
+    if (result) return { result, backup: purpose === "observation" };
+  }
+  return null;
+}
+
+/** 复核结论 → 判定结论；不设置信度门槛（用户口径是画图不再等医生），置信度随结论落库供医生核对 */
+function arbitratedVerdict(
+  settled: { result: ArbitrationResult; backup: boolean },
+  stage: string,
+  context: string
+): DrawingVerdict {
+  const { result, backup } = settled;
+  return {
+    verdict: result.pass ? "correct" : "incorrect",
+    confidence: result.confidence,
+    reason: `${stage}${backup ? "（备用模型）" : ""}${result.pass ? "合格" : "不合格"}：${result.reason || "（模型未给理由）"}（${context}）`,
+  };
+}
+
 /**
  * 首轮规则判为临界时做临界复核（2026-11-11 用户拍板方案 A），明确的结论原样返回。
- * 复核结论不再设置信度门槛：用户口径是画图不再等医生，模型给出的合格/不合格即计分，
- * 置信度随结论落库供医生核对。复核失败（通道/输出不合法）→ 返回首轮的 unclear，交医生。
+ * 复核链全部失败 → 返回首轮的 unclear（judgeDrawing 落「待评分」）。
  * @param firstConfidence 首轮观察的置信度：把握不足时请模型逐项完整核对，否则只看拿不准的那一处
  */
 async function settleBorderline(
   verdict: DrawingVerdict,
   firstConfidence: number,
-  requestArbitration: (focus: string) => Promise<Record<string, unknown> | null>
+  requestArbitration: ArbitrationRequester
 ): Promise<DrawingVerdict> {
   if (verdict.verdict !== "unclear") return verdict;
   const focus =
     firstConfidence < MIN_CONFIDENCE ? "第一轮看图把握不足，请按标准逐项完整核对" : verdict.reason;
-  const result = parseArbitration(await requestArbitration(focus));
-  if (!result) return verdict;
-  return {
-    verdict: result.pass ? "correct" : "incorrect",
-    confidence: result.confidence,
-    reason: `临界复核${result.pass ? "合格" : "不合格"}：${result.reason || "（模型未给理由）"}（首轮拿不准：${verdict.reason}）`,
-  };
+  const settled = await arbitrate(focus, requestArbitration);
+  return settled ? arbitratedVerdict(settled, "临界复核", `首轮拿不准：${verdict.reason}`) : verdict;
+}
+
+/**
+ * 首轮观察失败（调用失败或输出不合法）时，改由复核链对照判定标准完整判一次（2026-11-12 用户拍板选项 A）。
+ * 视觉模型未配置时复核链同样拿不到结果，返回 null（judgeDrawing 落「待评分」）。
+ */
+async function settleWithoutObservation(requestArbitration: ArbitrationRequester): Promise<DrawingVerdict | null> {
+  const settled = await arbitrate("第一轮看图没有得出结果，请按标准逐项完整核对", requestArbitration);
+  return settled ? arbitratedVerdict(settled, "完整复核", "首轮看图未得出结果") : null;
 }
 
 // ---------- 画钟（minicog_2） ----------
@@ -264,25 +313,28 @@ const CLOCK_ARBITRATION_PROMPT = [
   ...ARBITRATION_OUTPUT_LINES,
 ].join("\n");
 
-/** 画钟判定器：视觉模型观察 → 校验 → 确定性判定；规则拿不准时临界复核 */
+/** 画钟判定器：视觉模型观察 → 校验 → 确定性判定；规则拿不准时临界复核，首轮失败时由复核链完整判定 */
 export function createClockJudge(request: VisionRequester = requestVisionJson): DrawingJudge {
   return async (imageDataUrl) => {
+    const deadline = Date.now() + JUDGE_BUDGET_MS;
+    const requestArbitration: ArbitrationRequester = (focus, purpose) =>
+      request({
+        systemPrompt: CLOCK_ARBITRATION_PROMPT,
+        userText: `${CLOCK_USER_TEXT}\n复核重点：${focus}`,
+        imageDataUrls: [imageDataUrl],
+        purpose,
+        deadline,
+      });
     const observation = parseClockObservation(
       await request({
         systemPrompt: CLOCK_SYSTEM_PROMPT,
         userText: CLOCK_USER_TEXT,
         imageDataUrls: [imageDataUrl],
+        deadline,
       })
     );
-    if (!observation) return null;
-    return settleBorderline(clockVerdict(observation), observation.confidence, (focus) =>
-      request({
-        systemPrompt: CLOCK_ARBITRATION_PROMPT,
-        userText: `${CLOCK_USER_TEXT}\n复核重点：${focus}`,
-        imageDataUrls: [imageDataUrl],
-        purpose: "arbitration",
-      })
-    );
+    if (!observation) return settleWithoutObservation(requestArbitration);
+    return settleBorderline(clockVerdict(observation), observation.confidence, requestArbitration);
   };
 }
 
@@ -421,25 +473,31 @@ const PENTAGON_ARBITRATION_PROMPT = [
   ...ARBITRATION_OUTPUT_LINES,
 ].join("\n");
 
-/** 五边形临摹判定器：只发患者画作（不发示例图），观察 → 校验 → 确定性判定；规则拿不准时临界复核 */
+/**
+ * 五边形临摹判定器：只发患者画作（不发示例图），观察 → 校验 → 确定性判定；
+ * 规则拿不准时临界复核，首轮失败时由复核链完整判定
+ */
 export function createPentagonJudge(request: VisionRequester = requestVisionJson): DrawingJudge {
   return async (imageDataUrl) => {
+    const deadline = Date.now() + JUDGE_BUDGET_MS;
+    const requestArbitration: ArbitrationRequester = (focus, purpose) =>
+      request({
+        systemPrompt: PENTAGON_ARBITRATION_PROMPT,
+        userText: `${PENTAGON_USER_TEXT}\n复核重点：${focus}`,
+        imageDataUrls: [imageDataUrl],
+        purpose,
+        deadline,
+      });
     const observation = parsePentagonObservation(
       await request({
         systemPrompt: PENTAGON_SYSTEM_PROMPT,
         userText: PENTAGON_USER_TEXT,
         imageDataUrls: [imageDataUrl],
+        deadline,
       })
     );
-    if (!observation) return null;
-    return settleBorderline(pentagonVerdict(observation), observation.confidence, (focus) =>
-      request({
-        systemPrompt: PENTAGON_ARBITRATION_PROMPT,
-        userText: `${PENTAGON_USER_TEXT}\n复核重点：${focus}`,
-        imageDataUrls: [imageDataUrl],
-        purpose: "arbitration",
-      })
-    );
+    if (!observation) return settleWithoutObservation(requestArbitration);
+    return settleBorderline(pentagonVerdict(observation), observation.confidence, requestArbitration);
   };
 }
 
@@ -450,6 +508,11 @@ const DRAWING_JUDGES: ReadonlyMap<string, DrawingJudge> = new Map([
   ["minicog_2", createClockJudge()],
   ["mmse_30", createPentagonJudge()],
 ]);
+
+/** 该题是否已接入看图判定（追溯页「AI 重新评分」只对这些题开放） */
+export function hasDrawingJudge(questionId: string): boolean {
+  return DRAWING_JUDGES.has(questionId);
+}
 
 /** 画作数据校验失败的原因（调用方映射为业务冲突错误）；通过返回 null */
 export function validateDrawing(drawingDataUrl: string | undefined): string | null {
@@ -469,12 +532,14 @@ function polarDrawingOptions(
 }
 
 const PENDING_REASON = "患者已提交画作，待医生确认计分";
+/** 视觉模型没给出结论时的提示：画图题一律 AI 评分（2026-11-12），指向重跑入口而不是等医生 */
+const RETRY_HINT = "可在医生端追溯页点「AI 重新评分」重试";
 
 /**
  * 画图题看图判定。
  * @param judge 该题的判定器，默认按题目 id 取已接入的判定器；测试注入桩函数
- * @returns matched = 已得出对/错（含临界复核给出的）并映射到标准选项；
- *          unclear = 视觉通道不可用或临界复核失败，交医生确认
+ * @returns matched = 已得出对/错（含临界复核、复核链给出的）并映射到标准选项；
+ *          unclear = 视觉模型未配置或复核链全部失败，落「待评分」等重跑
  */
 export async function judgeDrawing(
   questionId: string,
@@ -488,11 +553,19 @@ export async function judgeDrawing(
 
   const verdict = await judge(drawingDataUrl);
   if (!verdict) {
-    return { status: "unclear", method: "none", reason: `${PENDING_REASON}（视觉模型不可用）` };
+    return {
+      status: "unclear",
+      method: "none",
+      reason: `AI 看图未得出结论（视觉模型未配置，或首轮与复核调用均失败），${RETRY_HINT}`,
+    };
   }
   if (verdict.verdict === "unclear") {
-    // 走到这里说明首轮拿不准、临界复核也没拿到合法结论（通道失败/输出不合法）
-    return { status: "unclear", method: "llm", reason: `看图无法确定（临界复核未得出结论），待医生确认计分：${verdict.reason}` };
+    // 走到这里说明首轮拿不准、复核模型与备用模型也都没给出合法结论（通道失败/输出不合法）
+    return {
+      status: "unclear",
+      method: "llm",
+      reason: `AI 看图未得出结论（临界复核未给出结论），${RETRY_HINT}；首轮拿不准：${verdict.reason}`,
+    };
   }
   const option = verdict.verdict === "correct" ? polar.correct : polar.incorrect;
   return {

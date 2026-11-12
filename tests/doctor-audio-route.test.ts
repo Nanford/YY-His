@@ -16,12 +16,12 @@ vi.mock("node:fs/promises", () => ({
   stat: mocks.stat,
 }));
 
+import { GET } from "@/app/api/doctor/sessions/[id]/turns/[turnId]/audio/route";
 import {
-  GET,
   inspectDoctorAudioFile,
   parseDoctorAudioRange,
   resolveDoctorAudioPath,
-} from "@/app/api/doctor/sessions/[id]/turns/[turnId]/audio/route";
+} from "@/lib/assessment/doctor-audio";
 
 const PARAMS = { params: Promise.resolve({ id: "session-1", turnId: "turn-1" }) };
 const AUDIO_PATH = "audio-cache/recordings/session-1/answer.wav";

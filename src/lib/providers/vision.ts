@@ -11,9 +11,11 @@
  *         本层只负责"发图、拿回 JSON"，不含任何题目口径：模型看到了什么由调用方定义输出结构、
  *         逐字段校验后再用（模型输出不可信），对错判定在调用方用确定性规则完成（硬约束 2）。
  *         出网内容只有图片与提示词，不带患者编号/姓名（硬约束 1），且仍经 piiSafeJsonFetch 出网。
- *         通道不可用或调用失败返回 null，由调用方回落到"待医生确认计分"。
+ *         通道不可用或调用失败返回 null，由调用方换模型兜底（drawing-judge.ts 的复核链），全部失败才落「待评分」。
  *         2026-11-11（画图不再等医生确认）：限流/服务端错误/网络中断自动重试 1 次，减少因瞬时故障交医生；
  *         超时不重试（单次已等 30 秒，患者在交卷界面等不起）。
+ *         2026-11-12（画图一律 AI 评分，判定失败改走复核链）：请求可带 deadline——一道题的整条判定链共用一个截止时刻，
+ *         单次超时不超过剩余时间、剩余不足一次调用时不再发起，换模型兜底不会让患者等得比原来更久。
  */
 import { piiSafeJsonFetch } from "./pii-filter";
 
@@ -30,10 +32,12 @@ const DEFAULT_MODEL = "qwen3-vl-plus";
  * qwen3.8-max 能判对。只在首轮拿不准时调用，单次约 2～3 秒。仅用于默认百炼入口（其他厂商没有这个模型名）。
  */
 const DEFAULT_ARBITRATION_MODEL = "qwen3.8-max";
-/** 看图比纯文本慢，超时放宽；超时即回落医生确认，不阻塞流程 */
+/** 单次看图上限；超时由上层复核链决定是否换模型，最终失败保留待评分 */
 const REQUEST_TIMEOUT_MS = 30_000;
 /** 瞬时故障（限流、服务端错误、网络中断）的自动重试次数；超时、鉴权失败等不重试 */
 const TRANSIENT_RETRIES = 1;
+/** 离截止时刻不足这么久就不再发起调用：看图单次正常 3～5 秒，剩这点时间多半注定超时，白让患者等 */
+const MIN_ATTEMPT_MS = 5_000;
 
 interface VisionConfig {
   apiKey: string;
@@ -98,6 +102,8 @@ export interface VisionJsonRequest {
   imageDataUrls: readonly string[];
   /** 用途：arbitration = 画图题临界复核，走复核模型；缺省为首轮观察 */
   purpose?: "observation" | "arbitration";
+  /** 截止时刻（Date.now() 毫秒）：同一道题的多次调用共用，缺省时每次调用各按 30 秒超时 */
+  deadline?: number;
 }
 
 /** 模型输出可能包在 ```json 代码块或前后带说明文字里：取第一个 { 到最后一个 } 之间的内容解析 */
@@ -122,14 +128,25 @@ function isTransientStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
-async function attemptVisionRequest(config: VisionConfig, jsonBody: Record<string, unknown>): Promise<AttemptResult> {
+/** 本次尝试的超时：不超过单次上限与离截止时刻的剩余时间；剩余不足一次调用返回 null（不再发起） */
+function attemptTimeoutMs(deadline: number | undefined): number | null {
+  if (deadline === undefined) return REQUEST_TIMEOUT_MS;
+  const remaining = deadline - Date.now();
+  return remaining < MIN_ATTEMPT_MS ? null : Math.min(REQUEST_TIMEOUT_MS, remaining);
+}
+
+async function attemptVisionRequest(
+  config: VisionConfig,
+  jsonBody: Record<string, unknown>,
+  timeoutMs: number
+): Promise<AttemptResult> {
   try {
     const response = await piiSafeJsonFetch(`${config.apiBase}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${config.apiKey}` },
       jsonBody,
-      // 每次尝试单独计时，重试不吃上一次剩下的时间
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      // 每次尝试单独计时，重试不吃上一次剩下的时间（但受整题截止时刻约束，见 attemptTimeoutMs）
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) {
       // 只记状态码与服务端错误摘要（不含图片与患者信息），便于演示现场排查密钥/模型名配置
@@ -173,7 +190,12 @@ export async function requestVisionJson(request: VisionJsonRequest): Promise<Rec
   };
 
   for (let attempt = 0; attempt <= TRANSIENT_RETRIES; attempt += 1) {
-    const result = await attemptVisionRequest(config, jsonBody);
+    const timeoutMs = attemptTimeoutMs(request.deadline);
+    if (timeoutMs === null) {
+      console.warn("[vision] 本题判定时长已用尽，不再发起看图调用");
+      return null;
+    }
+    const result = await attemptVisionRequest(config, jsonBody, timeoutMs);
     if (result.kind === "done") return result.value;
   }
   return null;
