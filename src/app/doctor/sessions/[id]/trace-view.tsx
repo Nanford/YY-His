@@ -1,10 +1,21 @@
 /**
  * INPUT:  已脱离 Prisma 的答案追溯 DTO、关联对话录音 DTO
- * OUTPUT: 逐题标准答案、原始文本、来源、状态、修改历史及录音存储状态
+ * OUTPUT: 逐题作答得分（含评分方式与判定备注）、评分标准、原始文本、来源、状态、修改历史及录音存储状态
  * POS:    医生端全链路追溯视图；DTO 不包含患者身份字段、ASR 原始载荷或第三方请求数据。
  *         画图题（画钟、五边形临摹）的画作在此按 data URL 预览，来源统一标「画图交卷」。
+ *         2026-11-12 用户拍板：「作答得分」与「评分标准」分开展示，得分醒目、注明 AI评分/规则判定等评分方式，
+ *         折叠行也显示得分；展示口径见 src/lib/assessment/answer-scoring.ts。
  */
-import { questionById, scaleByQuestionId } from "@/lib/rules";
+import { Check } from "lucide-react";
+import { questionById, scaleByQuestionId, type ScaleQuestion } from "@/lib/rules";
+import {
+  SCORING_METHOD_LABEL,
+  describeAnswerScoring,
+  scoringCriteriaOf,
+  type AiJudgmentRecord,
+  type AnswerScoring,
+  type ScoringMethod,
+} from "@/lib/assessment/answer-scoring";
 
 export type TraceAnswerSource =
   | "voice"
@@ -36,6 +47,8 @@ export interface TraceAnswerDto {
   source: TraceAnswerSource;
   status: TraceAnswerStatus;
   editHistory: readonly TraceEditRecordDto[];
+  /** 判定记录（方式/理由/把握度）；医生补录的答案没有 */
+  aiJudgment: AiJudgmentRecord | null;
   updatedAt: Date | string;
 }
 
@@ -173,6 +186,103 @@ function EditHistory({ history }: { history: readonly TraceEditRecordDto[] }) {
   );
 }
 
+/** AI评分用实心蓝徽标，一眼和规则判定、患者点选、医生评分区分开 */
+const METHOD_BADGE: Record<ScoringMethod, string> = {
+  ai: "border-blue-600 bg-blue-600 text-white",
+  rules: "border-slate-300 bg-slate-50 text-slate-700",
+  patient: "border-blue-200 bg-blue-50 text-blue-700",
+  doctor: "border-blue-200 bg-blue-50 text-blue-700",
+  system: "border-slate-200 bg-slate-50 text-slate-600",
+};
+
+function scoreText(scoring: Extract<AnswerScoring, { kind: "scored" }>): string {
+  return scoring.maxScore === null ? `${scoring.score} 分` : `${scoring.score}/${scoring.maxScore} 分`;
+}
+
+/** 折叠行上的得分胶囊：不展开就能逐题扫一遍得分与评分方式 */
+function ScoreChip({ scoring }: { scoring: AnswerScoring }) {
+  if (scoring.kind === "pending") {
+    return <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">待评分</span>;
+  }
+  if (scoring.kind === "unscored") {
+    return <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">不计分</span>;
+  }
+  return (
+    <span className="inline-flex items-center overflow-hidden rounded-full border border-blue-200 text-xs font-semibold">
+      <span className="bg-white px-2 py-0.5 tabular-nums text-blue-800">{scoreText(scoring)}</span>
+      <span className={`border-l px-2 py-0.5 ${METHOD_BADGE[scoring.method]}`}>{SCORING_METHOD_LABEL[scoring.method]}</span>
+    </span>
+  );
+}
+
+/** 作答得分卡：本题实际得分（大号）+ 评分方式 + 备注（AI/规则判定写判定理由） */
+function ScoreCard({ scoring }: { scoring: AnswerScoring }) {
+  if (scoring.kind !== "scored") {
+    const pending = scoring.kind === "pending";
+    return (
+      <div className={`rounded-lg border p-3 ${pending ? "border-amber-200 bg-amber-50/60" : "border-slate-200 bg-white"}`}>
+        <p className="text-xs font-medium text-slate-500">作答得分</p>
+        <p className={`mt-1 text-2xl font-bold ${pending ? "text-amber-700" : "text-slate-500"}`}>{pending ? "待评分" : "不计分"}</p>
+        <p className="mt-2 text-xs leading-5 text-slate-500">{scoring.note}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-blue-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-slate-500">作答得分</p>
+        <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${METHOD_BADGE[scoring.method]}`}>
+          {SCORING_METHOD_LABEL[scoring.method]}
+        </span>
+      </div>
+      <p className="mt-2 flex items-baseline gap-1.5">
+        <span className="text-4xl font-bold leading-none tabular-nums text-blue-700">{scoring.score}</span>
+        <span className="text-base font-semibold text-blue-700">分</span>
+        {scoring.maxScore !== null && <span className="ml-1 text-sm text-slate-400">/ 满分 {scoring.maxScore} 分</span>}
+      </p>
+      <p className="mt-3 text-xs leading-5 text-slate-600">
+        <span className="font-medium text-slate-500">备注：</span>
+        {scoring.note}
+        {scoring.confidence !== null && (
+          <span className="ml-1 text-slate-400">（模型把握度 {Math.round(scoring.confidence * 100)}%）</span>
+        )}
+      </p>
+    </div>
+  );
+}
+
+/** 评分标准卡：01 表各选项与分值，本题记录的答案打勾高亮；记录的答案不在选项里（历史数据）时单独列出 */
+function ScoringCriteria({ question, optionLabel }: { question: ScaleQuestion | undefined; optionLabel: string | null }) {
+  const criteria = scoringCriteriaOf(question, optionLabel);
+  const unmatchedLabel = optionLabel && !criteria.some((criterion) => criterion.matched) ? optionLabel : null;
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <p className="text-xs font-medium text-slate-500">评分标准</p>
+      {criteria.length === 0 ? (
+        <p className="mt-1 text-sm text-slate-400">本题没有选项评分标准</p>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {criteria.map((criterion, index) => (
+            <li
+              key={index}
+              className={`flex items-start gap-2 rounded-md px-2 py-1.5 text-sm ${
+                criterion.matched ? "bg-blue-50 font-semibold text-blue-800" : "text-slate-600"
+              }`}
+            >
+              <span className="mt-0.5 w-4 shrink-0" aria-hidden={!criterion.matched}>
+                {criterion.matched && <Check size={16} strokeWidth={2.4} aria-label="本题答案" />}
+              </span>
+              <span className="min-w-0 flex-1 leading-5">{criterion.label}</span>
+              <span className="shrink-0 tabular-nums">{criterion.score} 分</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {unmatchedLabel && <p className="mt-2 text-xs leading-5 text-slate-500">记录的答案：{unmatchedLabel}</p>}
+    </div>
+  );
+}
+
 /** 逐题追溯展示，不接收也不渲染任何患者直接身份信息。 */
 export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
   const turnsByQuestion = new Map<string, TraceDialogueTurnDto[]>();
@@ -213,6 +323,12 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
               const sourceMeta = SOURCE_META[answer.source];
               const statusMeta = STATUS_META[answer.status];
               const relatedTurns = turnsByQuestion.get(answer.questionId) ?? [];
+              const scoring = describeAnswerScoring({
+                source: answer.source,
+                score: answer.score,
+                aiJudgment: answer.aiJudgment,
+                question,
+              });
 
               return (
                 <details key={answer.questionId} className="group overflow-hidden rounded-xl border border-border open:border-primary/35">
@@ -224,6 +340,7 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
                       <span className="block text-xs font-normal text-muted-foreground">{scale?.name ?? "历史量表"}</span>
                       {question?.standardText ?? "按题目编号核对历史记录"}
                     </span>
+                    <ScoreChip scoring={scoring} />
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${sourceMeta.cls}`}>
                       {sourceMeta.label}
                     </span>
@@ -238,10 +355,9 @@ export function TraceView({ answers, dialogueTurns = [] }: TraceViewProps) {
                     <p className="text-xs text-muted-foreground">最近更新 {formatDate(answer.updatedAt)}</p>
 
                     <div className="grid gap-3 md:grid-cols-3">
-                      <div className="rounded-lg border border-slate-200 bg-white p-3">
-                        <p className="text-xs font-medium text-slate-500">标准答案</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">{answer.optionLabel ?? "待确认"}</p>
-                        <p className="mt-1 text-xs text-slate-400">标准分值：{answer.score ?? "—"}</p>
+                      <div className="space-y-3">
+                        <ScoreCard scoring={scoring} />
+                        <ScoringCriteria question={question} optionLabel={answer.optionLabel} />
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white p-3 md:col-span-2">
                         <p className="text-xs font-medium text-slate-500">原始回答文本</p>
